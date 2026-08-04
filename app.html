@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Survey Rocket App</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles-shared.css">
+<style>
+  .app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
+  .side{border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+  .wordmark{display:flex;align-items:center;gap:10px;font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--tx);padding:4px 10px 16px}
+  .wordmark .rocket{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--r-md);background:var(--tile);box-shadow:var(--inset);color:var(--tx);font-size:11px;font-weight:600;flex:0 0 28px}
+  .navitem{display:flex;align-items:center;gap:10px;border:0;background:transparent;color:var(--tx-2);font-size:14px;font-weight:500;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;text-align:left;width:100%}
+  .navitem:hover{background:var(--btn);color:var(--tx)}
+  .navitem.on{background:var(--tx);color:var(--page)}
+  .side .acctline{margin-top:auto;padding:12px 10px;font-size:12px;color:var(--tx-dis);border-top:1px solid var(--line)}
+  .side .acctline b{display:block;color:var(--tx-2);font-weight:500}
+  @media (max-width:800px){
+    .app{grid-template-columns:1fr}
+    .side{position:sticky;top:0;z-index:40;height:auto;flex-direction:row;align-items:center;border-right:0;border-bottom:1px solid var(--line);background:var(--page);padding:10px 14px;overflow-x:auto}
+    .wordmark{padding:0 10px 0 0}
+    .navitem{width:auto;flex:0 0 auto;padding:8px 14px;border-radius:999px}
+    .side .acctline{display:none}
+  }
+  main{min-width:0}
+  .view{display:none}
+  .view.active{display:block}
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 20px 80px}
+  .pagehead{margin-bottom:18px}
+  .pagehead .eyebrow{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-dis)}
+  .pagehead h1{font-size:23px;margin:.25em 0 .1em}
+  .pagehead p{margin:0;max-width:70ch}
+  .canvas + .canvas{margin-top:18px}
+
+  .app-top{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line)}
+  .app-top .acct{font-family:var(--font-heading);font-weight:600;color:var(--tx)}
+  .app-top .acct small{display:block;font-family:var(--font-body);font-weight:400;color:var(--tx-2);font-size:12.5px}
+  .shelf{display:flex;gap:12px;padding:18px 22px;overflow-x:auto}
+  .survey-card{flex:0 0 260px;background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:8px}
+  .survey-card h4{font-size:14.5px}
+  .survey-card .meta{font-size:12px;color:var(--tx-dis);font-variant-numeric:tabular-nums}
+  .survey-card .row{display:flex;gap:8px;align-items:center;margin-top:auto;flex-wrap:wrap}
+
+  .ed-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:18px;align-items:start}
+  @media (max-width:960px){.ed-grid{grid-template-columns:1fr}}
+  .ed-head{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .ed-head input.name{flex:1;min-width:200px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:9px 14px;color:var(--tx);font-size:15px;font-weight:500;font-family:var(--font-heading)}
+  .qwrap{padding:8px 22px 18px}
+  .qcard{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:14px;margin-top:12px}
+  .qcard .qtop{display:flex;gap:8px;align-items:flex-start}
+  .qcard .qnum{flex:0 0 26px;color:var(--tx-dis);font-weight:500;font-variant-numeric:tabular-nums;padding-top:8px}
+  .qcard textarea{flex:1;min-width:0;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:9px 12px;color:var(--tx);font-size:14px;resize:vertical;min-height:40px;line-height:1.4}
+  .qcard .controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+  .qcard select{background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 10px;color:var(--tx);font-size:13px}
+  .qcard input.optsinp{flex:1;min-width:180px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 12px;color:var(--tx);font-size:13px}
+  .qcard input.num{width:90px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 10px;color:var(--tx);font-size:13px;font-variant-numeric:tabular-nums}
+  .iconbtn{border:0;background:var(--tile);box-shadow:var(--inset);color:var(--tx-2);border-radius:var(--r-sm);width:30px;height:30px;cursor:pointer;font-size:13px}
+  .iconbtn:hover{color:var(--tx);background:var(--btn-hover)}
+  .iconbtn.del:hover{color:var(--red)}
+  .qadd{margin-top:14px;display:flex;gap:10px;padding:0 22px}
+  .closerbox{margin:14px 22px 20px;background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:14px}
+  .closerbox .head{display:flex;align-items:center;gap:10px}
+  .closerbox .head b{color:var(--tx);font-weight:500;font-size:14px}
+  .switch{margin-left:auto;position:relative;width:40px;height:22px;border-radius:999px;background:var(--tile);box-shadow:var(--inset);border:0;cursor:pointer}
+  .switch i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--tx-dis);transition:left .15s,background .15s}
+  .switch.on{background:rgba(0,212,146,.2)}
+  .switch.on i{left:21px;background:var(--green)}
+  .closerbox p{margin:8px 0 0;font-size:12.5px;color:var(--tx-dis)}
+  .ed-foot{display:flex;gap:10px;padding:0 22px 20px;align-items:center;flex-wrap:wrap}
+  .savedmsg{font-size:12.5px;color:var(--green);opacity:0;transition:opacity .3s}
+  .savedmsg.show{opacity:1}
+  #pv-log{max-height:560px;min-height:200px}
+  .pv-note{padding:10px 16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--tx-dis)}
+
+  .dashtabs{display:flex;gap:6px;padding:0 0 16px;overflow-x:auto}
+  .dashtab{flex:0 0 auto;border:0;background:var(--btn);box-shadow:var(--inset);color:var(--tx-2);font-size:13px;font-weight:500;padding:8px 16px;border-radius:999px;cursor:pointer}
+  .dashtab:hover{background:var(--btn-hover);color:var(--tx)}
+  .dashtab.on{background:var(--tx);box-shadow:none;color:var(--page)}
+  .dash-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 22px;border-bottom:1px solid var(--line)}
+  .dash-top h3{font-size:16px}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:13px;padding:0 22px 20px}
+  @media (max-width:820px){.charts{grid-template-columns:1fr}}
+  .quotes{padding:0 22px 20px;display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  @media (max-width:820px){.quotes{grid-template-columns:1fr}}
+  .quote{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px}
+  .quote p{margin:0 0 8px;color:var(--tx);font-size:14px}
+  .quote small{color:var(--tx-dis);font-size:12px;display:block;margin-bottom:8px}
+  .emptystate{padding:56px 24px;text-align:center;color:var(--tx-dis);font-size:14px}
+  .autonote{margin:0 22px 22px;padding:14px 18px;border-radius:var(--r-md);background:var(--card);box-shadow:var(--inset);color:var(--tx-2);font-size:13.5px}
+
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
+  .overlay.open{display:flex}
+  .modal{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);max-width:680px;width:100%;padding:26px}
+  .modal h3{font-size:17px;margin-bottom:4px}
+  .modal .sub{font-size:13.5px;color:var(--tx-2);margin:0 0 18px}
+  .choices{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media (max-width:720px){.choices{grid-template-columns:1fr}}
+  .choice{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:18px;text-align:left;border:0;cursor:pointer;color:var(--tx-2)}
+  .choice:hover{background:var(--btn-hover)}
+  .choice b{display:block;font-family:var(--font-heading);font-weight:600;color:var(--tx);font-size:15px;margin-bottom:6px}
+  .choice p{margin:0;font-size:13px;line-height:1.45}
+  .choice .chip{margin-top:10px}
+  .modal .close{margin-top:16px;background:transparent;border:0;color:var(--tx-dis);font-size:13px;cursor:pointer;padding:0}
+
+  .scan-grid{display:grid;grid-template-columns:1fr;gap:16px;max-width:760px}
+  .scan-card{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:22px}
+  .scan-card h3{font-size:15px;margin-bottom:12px}
+  .scan-card label{display:block;font-size:12px;color:var(--tx-dis);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px}
+  .scan-card input{width:100%;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:11px 14px;color:var(--tx);font-size:14px}
+  .scan-log{font-size:13px;color:var(--tx-2);margin-top:14px;display:none}
+  .scan-log div{padding:4px 0}
+  .scan-log .ok{color:var(--green)}
+  .found-chips{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 4px}
+  .gapline{margin:10px 0 0;padding:12px 14px;border-radius:var(--r-md);background:var(--btn);border-left:2px solid var(--yellow);font-size:13.5px;color:var(--tx)}
+  .statcard{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:18px;margin-top:12px}
+  .statcard .stat{font-family:var(--font-heading);font-weight:600;color:var(--tx);font-size:17px;margin-bottom:4px}
+  .statcard .why{font-size:12.5px;color:var(--tx-dis);margin-bottom:12px}
+  .statcard ol{margin:0 0 14px;padding-left:20px;font-size:13px;color:var(--tx-2)}
+  .statcard li{margin:4px 0}
+  .statcard li b{color:var(--icon);font-weight:500}
+
+  .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 22px}
+  @media (max-width:820px){.setgrid{grid-template-columns:1fr}}
+  .setcard{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:18px}
+  .setcard h4{font-size:14px;margin-bottom:10px}
+  .krow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .krow:last-child{border-bottom:0}
+  .krow .k{color:var(--tx-dis)}
+  .krow .v{color:var(--tx);font-weight:500;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .krow .v.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--tx-2)}
+  .krow .v.pend{color:var(--alert);font-weight:400}
+  .setnote{padding:0 22px 20px;font-size:12.5px;color:var(--tx-dis)}
+</style>
+</head>
+<body>
+
+<div class="app" id="appShell">
+<aside class="side">
+  <div class="wordmark"><span class="rocket">SR</span>Survey Rocket</div>
+  <button class="navitem" data-r="#/surveys">Surveys</button>
+  <button class="navitem" data-r="#/dashboard">Dashboard</button>
+  <button class="navitem" data-r="#/settings">Settings</button>
+  <div class="acctline"><b>Lean Labs</b>Survey Rocket test account</div>
+</aside>
+<main>
+
+<div class="overlay" id="chooser" role="dialog" aria-modal="true" aria-label="New survey">
+  <div class="modal">
+    <h3>New survey</h3>
+    <p class="sub">Three ways to start. Every path ends in the editor, you approve every question before anything goes live.</p>
+    <div class="choices">
+      <button class="choice" id="chooseManual"><b>Write it myself</b><p>Start from a blank survey and type your exact questions.</p></button>
+      <button class="choice" id="chooseGaps"><b>Find my gaps</b><p>We read your main pages and show which claims have no proof behind them, with drafted surveys for each gap.</p><span class="chip gold">Later phase, preview</span></button>
+      <button class="choice" id="chooseScan"><b>Start from a stat</b><p>Type the stat you want to publish. We draft the questions that produce it.</p><span class="chip gold">Later phase, preview</span></button>
+    </div>
+    <button class="close" id="chooserClose">Cancel</button>
+  </div>
+</div>
+
+<!-- SURVEYS -->
+<section class="view" id="v-home">
+  <div class="wrap">
+    <div class="pagehead"><div class="eyebrow">Account</div><h1>Surveys</h1><p>Every survey in the account, its status, and one button. Edits and responses are saved in this browser for the test phase.</p></div>
+    <div class="canvas">
+      <div class="app-top">
+        <div class="acct">Lean Labs <small>Survey Rocket test account</small></div>
+        <span style="margin-left:auto"></span>
+        <button class="btn primary" id="newSurveyBtn">+ New survey</button>
+      </div>
+      <div class="shelf" id="shelf"></div>
+    </div>
+  </div>
+</section>
+
+<!-- EDITOR -->
+<section class="view" id="v-editor">
+  <div class="wrap">
+    <div class="pagehead"><div class="eyebrow">Survey setup</div><h1>Editor</h1><p>Write the exact questions you want asked. The bot asks these and nothing else. The preview on the right updates as you type, and Save keeps it in this browser.</p></div>
+    <div class="ed-grid">
+      <div class="canvas">
+        <div class="ed-head">
+          <input class="name" id="ed-name" aria-label="Survey name">
+          <span class="chip" id="ed-status"></span>
+        </div>
+        <div class="qwrap" id="qwrap"></div>
+        <div class="qadd"><button class="btn ghost small" id="addQ">+ Add question</button></div>
+        <div class="closerbox">
+          <div class="head"><b>Closing quote ask</b><button class="switch" id="quoteToggle" role="switch" aria-label="Closing quote ask"><i></i></button></div>
+          <p>After the last question the bot asks what they would tell a peer. A favorable answer triggers a permission ask to use it as a website quote, then attribution. Negative answers stay private feedback.</p>
+        </div>
+        <div class="ed-foot">
+          <button class="btn primary" id="saveBtn">Save</button>
+          <button class="btn ghost" id="activateBtn">Activate</button>
+          <a class="btn ghost" id="openSurveyBtn" target="_blank" rel="noopener" title="The page a respondent sees">Open live survey</a>
+          <button class="btn ghost" id="shareBtn" title="Portable link that carries the survey, works on any device">Copy share link</button>
+          <span class="savedmsg" id="savedmsg"></span>
+        </div>
+      </div>
+      <div class="chat-frame">
+        <div class="chat-head"><span class="av">SR</span><div><b>Live preview</b><small>what a respondent will see</small></div></div>
+        <div class="chat-log" id="pv-log"></div>
+        <div class="pv-note">Preview renders your current questions. Open live survey to answer them for real.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section class="view" id="v-results">
+  <div class="wrap">
+    <div class="pagehead"><div class="eyebrow">Account</div><h1>Dashboard</h1><p>One dashboard per survey, computed live from the responses stored in this browser. Seeded sample responses are included so the first visit is not empty.</p></div>
+    <div class="dashtabs" id="dashtabs"></div>
+    <div id="dashpanel"></div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section class="view" id="v-settings">
+  <div class="wrap">
+    <div class="pagehead"><div class="eyebrow">Account</div><h1>Settings</h1><p>Managed by Lean Labs during the pilot. Nothing here needs your attention to run a survey.</p></div>
+    <div class="canvas">
+      <div class="setgrid">
+        <div class="setcard">
+          <h4>Data</h4>
+          <div class="krow"><span class="k">Storage</span><span class="v">This browser (test phase)</span></div>
+          <div class="krow"><span class="k">Shared data store</span><span class="v pend">Phase 2</span></div>
+          <div class="krow"><span class="k">Reset</span><span class="v"><button class="btn ghost small" id="resetBtn">Reset to seed data</button></span></div>
+        </div>
+        <div class="setcard">
+          <h4>HubSpot connection</h4>
+          <div class="krow"><span class="k">Status</span><span class="v pend">Pending, token not issued yet</span></div>
+          <div class="krow"><span class="k">Write-back</span><span class="v">Properties + timeline note + completed flag</span></div>
+          <div class="krow"><span class="k">Reminders</span><span class="v">Stop automatically once someone completes the survey</span></div>
+        </div>
+        <div class="setcard">
+          <h4>Survey links</h4>
+          <div class="krow"><span class="k">Same browser</span><span class="v mono">survey.html?id=&lt;survey&gt;</span></div>
+          <div class="krow"><span class="k">Any device</span><span class="v mono">survey.html#p=&lt;payload&gt;</span></div>
+          <div class="krow"><span class="k">Contact token</span><span class="v pend">Comes with the HubSpot phase</span></div>
+        </div>
+        <div class="setcard">
+          <h4>Branding</h4>
+          <div class="krow"><span class="k">Account</span><span class="v">Lean Labs test</span></div>
+          <div class="krow"><span class="k">Custom styling</span><span class="v">Coming after launch</span></div>
+        </div>
+      </div>
+      <div class="setnote">Test-phase prototype: surveys and responses live in this browser only. The share link carries the survey definition so anyone can answer, but their answers stay on their device until the shared data store lands in phase 2.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ONE STAT SCAN -->
+<section class="view" id="v-scan">
+  <div class="wrap">
+    <div class="pagehead"><div class="eyebrow">Start from a stat &middot; preview of a later phase</div><h1>Start from a stat</h1><p>Name the stat you want to own. The scan checks whether your site already backs it, then drafts the questions that produce it. Nothing goes live without your edit and approval.</p></div>
+    <div class="scan-grid">
+      <div class="scan-card">
+        <h3>What are we scanning?</h3>
+        <label for="scan-url">Your website</label>
+        <input id="scan-url" value="https://www.lean-labs.com">
+        <label for="scan-stat">The stat you want to publish</label>
+        <input id="scan-stat" value="X% of clients grow qualified pipeline in the first 90 days">
+        <div style="margin-top:16px"><button class="btn primary" id="scanBtn">Scan the site</button></div>
+        <div class="scan-log" id="scanLog"></div>
+      </div>
+      <div class="scan-card" id="scanResults" style="display:none">
+        <div class="gapline">Nothing on your site backs this stat today. Here is the survey that produces it.</div>
+        <div class="statcard">
+          <div class="stat">"78% of clients grow qualified pipeline in the first 90 days"</div>
+          <div class="why">Drafted to produce the stat you named. Sample value, the real number comes from your responses.</div>
+          <ol>
+            <li>Which Lean Labs program are you on? <b>Multiple choice</b></li>
+            <li>About how many qualified leads per month does your site produce now? <b>Number, validated</b></li>
+            <li>Compared with before working with us, how has qualified pipeline changed? <b>Multiple choice, ranges</b></li>
+            <li>How likely are you to recommend Lean Labs to a peer? <b>Multiple choice, 0 to 10</b></li>
+          </ol>
+          <button class="btn primary use-draft" data-draft="pipeline">Use this draft in the editor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GLOBAL GAP SCAN -->
+<section class="view" id="v-gaps">
+  <div class="wrap">
+    <div class="pagehead"><div class="eyebrow">Find my gaps &middot; preview of a later phase</div><h1>Find my gaps</h1><p>We read your main pages, list the claims you already publish, and draft a survey for each proof gap. Every draft still lands in the editor for your approval.</p></div>
+    <div class="scan-grid">
+      <div class="scan-card">
+        <h3>What are we scanning?</h3>
+        <label for="gaps-url">Your website</label>
+        <input id="gaps-url" value="https://www.lean-labs.com">
+        <div style="margin-top:16px"><button class="btn primary" id="gapsBtn">Read my site</button></div>
+        <div class="scan-log" id="gapsLog"></div>
+      </div>
+      <div class="scan-card" id="gapsResults" style="display:none">
+        <h3>What you publish today</h3>
+        <div class="found-chips">
+          <span class="chip">$100M in client revenue</span>
+          <span class="chip">70+ five-star reviews</span>
+          <span class="chip">Since 2013</span>
+          <span class="chip">Seed to Series C</span>
+        </div>
+        <p style="margin:6px 0 0;font-size:12.5px;color:var(--tx-dis)">Track record and reviews. Strong, but none of it is a measured client outcome.</p>
+        <div class="gapline">2 proof gaps found. Each one below comes with a drafted survey. Sample values, the real numbers come from your responses.</div>
+        <div class="statcard">
+          <div class="stat">1. "78% of clients grow qualified pipeline in the first 90 days"</div>
+          <div class="why">The outcome buyers pay for, and no page measures it.</div>
+          <ol><li>Program, leads per month, pipeline change ranges, recommend 0 to 10 <b>4 questions</b></li></ol>
+          <button class="btn primary use-draft" data-draft="pipeline">Use this draft</button>
+        </div>
+        <div class="statcard">
+          <div class="stat">2. "9 in 10 clients call the kickoff process clear"</div>
+          <div class="why">Onboarding worry is a common sales objection. Easy to collect.</div>
+          <ol><li>Kickoff clarity, first 30 days pace, day-one wish <b>3 questions</b></li></ol>
+          <button class="btn primary use-draft" data-draft="kickoff">Use this draft</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="pagefoot">
+  <span>Survey Rocket prototype &middot; Lean Labs test account &middot; data lives in this browser, HubSpot write-back pending</span>
+  <span>Questions editable in the Editor, asked verbatim on the live survey page</span>
+</footer>
+</main>
+</div>
+
+<script src="js/engine.js"></script>
+<script src="js/store.js"></script>
+<script src="js/hubspot.js"></script>
+<script>
+(function(){
+  "use strict";
+  SRStore.init();
+  var currentId = SRStore.surveys()[0] ? SRStore.surveys()[0].id : null;
+  var TYPES=[["choice","Multiple choice"],["multi","Multiple select"],["number","Number, validated"],["text","Open text, optional"]];
+
+  function el(tag,cls,text){ var e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e; }
+  /* in-memory working copy for the editor; Save/Activate/Share persist it */
+  var editBuf=null;
+  function cur(){
+    if(!editBuf || editBuf.id!==currentId) editBuf=SRStore.getSurvey(currentId);
+    return editBuf;
+  }
+  function setCurrent(id){ currentId=id; editBuf=null; }
+  function slug(name){
+    var base=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"survey";
+    var list=SRStore.surveys().map(function(s){return s.id;});
+    var id=base, n=2;
+    while(list.indexOf(id)!==-1){ id=base+"-"+n; n++; }
+    return id;
+  }
+
+  /* ---------- router ---------- */
+  var ROUTE_VIEW={"#/surveys":"home","#/dashboard":"results","#/settings":"settings","#/editor":"editor","#/scan":"scan","#/gaps":"gaps"};
+  var NAV_FOR={"#/surveys":"#/surveys","#/editor":"#/surveys","#/scan":"#/surveys","#/gaps":"#/surveys","#/dashboard":"#/dashboard","#/settings":"#/settings"};
+  function route(){
+    var h=location.hash||"#/surveys";
+    if(!ROUTE_VIEW[h]){ location.replace("#/surveys"); h="#/surveys"; }
+    ["home","editor","results","settings","scan","gaps"].forEach(function(v){
+      document.getElementById("v-"+v).classList.toggle("active",ROUTE_VIEW[h]===v);
+    });
+    document.querySelectorAll(".navitem").forEach(function(b){ b.classList.toggle("on",b.dataset.r===NAV_FOR[h]); });
+    if(h==="#/surveys") renderShelf();
+    if(h==="#/editor"){ renderEditor(); renderPreview(); }
+    if(h==="#/dashboard") renderDash();
+    window.scrollTo(0,0);
+  }
+  window.addEventListener("hashchange",route);
+  document.querySelectorAll(".navitem").forEach(function(b){ b.addEventListener("click",function(){ location.hash=b.dataset.r; }); });
+
+  /* ---------- surveys shelf ---------- */
+  function renderShelf(){
+    var shelf=document.getElementById("shelf"); shelf.innerHTML="";
+    SRStore.surveys().forEach(function(s){
+      var c=el("div","survey-card");
+      c.appendChild(el("h4",null,s.name));
+      var resp=SRStore.responses(s.id).length;
+      c.appendChild(el("div","meta",s.cadence+" · "+s.questions.length+" questions"+(resp?" · "+resp+" responses":"")));
+      var row=el("div","row");
+      row.appendChild(el("span","chip"+(s.status==="Active"?" teal":""),s.status));
+      var edit=el("button","btn ghost small","Edit");
+      edit.addEventListener("click",function(){ setCurrent(s.id); location.hash="#/editor"; });
+      row.appendChild(edit);
+      var res=el("button","btn ghost small","Dashboard");
+      res.addEventListener("click",function(){ dashSel=s.id; location.hash="#/dashboard"; });
+      row.appendChild(res);
+      c.appendChild(row);
+      shelf.appendChild(c);
+    });
+  }
+
+  /* ---------- chooser + scans ---------- */
+  var chooser=document.getElementById("chooser");
+  document.getElementById("newSurveyBtn").addEventListener("click",function(){ chooser.classList.add("open"); });
+  document.getElementById("chooserClose").addEventListener("click",function(){ chooser.classList.remove("open"); });
+  chooser.addEventListener("click",function(e){ if(e.target===chooser) chooser.classList.remove("open"); });
+  document.getElementById("chooseManual").addEventListener("click",function(){
+    chooser.classList.remove("open");
+    var s={id:slug("untitled-survey"), name:"Untitled survey", cadence:"Draft", status:"Draft", quoteAsk:false,
+      questions:[{id:"q1", type:"choice", q:"Your first question goes here.", options:["Option A","Option B"]}]};
+    SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
+  });
+  document.getElementById("chooseScan").addEventListener("click",function(){ chooser.classList.remove("open"); location.hash="#/scan"; });
+  document.getElementById("chooseGaps").addEventListener("click",function(){ chooser.classList.remove("open"); location.hash="#/gaps"; });
+
+  function runScanSteps(steps, logId, resultsId){
+    var logBox=document.getElementById(logId);
+    logBox.style.display="block"; logBox.innerHTML="";
+    document.getElementById(resultsId).style.display="none";
+    steps.forEach(function(step,i){
+      setTimeout(function(){
+        logBox.appendChild(el("div",i===steps.length-1?"ok":null,step));
+        if(i===steps.length-1) setTimeout(function(){ document.getElementById(resultsId).style.display="block"; },300);
+      },450*(i+1));
+    });
+  }
+  document.getElementById("scanBtn").addEventListener("click",function(){
+    runScanSteps(["Reading lean-labs.com pages…","Checking your pages for this stat… not found","Drafting the questions that produce it…"],"scanLog","scanResults");
+  });
+  document.getElementById("gapsBtn").addEventListener("click",function(){
+    runScanSteps(["Reading lean-labs.com pages…","Found 11 published claims…","Checking each claim for proof behind it…","2 proof gaps found, drafting a survey for each…"],"gapsLog","gapsResults");
+  });
+
+  var DRAFTS={
+    pipeline:{name:"Pipeline outcomes", questions:[
+      {id:"service", type:"choice", q:"Which Lean Labs program are you on?", options:["AEO program","Website Launchpad","Growth retainer","Other"]},
+      {id:"leads", type:"number", q:"About how many qualified leads per month does your site produce now?", min:0, max:10000},
+      {id:"pipeline", type:"choice", q:"Compared with before working with us, how has qualified pipeline changed?", options:["Down","Flat","Up to 25% up","26 to 75% up","More than 75% up"]},
+      {id:"nps", type:"choice", nps:true, q:"How likely are you to recommend Lean Labs to a peer?", options:["0","1","2","3","4","5","6","7","8","9","10"]}
+    ], quoteAsk:true},
+    kickoff:{name:"Kickoff clarity", questions:[
+      {id:"clarity", type:"choice", q:"How clear was the kickoff process?", options:["Very unclear","Unclear","Neutral","Clear","Very clear"]},
+      {id:"speed", type:"choice", q:"How was the pace of the first 30 days?", options:["Too slow","About right","Too fast"]},
+      {id:"wish", type:"text", optional:true, q:"Anything you wish you had known on day one? Optional, type skip to move on."}
+    ], quoteAsk:false}
+  };
+  document.querySelectorAll(".use-draft").forEach(function(b){
+    b.addEventListener("click",function(){
+      var d=DRAFTS[b.dataset.draft]; if(!d) return;
+      var s={id:slug(d.name), name:d.name, cadence:"Draft", status:"Draft", quoteAsk:d.quoteAsk,
+        questions:JSON.parse(JSON.stringify(d.questions))};
+      SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
+      setTimeout(function(){ flashSaved("Draft created from the scan. Review and edit before activating."); },300);
+    });
+  });
+
+  /* ---------- editor ---------- */
+  function validateSurvey(s){
+    if(s.questions.length===0) return "Add at least one question first.";
+    for(var i=0;i<s.questions.length;i++){
+      var q=s.questions[i];
+      if(!q.q||!q.q.trim()) return "Q"+(i+1)+" has no question text.";
+      if((q.type==="choice"||q.type==="multi") && !(q.options&&q.options.length)) return "Q"+(i+1)+" needs at least one option.";
+      if(q.type==="number" && typeof q.min==="number" && typeof q.max==="number" && q.min>q.max) return "Q"+(i+1)+" has a minimum above its maximum.";
+    }
+    return null;
+  }
+  function flashSaved(msg,isErr){
+    var m=document.getElementById("savedmsg"); m.textContent=msg;
+    m.style.color=isErr?"var(--red)":"var(--green)";
+    m.classList.add("show");
+    setTimeout(function(){ m.classList.remove("show"); },3200);
+  }
+  function renderEditor(){
+    var s=cur(); if(!s){ location.hash="#/surveys"; return; }
+    var name=document.getElementById("ed-name"); name.value=s.name;
+    name.oninput=function(){ s.q_dirty=true; s.name=name.value; renderPreviewSoon(); };
+    document.getElementById("ed-status").textContent=s.status;
+    document.getElementById("openSurveyBtn").href="survey.html?id="+encodeURIComponent(s.id);
+    var qwrap=document.getElementById("qwrap"); qwrap.innerHTML="";
+    s.questions.forEach(function(q,qi){
+      var card=el("div","qcard");
+      var top=el("div","qtop");
+      top.appendChild(el("span","qnum","Q"+(qi+1)));
+      var ta=document.createElement("textarea"); ta.value=q.q; ta.rows=2; ta.setAttribute("aria-label","Question "+(qi+1)+" text");
+      ta.addEventListener("input",function(){ q.q=ta.value; renderPreviewSoon(); });
+      top.appendChild(ta);
+      card.appendChild(top);
+      var ctl=el("div","controls");
+      var sel=document.createElement("select"); sel.setAttribute("aria-label","Question "+(qi+1)+" type");
+      TYPES.forEach(function(t){ var o=document.createElement("option"); o.value=t[0]; o.textContent=t[1]; if(q.type===t[0])o.selected=true; sel.appendChild(o); });
+      sel.addEventListener("change",function(){
+        q.type=sel.value;
+        if(q.type==="text") q.optional=true;
+        if((q.type==="choice"||q.type==="multi") && !q.options) q.options=["Option A","Option B"];
+        if(q.type==="number"){ q.min=(typeof q.min==="number")?q.min:0; q.max=(typeof q.max==="number")?q.max:100000; }
+        renderEditor(); renderPreview();
+      });
+      ctl.appendChild(sel);
+      if(q.type==="choice"||q.type==="multi"){
+        var oi=document.createElement("input"); oi.className="optsinp"; oi.value=(q.options||[]).join(", ");
+        oi.placeholder="Options, comma separated"; oi.setAttribute("aria-label","Question "+(qi+1)+" options");
+        oi.addEventListener("input",function(){
+          q.options=oi.value.split(",").map(function(x){return x.trim();}).filter(Boolean);
+          renderPreviewSoon();
+        });
+        ctl.appendChild(oi);
+      }
+      if(q.type==="number"){
+        var mn=document.createElement("input"); mn.className="num"; mn.value=q.min; mn.setAttribute("aria-label","Minimum");
+        var mx=document.createElement("input"); mx.className="num"; mx.value=q.max; mx.setAttribute("aria-label","Maximum");
+        mn.addEventListener("input",function(){ var v=parseInt(mn.value,10); q.min=isNaN(v)?0:v; renderPreviewSoon(); });
+        mx.addEventListener("input",function(){ var v=parseInt(mx.value,10); q.max=isNaN(v)?100000:v; renderPreviewSoon(); });
+        ctl.appendChild(mn); ctl.appendChild(mx);
+      }
+      var up=el("button","iconbtn","↑"); up.title="Move up"; up.disabled=qi===0;
+      up.addEventListener("click",function(){ s.questions.splice(qi,1); s.questions.splice(qi-1,0,q); renderEditor(); renderPreview(); });
+      var dn=el("button","iconbtn","↓"); dn.title="Move down"; dn.disabled=qi===s.questions.length-1;
+      dn.addEventListener("click",function(){ s.questions.splice(qi,1); s.questions.splice(qi+1,0,q); renderEditor(); renderPreview(); });
+      var del=el("button","iconbtn del","×"); del.title="Delete question";
+      del.addEventListener("click",function(){ s.questions.splice(qi,1); renderEditor(); renderPreview(); });
+      ctl.appendChild(up); ctl.appendChild(dn); ctl.appendChild(del);
+      card.appendChild(ctl);
+      qwrap.appendChild(card);
+    });
+    var tog=document.getElementById("quoteToggle");
+    tog.classList.toggle("on",!!s.quoteAsk);
+    tog.setAttribute("aria-checked",String(!!s.quoteAsk));
+    tog.onclick=function(){ s.quoteAsk=!s.quoteAsk; tog.classList.toggle("on",s.quoteAsk); tog.setAttribute("aria-checked",String(s.quoteAsk)); renderPreview(); };
+  }
+  document.getElementById("addQ").addEventListener("click",function(){
+    var s=cur(); if(!s) return;
+    s.questions.push({id:"q"+(s.questions.length+1)+"-"+Math.floor(Math.random()*1000), type:"choice", q:"New question", options:["Option A","Option B"]});
+    renderEditor(); renderPreview();
+  });
+  document.getElementById("saveBtn").addEventListener("click",function(){
+    var s=cur(); if(!s) return;
+    var err=validateSurvey(s);
+    if(err){ flashSaved(err,true); return; }
+    SRStore.upsertSurvey(s);
+    flashSaved("Saved to this browser.");
+  });
+  document.getElementById("activateBtn").addEventListener("click",function(){
+    var s=cur(); if(!s) return;
+    var err=validateSurvey(s);
+    if(err){ flashSaved(err,true); return; }
+    s.status="Active"; SRStore.upsertSurvey(s);
+    document.getElementById("ed-status").textContent="Active";
+    flashSaved("Activated and saved. The live survey link now serves this version.");
+  });
+  document.getElementById("shareBtn").addEventListener("click",function(){
+    var s=cur(); if(!s) return;
+    var err=validateSurvey(s);
+    if(err){ flashSaved(err,true); return; }
+    SRStore.upsertSurvey(s);
+    var url=new URL("survey.html#p="+SRStore.encodeShare(s), location.href).href;
+    navigator.clipboard.writeText(url).then(function(){
+      flashSaved("Share link copied. Works on any device, answers stay on the answerer's device for now.");
+    },function(){
+      window.prompt("Copy the share link:", url);
+    });
+  });
+
+  /* live chat preview (static render, same strings the engine uses) */
+  var pvTimer=null;
+  function renderPreviewSoon(){ clearTimeout(pvTimer); pvTimer=setTimeout(renderPreview,250); }
+  function renderPreview(){
+    var s=cur(); if(!s) return;
+    var log=document.getElementById("pv-log"); log.innerHTML="";
+    log.appendChild(el("div","bub bot","Hi. Thanks for making time. "+s.questions.length+" quick questions"+(s.quoteAsk?", plus an optional quote at the end":"")+". Most answers are one tap."));
+    s.questions.forEach(function(q){
+      log.appendChild(el("div","bub bot",q.q||"(empty question)"));
+      if(q.type==="choice"||q.type==="multi"){
+        var box=el("div","opts");
+        (q.options||[]).forEach(function(o){ box.appendChild(el("span","opt ghosted",o)); });
+        if(q.type==="multi") box.appendChild(el("span","opt ghosted done-chip","Done"));
+        log.appendChild(box);
+      } else if(q.type==="number"){
+        log.appendChild(el("div","bub me","(types a number, validated "+(q.min||0)+" to "+(q.max||100000).toLocaleString("en-US")+")"));
+      } else {
+        log.appendChild(el("div","bub me","(types an answer, or skip)"));
+      }
+    });
+    if(s.quoteAsk){
+      log.appendChild(el("div","bub bot","Last one. What would you say to someone in a role like yours who is considering this? Optional, type skip to finish."));
+      log.appendChild(el("div","bub bot","Mind if we use that as a quote on our website?"));
+      var pbox=el("div","opts");
+      pbox.appendChild(el("span","opt ghosted","Yes, use it"));
+      pbox.appendChild(el("span","opt ghosted","No thanks"));
+      log.appendChild(pbox);
+      log.appendChild(el("div","bub bot","Thanks. What is your name, your role, and how long you have worked with us?"));
+      log.appendChild(el("div","bub me","(types name, role, years)"));
+    }
+    log.scrollTop=0;
+  }
+
+  /* ---------- dashboard, computed from responses ---------- */
+  var dashSel=null;
+  function renderDash(){
+    var tabs=document.getElementById("dashtabs"); tabs.innerHTML="";
+    var list=SRStore.surveys();
+    if(!dashSel || !SRStore.getSurvey(dashSel)) dashSel=list[0] ? list[0].id : null;
+    list.forEach(function(s){
+      var t=el("button","dashtab"+(s.id===dashSel?" on":""),s.name);
+      t.addEventListener("click",function(){ dashSel=s.id; renderDash(); });
+      tabs.appendChild(t);
+    });
+    var panel=document.getElementById("dashpanel"); panel.innerHTML="";
+    var s=SRStore.getSurvey(dashSel);
+    if(!s){ panel.appendChild(el("div","emptystate","No surveys yet.")); return; }
+    var resp=SRStore.responses(s.id);
+    var seeded=resp.filter(function(r){return r.seeded;}).length;
+    var live=resp.length-seeded;
+
+    var canvas=el("div","canvas");
+    var top=el("div","dash-top");
+    top.appendChild(el("h3",null,s.name));
+    top.appendChild(el("span","chip",resp.length+" responses"));
+    if(seeded) top.appendChild(el("span","chip gold",seeded+" seeded samples"));
+    if(live) top.appendChild(el("span","chip teal",live+" collected in this browser"));
+    canvas.appendChild(top);
+
+    if(resp.length===0){
+      canvas.appendChild(el("div","emptystate","No responses yet. The dashboard lights up with the first one."));
+      panel.appendChild(canvas); return;
+    }
+
+    /* tiles */
+    var tiles=el("div","tiles");
+    var t1=el("div","tile");
+    t1.appendChild(el("div","lbl","Responses"));
+    t1.appendChild(el("div","num",String(resp.length)));
+    t1.appendChild(el("div","src",live+" live, "+seeded+" seeded"));
+    tiles.appendChild(t1);
+    s.questions.forEach(function(q){
+      if(q.nps){
+        var prom=0,pas=0,det=0;
+        resp.forEach(function(r){
+          var v=parseInt(r.answers[q.id],10);
+          if(isNaN(v)) return;
+          if(v>=9)prom++; else if(v>=7)pas++; else det++;
+        });
+        var tot=prom+pas+det;
+        if(tot){
+          var t2=el("div","tile");
+          t2.appendChild(el("div","lbl","Net Promoter Score"));
+          t2.appendChild(el("div","num",String(Math.round((prom-det)/tot*100))));
+          t2.appendChild(el("div","src","% promoters minus % detractors, "+tot+" answers"));
+          tiles.appendChild(t2);
+        }
+      } else if(q.type==="number"){
+        var vals=resp.map(function(r){return r.answers[q.id];}).filter(function(v){return typeof v==="number";});
+        if(vals.length){
+          var avg=Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length);
+          var t3=el("div","tile");
+          t3.appendChild(el("div","lbl",q.q.length>60?q.q.slice(0,57)+"…":q.q));
+          t3.appendChild(el("div","num",avg.toLocaleString("en-US")));
+          t3.appendChild(el("div","src","Average across "+vals.length+" answers"));
+          tiles.appendChild(t3);
+        }
+      }
+    });
+    canvas.appendChild(tiles);
+
+    /* charts for choice questions (non-nps) */
+    var charts=el("div","charts");
+    s.questions.forEach(function(q){
+      if(q.type!=="choice" || q.nps) return;
+      var counts={};
+      (q.options||[]).forEach(function(o){ counts[o]=0; });
+      var answered=0;
+      resp.forEach(function(r){
+        var v=r.answers[q.id];
+        if(v!=null && counts.hasOwnProperty(v)){ counts[v]++; answered++; }
+      });
+      if(!answered) return;
+      var chart=el("div","chart");
+      chart.appendChild(el("h4",null,q.q));
+      chart.appendChild(el("div","sub",answered+" answers"));
+      var maxC=Math.max.apply(null,(q.options||[]).map(function(o){return counts[o];}))||1;
+      (q.options||[]).forEach(function(o){
+        var row=el("div","hbar");
+        row.appendChild(el("span","cat",o));
+        var track=el("span","track");
+        if(counts[o]>0){
+          var fill=el("i","fill");
+          fill.style.width=Math.max(4,Math.round(counts[o]/maxC*100))+"%";
+          track.appendChild(fill);
+        }
+        row.appendChild(track);
+        row.appendChild(el("span","val",String(counts[o])));
+        chart.appendChild(row);
+      });
+      charts.appendChild(chart);
+    });
+    if(charts.children.length) canvas.appendChild(charts);
+
+    /* quotes */
+    var quotes=resp.filter(function(r){ return r.answers._quote && r.answers._quotePermission==="approved"; });
+    if(quotes.length){
+      var qh=el("div","pagehead"); qh.style.padding="0 22px";
+      qh.appendChild(el("h3",null,"Quotes collected"));
+      canvas.appendChild(qh);
+      var qgrid=el("div","quotes");
+      quotes.slice(-6).forEach(function(r){
+        var card=el("div","quote");
+        card.appendChild(el("p",null,"“"+r.answers._quote+"”"));
+        card.appendChild(el("small",null,r.answers._quoteAttribution||"Approved, unattributed"));
+        card.appendChild(el("span","chip teal","Approved for website"));
+        qgrid.appendChild(card);
+      });
+      canvas.appendChild(qgrid);
+    }
+
+    var note=el("div","autonote");
+    note.textContent="Every new response updates these numbers the moment it lands. Answer the live survey in this browser and watch the counts move.";
+    canvas.appendChild(note);
+    panel.appendChild(canvas);
+  }
+
+  /* ---------- settings ---------- */
+  document.getElementById("resetBtn").addEventListener("click",function(){
+    if(window.confirm("Reset surveys and responses in this browser back to the seed data?")){
+      SRStore.reset();
+      setCurrent(SRStore.surveys()[0].id);
+      dashSel=null;
+      route();
+    }
+  });
+
+  route();
+})();
+</script>
+</body>
+</html>

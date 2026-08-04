@@ -1,0 +1,81 @@
+/* Survey Rocket shared styles. Lean Labs design system: near-black monochrome,
+   1px #2B2B2B inset borders, Plus Jakarta Sans SemiBold headings, Roboto body. */
+:root{
+  --page:#0D0D0D; --card:#141414; --btn:#1C1C1C; --btn-hover:#2A2A2A; --tile:#212121;
+  --tx:#FFFFFF; --tx-2:#949494; --tx-dis:#757575; --icon:#B0B0B0; --line:#2B2B2B;
+  --alert:#FDE68A; --green:#00D492; --red:#E5484D; --yellow:#FFA600; --blue:#93C5FD;
+  --nfi:#24456B;
+  --inset:inset 0 0 0 1px var(--line);
+  --r-sm:4px; --r-md:8px; --r-lg:16px;
+  --font-heading:'Plus Jakarta Sans',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
+  --font-body:'Roboto',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--tx-2);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after{transition:none!important;animation:none!important} }
+h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;color:var(--tx);margin:0}
+button,input,select,textarea{font-family:var(--font-body)}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border:0;border-radius:var(--r-md);font-size:14px;font-weight:500;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--tx);color:var(--page)}
+.btn.primary:hover{background:#E6E6E6}
+.btn.ghost{background:transparent;box-shadow:var(--inset);color:var(--tx)}
+.btn.ghost:hover{background:var(--btn)}
+.btn.small{padding:7px 12px;font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:500;box-shadow:var(--inset);color:var(--tx-2)}
+.chip.teal{color:var(--green)}
+.chip.gold{color:var(--alert)}
+.chip.navy{background:var(--tile);box-shadow:none;color:var(--icon)}
+.canvas{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--inset);overflow:hidden}
+
+/* chat */
+.chat-frame{border-radius:var(--r-lg);box-shadow:var(--inset);overflow:hidden;background:var(--page)}
+.chat-head{background:var(--card);border-bottom:1px solid var(--line);color:var(--tx);padding:13px 16px;display:flex;align-items:center;gap:10px}
+.chat-head .av{width:30px;height:30px;border-radius:50%;background:var(--tile);box-shadow:var(--inset);display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:10.5px;color:var(--tx);flex:0 0 30px}
+.chat-head b{display:block;font-family:var(--font-heading);font-size:13.5px;font-weight:600}
+.chat-head small{color:var(--tx-2);font-size:11px;display:block}
+.chat-prog{margin-left:auto;font-size:11px;color:var(--tx-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chat-log{padding:16px 13px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;scroll-behavior:smooth}
+.bub{max-width:88%;padding:10px 13px;border-radius:var(--r-md);font-size:13.5px;line-height:1.45;overflow-wrap:break-word}
+.bub.bot{align-self:flex-start;background:var(--btn);box-shadow:var(--inset);color:var(--tx-2);border-bottom-left-radius:var(--r-sm)}
+.bub.me{align-self:flex-end;background:var(--tx);color:var(--page);border-bottom-right-radius:var(--r-sm);font-weight:500}
+.opts{align-self:flex-start;display:flex;flex-wrap:wrap;gap:6px;max-width:94%}
+.opt{padding:7px 13px;border-radius:999px;border:0;background:var(--btn);box-shadow:var(--inset);font-size:12.5px;color:var(--tx-2);font-weight:500;cursor:pointer;transition:background .12s,color .12s}
+.opt:hover{background:var(--btn-hover);color:var(--tx)}
+.opt.on{background:var(--tile);box-shadow:inset 0 0 0 1px var(--tx);color:var(--tx)}
+.opt.done-chip{color:var(--green)}
+.opt.ghosted{cursor:default}
+.opts.locked .opt{cursor:default;opacity:.55}
+.opts.locked .opt.picked{opacity:1;background:var(--tx);box-shadow:none;color:var(--page)}
+.opts.nps .opt{width:33px;padding:7px 0;text-align:center;font-variant-numeric:tabular-nums}
+.typing{align-self:flex-start;display:flex;gap:4px;padding:11px 13px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--tx-dis);animation:sr-blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes sr-blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.chat-input{display:flex;gap:9px;padding:11px 13px;border-top:1px solid var(--line);background:var(--card)}
+.chat-input input{flex:1;min-width:0;background:var(--page);box-shadow:var(--inset);border:0;border-radius:999px;padding:9px 15px;color:var(--tx);font-size:13.5px}
+.chat-input input::placeholder{color:var(--tx-dis)}
+.chat-input input:disabled{opacity:.55}
+.send{border:0;border-radius:var(--r-md);padding:9px 18px;background:var(--tx);color:var(--page);font-weight:500;font-size:13.5px;cursor:pointer}
+.send:disabled{opacity:.4;cursor:default}
+
+/* bars + tiles (dashboards) */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;padding:20px 22px}
+@media (max-width:920px){.tiles{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.tiles{grid-template-columns:1fr}}
+.tile{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px 15px 13px}
+.tile .lbl{font-size:12px;color:var(--tx-2);line-height:1.4;min-height:34px}
+.tile .num{font-family:var(--font-heading);font-size:29px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums;margin:5px 0 2px}
+.tile .src{font-size:11px;color:var(--tx-dis)}
+.chart{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px}
+.chart h4{font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--tx)}
+.chart .sub{font-size:11.5px;color:var(--tx-dis);margin:2px 0 12px}
+.hbar{display:grid;grid-template-columns:140px 1fr 30px;gap:8px;align-items:center;margin:6px 0;font-size:12px}
+.hbar .cat{color:var(--tx-2);text-align:right;line-height:1.25}
+.hbar .track{display:block;height:13px;background:var(--tile);border-radius:var(--r-sm);overflow:hidden}
+.hbar .fill{display:block;height:100%;background:var(--green);border-radius:var(--r-sm) 3px 3px var(--r-sm);min-width:2px}
+.hbar .val{color:var(--tx-2);font-variant-numeric:tabular-nums;text-align:right;font-weight:500}
+
+footer.pagefoot{border-top:1px solid var(--line);margin-top:40px;padding:18px 20px;font-size:12.5px;color:var(--tx-dis);display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
+footer.pagefoot a{color:var(--tx-2)}

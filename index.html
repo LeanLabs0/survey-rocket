@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Survey Rocket</title>
+<meta name="description" content="Turn customer surveys into stats you can publish. You write the questions, Survey Rocket asks them in a chat, saves every answer to HubSpot, and turns results into numbers for your website.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles-shared.css">
+<style>
+  body{font-size:16px}
+  .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;height:60px;padding:0 24px;background:var(--page);border-bottom:1px solid var(--line)}
+  .wordmark{display:flex;align-items:center;gap:10px;font-family:var(--font-heading);font-weight:600;font-size:17px;color:var(--tx);text-decoration:none}
+  .wordmark .rocket{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:var(--r-md);background:var(--tile);box-shadow:var(--inset);color:var(--tx);font-size:12px;font-weight:600}
+  .topnav{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .topnav a{color:var(--tx-2);text-decoration:none;font-size:14px;padding:8px 14px;border-radius:999px}
+  .topnav a:hover{color:var(--tx);background:var(--btn)}
+  .topnav a.cta{background:var(--tx);color:var(--page);font-weight:500}
+  .topnav a.cta:hover{background:#E6E6E6}
+  @media (max-width:560px){.topnav a.plain{display:none}}
+  .view{display:none}
+  .view.active{display:block}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 24px}
+
+  .hero{padding:88px 0 64px;text-align:center}
+  .hero .eyebrow{font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-2)}
+  .hero h1{font-size:clamp(32px,5.4vw,54px);line-height:1.15;letter-spacing:-.02em;margin:.35em auto .3em;max-width:17ch;text-wrap:balance}
+  .hero p{max-width:52ch;margin:0 auto;font-size:18px}
+  .hero .ctas{margin-top:30px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .hero .btn{padding:13px 26px;font-size:15px}
+  .hero .note{margin-top:12px;font-size:13px;color:var(--tx-dis)}
+
+  .vid{padding:8px 0 64px}
+  .vid-frame{position:relative;max-width:760px;margin:0 auto;aspect-ratio:16/9;background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .vid-frame .play{width:74px;height:74px;border-radius:50%;background:var(--tx);border:0;display:flex;align-items:center;justify-content:center;cursor:not-allowed}
+  .vid-frame .play::before{content:"";display:block;margin-left:6px;border-style:solid;border-width:14px 0 14px 24px;border-color:transparent transparent transparent var(--page)}
+  .vid-frame .third{position:absolute;left:20px;bottom:18px;text-align:left}
+  .vid-frame .third b{display:block;font-family:var(--font-heading);font-weight:600;color:var(--tx);font-size:15px}
+  .vid-frame .third span{font-size:12.5px;color:var(--tx-2)}
+  .vid-frame .dur{position:absolute;right:20px;bottom:20px;font-size:12px;color:var(--tx-2);box-shadow:var(--inset);border-radius:var(--r-sm);padding:3px 9px;background:rgba(13,13,13,.6)}
+  .vid .cap{text-align:center;font-size:12.5px;color:var(--tx-dis);margin-top:12px}
+
+  .steps{padding:24px 0 72px}
+  .steps h2{text-align:center;font-size:26px;margin-bottom:8px}
+  .steps .sub{text-align:center;color:var(--tx-2);margin:0 0 34px}
+  .stepgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media (max-width:820px){.stepgrid{grid-template-columns:1fr}}
+  .stepcard{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:28px 24px}
+  .stepcard .n{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--tile);color:var(--tx);font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;margin-bottom:14px}
+  .stepcard h3{font-size:17px;margin-bottom:8px}
+  .stepcard p{margin:0;font-size:14.5px}
+
+  .why{padding:0 0 72px}
+  .whycard{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+  @media (max-width:820px){.whycard{grid-template-columns:1fr}}
+  .whycard h2{font-size:24px;margin-bottom:10px;text-wrap:balance}
+  .whycard p{margin:0 0 10px;font-size:15px}
+  .statrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ministat{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px}
+  .ministat .num{font-family:var(--font-heading);font-size:24px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums}
+  .ministat .lbl{font-size:12px;color:var(--tx-2);margin-top:2px}
+  .ministat .tag{margin-top:8px;display:inline-block;font-size:11px;color:var(--alert);box-shadow:var(--inset);border-radius:var(--r-sm);padding:2px 8px}
+  .samplenote{font-size:12px;color:var(--tx-dis);padding:10px 4px 0}
+
+  .closer{padding:0 0 88px;text-align:center}
+  .closer h2{font-size:24px;margin-bottom:16px}
+
+  .demo-head{padding:40px 0 8px}
+  .demo-head .eyebrow{font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+  .demo-head h1{font-size:clamp(24px,3.6vw,34px);margin:.3em 0 .2em}
+  .demo-head p{margin:0;max-width:64ch}
+  .sandbox{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:6px 12px;border-radius:var(--r-sm);box-shadow:var(--inset);color:var(--alert);font-size:11.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+  .sandbox::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--alert)}
+  .demo-grid{display:grid;grid-template-columns:minmax(0,500px) 1fr;gap:20px;align-items:start;padding:24px 0 60px}
+  @media (max-width:860px){.demo-grid{grid-template-columns:1fr}}
+  #log{min-height:320px;max-height:54vh}
+  .dash-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .dash-top h3{font-size:15px}
+  .dash .tiles{grid-template-columns:1fr 1fr;padding:16px 20px}
+  .dash .chart{margin:0 20px 16px}
+  .dash-note{padding:0 20px 18px;font-size:12px;color:var(--tx-dis)}
+  .dash-cta{padding:0 20px 20px}
+  .dash-lock{padding:36px 20px;text-align:center;color:var(--tx-dis);font-size:13.5px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="wordmark" href="#/"><span class="rocket">SR</span>Survey Rocket</a>
+  <nav class="topnav">
+    <a class="plain" href="#/#how">How it works</a>
+    <a class="cta" href="#/demo">Try the live demo</a>
+  </nav>
+</header>
+
+<section class="view active" id="view-landing">
+  <div class="wrap">
+    <div class="hero">
+      <div class="eyebrow">Customer surveys, built for proof</div>
+      <h1>Turn customer surveys into stats you can publish</h1>
+      <p>You write the questions. Survey Rocket asks them in a chat your customers actually finish, saves every answer to HubSpot, and turns the results into numbers you can put on your website.</p>
+      <div class="ctas">
+        <a class="btn primary" href="#/demo">Try the live demo</a>
+        <a class="btn ghost" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
+      </div>
+      <div class="note">No sign-up. The demo takes about 2 minutes.</div>
+    </div>
+
+    <div class="vid">
+      <div class="vid-frame" title="Video placeholder. The recorded walkthrough embeds here.">
+        <button class="play" aria-label="Video placeholder, not playable yet" tabindex="-1"></button>
+        <div class="third"><b>Kevin Barber</b><span>What Survey Rocket does, in about 90 seconds</span></div>
+        <span class="dur">1:30</span>
+      </div>
+      <div class="cap">Video placeholder. The recorded walkthrough embeds here.</div>
+    </div>
+
+    <div class="steps" id="how">
+      <h2>How it works</h2>
+      <p class="sub">Three steps between a question and a published stat.</p>
+      <div class="stepgrid">
+        <div class="stepcard"><span class="n">1</span><h3>Invite from HubSpot</h3><p>Your customers get a short email with one link. Reminders go out automatically and stop the moment someone answers.</p></div>
+        <div class="stepcard"><span class="n">2</span><h3>A chat, not a form</h3><p>Questions arrive one at a time. Almost every answer is a tap, numbers get checked, and a quote ask at the end captures testimonials with permission.</p></div>
+        <div class="stepcard"><span class="n">3</span><h3>Stats you can publish</h3><p>Every response lands on the HubSpot contact and rolls into running averages. Your dashboard shows which stats are ready for your website.</p></div>
+      </div>
+    </div>
+
+    <div class="why">
+      <div class="whycard">
+        <div>
+          <h2>For when testimonials are not enough</h2>
+          <p>Some audiences cannot give individual testimonials. Survey enough of your customers and you own numbers from your whole customer base that you can stand behind.</p>
+          <p>Ask the question that produces the stat you want to publish, and let the averages build themselves.</p>
+        </div>
+        <div class="statrow">
+          <div class="ministat"><div class="num">68%</div><div class="lbl">average share of each team reaching the outcome</div><span class="tag">Ready to publish</span></div>
+          <div class="ministat"><div class="num">12,840</div><div class="lbl">customers represented in the results</div><span class="tag">Ready to publish</span></div>
+          <div class="ministat"><div class="num">41</div><div class="lbl">Net Promoter Score, tracked over time</div><span class="tag">Benchmark</span></div>
+          <div class="ministat"><div class="num">8 in 10</div><div class="lbl">rate onboarding easy</div><span class="tag">Ready to publish</span></div>
+        </div>
+      </div>
+      <p class="samplenote">Sample numbers, shown as they would appear on your dashboard.</p>
+    </div>
+
+    <div class="closer">
+      <h2>See it work in 2 minutes</h2>
+      <a class="btn primary" href="#/demo">Try the live demo</a>
+    </div>
+  </div>
+  <footer class="pagefoot">
+    <span>Survey Rocket, a <a href="https://www.lean-labs.com" target="_blank" rel="noopener">Lean Labs</a> product</span>
+    <span><a href="#/demo">Live demo</a></span>
+  </footer>
+</section>
+
+<section class="view" id="view-demo">
+  <div class="wrap">
+    <div class="demo-head">
+      <div class="eyebrow">Live demo</div>
+      <h1>Answer a survey, then see the dashboard</h1>
+      <p>You are playing the customer of a fictional company, Acme Programs. Answer the chat on the left, then watch the results side light up. Everything runs in this page, nothing is stored.</p>
+      <span class="sandbox">Sandbox, fake data only</span>
+    </div>
+
+    <div class="demo-grid">
+      <div class="chat-frame">
+        <div class="chat-head"><span class="av">SR</span><div><b>Acme Programs Survey</b><small>customer check-in</small></div><span class="chat-prog" id="prog"></span></div>
+        <div class="chat-log" id="log" aria-live="polite"></div>
+        <div class="chat-input">
+          <input id="inp" type="text" autocomplete="off" placeholder="Tap an option above" aria-label="Your answer" disabled>
+          <button class="send" id="sendBtn" disabled>Send</button>
+          <button class="send" id="restartBtn" title="Start the demo over" style="background:var(--btn);color:var(--tx);box-shadow:var(--inset)">Restart</button>
+        </div>
+      </div>
+
+      <div class="dash canvas" id="dashbox">
+        <div class="dash-top"><h3>Acme Programs, results</h3><span class="chip" id="respcount">128 responses</span><span class="chip gold">Sample data</span></div>
+        <div class="dash-lock" id="dashlock">Finish the chat and your answers join these results.</div>
+        <div id="dashbody" style="display:none">
+          <div class="tiles">
+            <div class="tile"><div class="lbl">Average share of each team seeing real results in 90 days</div><div class="num" id="t-outcome">67%</div><div class="src">Average of the answer ranges picked</div></div>
+            <div class="tile"><div class="lbl">Net Promoter Score</div><div class="num" id="t-nps">52</div><div class="src">% promoters minus % detractors</div></div>
+          </div>
+          <div class="chart">
+            <h4>Share of customers seeing results</h4>
+            <div class="sub">Per answer range</div>
+            <div class="hbar"><span class="cat">0 to 20%</span><span class="track"><i class="fill" style="width:7%"></i></span><span class="val" id="b0">4</span></div>
+            <div class="hbar"><span class="cat">21 to 40%</span><span class="track"><i class="fill" style="width:16%"></i></span><span class="val" id="b1">9</span></div>
+            <div class="hbar"><span class="cat">41 to 60%</span><span class="track"><i class="fill" style="width:47%"></i></span><span class="val" id="b2">26</span></div>
+            <div class="hbar"><span class="cat">61 to 80%</span><span class="track"><i class="fill" style="width:100%"></i></span><span class="val" id="b3">55</span></div>
+            <div class="hbar"><span class="cat">81 to 100%</span><span class="track"><i class="fill" style="width:62%"></i></span><span class="val" id="b4">34</span></div>
+          </div>
+          <div class="dash-note" id="joinnote" style="display:none">Your answer just moved these numbers. That is the whole product.</div>
+          <div class="dash-cta"><a class="btn primary" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="pagefoot">
+    <span>Survey Rocket, a <a href="https://www.lean-labs.com" target="_blank" rel="noopener">Lean Labs</a> product</span>
+    <span>Demo data is fictional and resets on reload</span>
+  </footer>
+</section>
+
+<script src="js/engine.js"></script>
+<script>
+(function(){
+  "use strict";
+  var started=false, chat=null;
+
+  var SCRIPT=[
+    {id:"plan", type:"choice", q:"Which Acme program are you on?", options:["Starter","Growth","Enterprise"]},
+    {id:"parts", type:"multi", q:"Which parts do you use? Pick all that apply, then tap Done.", options:["Live workshops","Templates","Coaching calls","Community"]},
+    {id:"team", type:"number", min:1, max:10000, q:"About how many people on your team have been through the program?"},
+    {id:"results", type:"choice", q:"What share of them saw real results within 90 days?", options:["0 to 20%","21 to 40%","41 to 60%","61 to 80%","81 to 100%"]},
+    {id:"nps", type:"choice", nps:true, q:"How likely are you to recommend Acme to a peer?", options:["0","1","2","3","4","5","6","7","8","9","10"]}
+  ];
+
+  function revealDash(answers){
+    document.getElementById("dashlock").style.display="none";
+    document.getElementById("dashbody").style.display="block";
+    document.getElementById("respcount").textContent="129 responses";
+    var bandIds=["0 to 20%","21 to 40%","41 to 60%","61 to 80%","81 to 100%"];
+    var counts=[4,9,26,55,34];
+    var idx=bandIds.indexOf(answers.results);
+    if(idx>=0){
+      counts[idx]+=1;
+      var maxC=Math.max.apply(null,counts);
+      for(var i=0;i<5;i++){
+        var row=document.getElementById("b"+i);
+        row.textContent=String(counts[i]);
+        row.parentElement.querySelector(".fill").style.width=Math.max(4,Math.round(counts[i]/maxC*100))+"%";
+      }
+      var mids=[10,30,50,70,90], total=0, sum=0;
+      for(var j=0;j<5;j++){ total+=counts[j]; sum+=counts[j]*mids[j]; }
+      document.getElementById("t-outcome").textContent=Math.round(sum/total)+"%";
+    }
+    var npsV=parseInt(answers.nps,10);
+    if(!isNaN(npsV)){
+      var prom=82, pas=30, det=16;
+      if(npsV>=9) prom+=1; else if(npsV>=7) pas+=1; else det+=1;
+      document.getElementById("t-nps").textContent=String(Math.round((prom-det)/(prom+pas+det)*100));
+    }
+    document.getElementById("joinnote").style.display="block";
+  }
+
+  function resetDash(){
+    document.getElementById("dashlock").style.display="block";
+    document.getElementById("dashbody").style.display="none";
+    document.getElementById("respcount").textContent="128 responses";
+  }
+
+  function startDemo(){
+    if(!chat){
+      chat=new SurveyChat({
+        log:document.getElementById("log"),
+        input:document.getElementById("inp"),
+        sendBtn:document.getElementById("sendBtn"),
+        progEl:document.getElementById("prog"),
+        script:SCRIPT,
+        quoteAsk:true,
+        intro:"Hi. Quick check-in about your experience with Acme. Most answers are one tap, about 2 minutes.",
+        outro:"That is everything, thank you. Watch the results panel, your answers just joined the averages.",
+        quoteCopy:{
+          q:"Last one. What would you tell someone considering Acme? Optional, type skip to finish.",
+          perm:"Mind if Acme used that as a quote on their website?",
+          attr:"Thanks. What is your name and role, so Acme can attribute the quote?"
+        },
+        onComplete:revealDash
+      });
+      document.getElementById("restartBtn").addEventListener("click",function(){ resetDash(); chat.start(); });
+    }
+    chat.start();
+  }
+
+  function route(){
+    var h=location.hash||"#/";
+    var demo=h==="#/demo";
+    if(["#/","#/demo","#/#how"].indexOf(h)===-1){ location.replace("#/"); h="#/"; }
+    document.getElementById("view-landing").classList.toggle("active",!demo);
+    document.getElementById("view-demo").classList.toggle("active",demo);
+    if(demo && !started){ started=true; startDemo(); }
+    if(h==="#/#how"){ var el2=document.getElementById("how"); if(el2) el2.scrollIntoView(); }
+    else window.scrollTo(0,0);
+  }
+  window.addEventListener("hashchange",route);
+  document.querySelectorAll('a[href="#/#how"]').forEach(function(a){
+    a.addEventListener("click",function(){
+      var el2=document.getElementById("how"); if(el2) setTimeout(function(){ el2.scrollIntoView(); },0);
+    });
+  });
+  route();
+})();
+</script>
+</body>
+</html>
