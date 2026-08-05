@@ -1,6 +1,6 @@
 # Survey Rocket, working prototype
 
-Turn customer surveys into stats you can publish. Write your questions or start from a stat and let a scan draft them, approve everything, and Survey Rocket asks them in a chat while the answers roll into running averages on a dashboard.
+Turn customer surveys into stats you can publish. Survey Rocket asks your questions in a chat and rolls the answers into running averages on a dashboard.
 
 Live: https://leanlabs0.github.io/survey-rocket/
 
