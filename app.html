@@ -92,6 +92,32 @@
   .emptystate{padding:56px 24px;text-align:center;color:var(--tx-dis);font-size:14px}
   .autonote{margin:0 22px 22px;padding:14px 18px;border-radius:var(--r-md);background:var(--card);box-shadow:var(--inset);color:var(--tx-2);font-size:13.5px}
 
+  /* open-text answer cards */
+  .txtcard{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px}
+  .txtcard .intlabel{display:inline-block;font-size:11px;color:var(--tx-dis);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+  .txtrow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .txtrow:last-of-type{border-bottom:0}
+  .txtrow .a{color:var(--tx);overflow-wrap:anywhere}
+  .txtrow .m{color:var(--tx-dis);white-space:nowrap;font-variant-numeric:tabular-nums;display:flex;gap:8px;align-items:center}
+  .showmore{border:0;background:transparent;color:var(--tx-2);font-size:12.5px;cursor:pointer;padding:8px 0 0;text-decoration:underline}
+  .showmore:hover{color:var(--tx)}
+
+  /* raw responses table */
+  .rawwrap{padding:0 22px 22px}
+  .rawtoggle{margin:0 22px 22px}
+  table.raw{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.raw th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--tx-dis);font-weight:500;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  table.raw td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--tx-2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+  table.raw tr.rrow{cursor:pointer}
+  table.raw tr.rrow:hover td{color:var(--tx)}
+  table.raw tr.detail td{white-space:normal;background:var(--page);padding:14px}
+  .detailgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:13px}
+  @media (max-width:640px){.detailgrid{grid-template-columns:1fr}}
+  .detailgrid div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding:4px 0}
+  .detailgrid .dk{color:var(--tx-dis)}
+  .detailgrid .dv{color:var(--tx);text-align:right;overflow-wrap:anywhere}
+  .rawscroll{overflow-x:auto}
+
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
   .overlay.open{display:flex}
   .modal{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);max-width:680px;width:100%;padding:26px}
@@ -692,6 +718,47 @@
     });
     if(charts.children.length) canvas.appendChild(charts);
 
+    /* open-text answer cards (internal, never publishable) */
+    var textCards=el("div","charts");
+    s.questions.forEach(function(q){
+      if(q.type!=="text") return;
+      var rows=resp.map(function(r){ return {v:r.answers[q.id], at:r.at, seeded:r.seeded}; })
+        .filter(function(x){ return typeof x.v==="string" && x.v.trim(); })
+        .reverse();
+      if(!rows.length) return;
+      var card=el("div","txtcard");
+      card.appendChild(el("h4",null,q.q));
+      card.appendChild(el("div","sub",rows.length+" of "+resp.length+" answered"));
+      card.appendChild(el("span","intlabel","Internal answers, not for publishing"));
+      var listBox=el("div");
+      function renderRows(limit){
+        listBox.innerHTML="";
+        rows.slice(0,limit).forEach(function(x){
+          var row=el("div","txtrow");
+          row.appendChild(el("span","a","“"+x.v+"”"));
+          var m=el("span","m");
+          m.appendChild(el("span",null,x.at));
+          m.appendChild(el("span","chip"+(x.seeded?" gold":" teal"),x.seeded?"seeded":"live"));
+          row.appendChild(m);
+          listBox.appendChild(row);
+        });
+      }
+      renderRows(5);
+      card.appendChild(listBox);
+      if(rows.length>5){
+        var more=el("button","showmore","Show all "+rows.length);
+        var expanded=false;
+        more.addEventListener("click",function(){
+          expanded=!expanded;
+          renderRows(expanded?rows.length:5);
+          more.textContent=expanded?"Show fewer":"Show all "+rows.length;
+        });
+        card.appendChild(more);
+      }
+      textCards.appendChild(card);
+    });
+    if(textCards.children.length) canvas.appendChild(textCards);
+
     /* quotes */
     var quotes=resp.filter(function(r){ return r.answers._quote && r.answers._quotePermission==="approved"; });
     if(quotes.length){
@@ -708,6 +775,81 @@
       });
       canvas.appendChild(qgrid);
     }
+
+    /* raw responses, collapsed by default */
+    var rawBox=el("div","rawtoggle");
+    var rawBtn=el("button","btn ghost small","View all responses ("+resp.length+")");
+    var copyBtn=el("button","btn ghost small","Copy all as JSON");
+    copyBtn.style.marginLeft="8px";
+    copyBtn.addEventListener("click",function(){
+      var payload=JSON.stringify({survey:s.name, questions:s.questions.map(function(q){return {id:q.id,q:q.q};}), responses:resp}, null, 2);
+      navigator.clipboard.writeText(payload).then(function(){
+        copyBtn.textContent="Copied";
+        setTimeout(function(){ copyBtn.textContent="Copy all as JSON"; },2000);
+      },function(){ window.prompt("Copy the responses JSON:", payload); });
+    });
+    rawBox.appendChild(rawBtn); rawBox.appendChild(copyBtn);
+    var rawWrap=el("div","rawwrap"); rawWrap.style.display="none";
+    rawBtn.addEventListener("click",function(){
+      var open=rawWrap.style.display!=="none";
+      rawWrap.style.display=open?"none":"block";
+      rawBtn.textContent=open?("View all responses ("+resp.length+")"):"Hide responses";
+      if(!open && !rawWrap.hasChildNodes()) renderRaw();
+    });
+    function shortAns(v){
+      if(v==null) return "skipped";
+      if(Array.isArray(v)) return v.join(", ");
+      return String(v);
+    }
+    function renderRaw(){
+      var scroll=el("div","rawscroll");
+      var table=document.createElement("table"); table.className="raw";
+      var thead=document.createElement("thead"); var hr=document.createElement("tr");
+      hr.appendChild(el("th",null,"Date")); hr.appendChild(el("th",null,"Source"));
+      s.questions.forEach(function(q,i){ hr.appendChild(el("th",null,"Q"+(i+1))); });
+      if(s.quoteAsk) hr.appendChild(el("th",null,"Quote"));
+      thead.appendChild(hr); table.appendChild(thead);
+      var tbody=document.createElement("tbody");
+      resp.slice().reverse().forEach(function(r){
+        var tr=document.createElement("tr"); tr.className="rrow"; tr.title="Click for the full response";
+        tr.appendChild(el("td",null,r.at));
+        tr.appendChild(el("td",null,r.seeded?"seeded":"live"));
+        s.questions.forEach(function(q){ tr.appendChild(el("td",null,shortAns(r.answers[q.id]))); });
+        if(s.quoteAsk) tr.appendChild(el("td",null,r.answers._quote?("“"+r.answers._quote+"”"):"none"));
+        var dtr=document.createElement("tr"); dtr.className="detail"; dtr.style.display="none";
+        var dtd=document.createElement("td"); dtd.colSpan=2+s.questions.length+(s.quoteAsk?1:0);
+        var grid=el("div","detailgrid");
+        s.questions.forEach(function(q){
+          var d=el("div");
+          d.appendChild(el("span","dk",q.q.length>70?q.q.slice(0,67)+"…":q.q));
+          d.appendChild(el("span","dv",shortAns(r.answers[q.id])));
+          grid.appendChild(d);
+        });
+        if(r.answers._quote){
+          var dq=el("div");
+          dq.appendChild(el("span","dk","Quote"));
+          dq.appendChild(el("span","dv","“"+r.answers._quote+"” ("+(r.answers._quotePermission||"no permission asked")+")"));
+          grid.appendChild(dq);
+          if(r.answers._quoteAttribution){
+            var da=el("div");
+            da.appendChild(el("span","dk","Attribution"));
+            da.appendChild(el("span","dv",r.answers._quoteAttribution));
+            grid.appendChild(da);
+          }
+        }
+        dtd.appendChild(grid); dtr.appendChild(dtd);
+        tr.addEventListener("click",function(){
+          dtr.style.display=dtr.style.display==="none"?"table-row":"none";
+        });
+        tbody.appendChild(tr); tbody.appendChild(dtr);
+      });
+      table.appendChild(tbody);
+      scroll.appendChild(table);
+      rawWrap.appendChild(scroll);
+      rawWrap.appendChild(el("div","sub","Newest first. In the real product each row links to the HubSpot contact; test-phase rows are anonymous."));
+    }
+    canvas.appendChild(rawBox);
+    canvas.appendChild(rawWrap);
 
     var note=el("div","autonote");
     note.textContent="Every new response updates these numbers the moment it lands. Answer the live survey in this browser and watch the counts move.";

@@ -46,6 +46,18 @@
     var bandCounts = [1, 3, 6, 8, 5]; /* 23 responses */
     var services = ["AEO program", "Website Launchpad", "Growth retainer"];
     var npsSpread = [9, 10, 9, 8, 9, 10, 7, 9, 10, 8, 9, 6, 10, 9, 8, 9, 10, 9, 7, 9, 10, 5, 9];
+    var changedNotes = [
+      "We finally show up in AI answers for our category.",
+      "Sales stopped arguing with marketing about lead quality.",
+      "The site went from brochure to pipeline source.",
+      null, null,
+      "Faster launches, way fewer meetings.",
+      null,
+      "We publish twice as fast with half the review cycles.",
+      null, null,
+      "Leads mention the new pages on calls now.",
+      null
+    ];
     var i, b, n = 0;
     for (b = 0; b < bands.length; b++) {
       for (i = 0; i < bandCounts[b]; i++) {
@@ -57,19 +69,21 @@
             service: services[n % services.length],
             leads: 8 + (n * 7) % 90,
             pipeline: bands[b],
-            nps: npsSpread[n % npsSpread.length]
+            nps: npsSpread[n % npsSpread.length],
+            changed: changedNotes[n % changedNotes.length]
           }
         });
         n++;
       }
     }
     var clar = ["Clear", "Very clear", "Clear", "Neutral", "Very clear", "Clear", "Very clear", "Clear"];
+    var wishes = ["A checklist of what you would need from us.", null, "Who owns what on each side.", null, null, "How fast the first sprint moves.", null, null];
     for (i = 0; i < 8; i++) {
       out.push({
         surveyId: "project-onboarding",
         seeded: true,
         at: "2026-07-" + (12 + i),
-        answers: { clarity: clar[i], speed: i % 5 === 3 ? "Too slow" : "About right", wish: null }
+        answers: { clarity: clar[i], speed: i % 5 === 3 ? "Too slow" : "About right", wish: wishes[i] }
       });
     }
     return out;
