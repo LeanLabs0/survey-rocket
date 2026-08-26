@@ -67,7 +67,7 @@
   .closer{padding:0 0 88px;text-align:center}
   .closer h2{font-size:24px;margin-bottom:16px}
 
-  .demo-head{padding:40px 0 8px}
+  .demo-head{padding:32px 0 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
   .demo-head .eyebrow{font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
   .demo-head h1{font-size:clamp(24px,3.6vw,34px);margin:.3em 0 .2em}
   .demo-head p{margin:0;max-width:64ch}
@@ -84,37 +84,46 @@
   .dash-cta{padding:0 20px 20px}
   .dash-lock{padding:36px 20px;text-align:center;color:var(--tx-dis);font-size:13.5px}
 
-  /* Step tracker, the reputationrocket.ai shape adapted to Survey Rocket. */
-  .steps{display:flex;align-items:flex-start;justify-content:center;gap:0;margin:0 0 26px;flex-wrap:nowrap;overflow-x:auto}
-  .step{display:flex;align-items:flex-start;flex:1 1 0;min-width:0}
-  .step:last-child{flex:0 0 auto}
-  .step .body{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;width:118px;flex:0 0 118px}
-  .step .dot{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-             background:var(--tile);box-shadow:var(--inset);color:var(--tx-dis);font-size:15px;font-weight:600;transition:.25s}
-  .step.on .dot{background:var(--green);color:#04120c;box-shadow:none}
-  .step.done .dot{background:transparent;box-shadow:var(--inset);color:var(--green)}
-  .step .idx{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx-dis)}
-  .step .nm{font-size:13.5px;color:var(--tx-2);font-weight:500}
-  .step.on .nm{color:var(--tx);font-weight:600}
-  .step .pill{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--tile);color:var(--tx-dis);box-shadow:var(--inset)}
-  .step.on .pill{background:rgba(0,212,146,.14);color:var(--green);box-shadow:none}
-  .step.done .pill{color:var(--green)}
-  .step .line{flex:1 1 auto;height:2px;background:var(--line);margin-top:21px;min-width:14px;border-radius:2px}
-  .step.done .line,.step.on .line{background:var(--green)}
-  @media (max-width:760px){ .step .body{width:88px;flex-basis:88px} .step .nm{font-size:12px} }
+  /* Step tracker, the reputationrocket.ai shape adapted to Survey Rocket.
+     Namespaced .sr-steps because .steps is already the landing page's
+     "how it works" section, whose padding:24px 0 72px was silently adding 96px
+     of dead air under this bar. */
+  .sr-steps{display:flex;align-items:flex-start;justify-content:center;gap:0;
+            max-width:720px;margin:0 auto 30px;flex-wrap:nowrap;overflow-x:auto}
+  .sr-steps .step{display:flex;align-items:flex-start;flex:1 1 0;min-width:0}
+  .sr-steps .step:last-child{flex:0 0 auto}
+  .sr-steps .body{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;width:104px;flex:0 0 104px}
+  .sr-steps .dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                 background:var(--tile);box-shadow:var(--inset);color:var(--tx-dis);font-size:14px;font-weight:600;transition:.25s}
+  .sr-steps .step.on .dot{background:var(--green);color:#04120c;box-shadow:none}
+  .sr-steps .step.done .dot{background:transparent;box-shadow:var(--inset);color:var(--green)}
+  .sr-steps .idx{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx-dis)}
+  .sr-steps .nm{font-size:13px;color:var(--tx-2);font-weight:500}
+  .sr-steps .step.on .nm{color:var(--tx);font-weight:600}
+  .sr-steps .pill{font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--tile);color:var(--tx-dis);box-shadow:var(--inset)}
+  .sr-steps .step.on .pill{background:rgba(0,212,146,.14);color:var(--green);box-shadow:none}
+  .sr-steps .step.done .pill{color:var(--green)}
+  .sr-steps .line{flex:1 1 auto;height:2px;background:var(--line);margin-top:18px;min-width:12px;border-radius:2px}
+  /* Only a finished step fills the line after it. Filling the current step's
+     trailing line implies the next one is reached, which it is not. */
+  .sr-steps .step.done .line{background:var(--green)}
+  @media (max-width:760px){ .sr-steps .body{width:80px;flex-basis:80px} .sr-steps .nm{font-size:11.5px} }
 
-  /* Step 1. Headline, sub, video, heads up, microcopy, one button. */
-  .welcome{max-width:620px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px}
-  .welcome h2{font-size:26px;line-height:1.25}
-  .welcome p.sub{color:var(--tx-2);font-size:15px}
-  .welcome .video{width:100%;aspect-ratio:16/9;background:var(--tile);box-shadow:var(--inset);border-radius:var(--r-lg);
-                  display:flex;align-items:center;justify-content:center;color:var(--tx-dis);font-size:13px;gap:10px}
-  .welcome .video .play{width:52px;height:52px;border-radius:50%;background:var(--card);box-shadow:var(--inset);
-                        display:flex;align-items:center;justify-content:center;color:var(--tx-2);font-size:17px}
-  .heads{display:flex;gap:12px;text-align:left;background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:16px 18px;width:100%}
+  /* Step 1. One headline, one column, one button, all above the fold.
+     The video is a placeholder, so it is capped rather than left to become the
+     tallest thing on the page and push Begin out of view. */
+  .welcome{max-width:560px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .welcome h2{font-size:29px;line-height:1.2;letter-spacing:-.01em;text-wrap:balance}
+  .welcome p.sub{color:var(--tx-2);font-size:14.5px;margin:0;max-width:470px;text-wrap:pretty}
+  .welcome .video{width:100%;aspect-ratio:16/9;max-height:236px;background:var(--tile);box-shadow:var(--inset);
+                  border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;
+                  color:var(--tx-dis);font-size:13px;gap:10px;cursor:pointer}
+  .welcome .video .play{width:44px;height:44px;border-radius:50%;background:var(--card);box-shadow:var(--inset);
+                        display:flex;align-items:center;justify-content:center;color:var(--tx-2);font-size:15px}
+  .heads{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:13px 18px;width:100%}
   .heads b{color:var(--tx)}
-  .heads p{color:var(--tx-2);font-size:13.5px;margin:0}
-  .micro{color:var(--tx-dis);font-size:12.5px}
+  .heads p{color:var(--tx-2);font-size:13.5px;margin:0;line-height:1.5}
+  .micro{color:var(--tx-dis);font-size:12.5px;margin:0}
 </style>
 </head>
 <body>
@@ -191,21 +200,17 @@
   <div class="wrap">
     <div class="demo-head">
       <div class="eyebrow">Live demo</div>
-      <h1>Answer a survey, then see the dashboard</h1>
-      <p>You are playing a Lean Labs client. Answer the chat on the left and watch the results side light up. The questions were drafted by the gap-scan agent from lean-labs.com. Everything runs in this page, nothing is stored.</p>
       <span class="sandbox">Sandbox, fake data only</span>
     </div>
 
-    <div class="steps" id="steps"></div>
+    <div class="sr-steps" id="steps"></div>
 
     <div class="welcome" id="welcome">
       <h2>Give Lean Labs a number worth publishing</h2>
       <p class="sub">Answer five quick questions about the work Lean Labs did for you, and every answer joins an average they can put on their website.</p>
       <div class="video"><span class="play">&#9658;</span><span>Welcome video</span></div>
       <div class="heads">
-        <div>
-          <p><b>Heads up:</b> the questions are the easy part. Most take a single tap, and you can skip anything you would rather not answer.</p>
-        </div>
+        <p><b>Heads up:</b> you are playing a Lean Labs client, and the gap-scan agent wrote these questions from lean-labs.com. Most take a single tap, and nothing you type is stored.</p>
       </div>
       <p class="micro">Takes about two minutes, and nothing publishes without your yes.</p>
       <button class="btn primary" id="beginBtn">Begin</button>
