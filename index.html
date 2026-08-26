@@ -67,7 +67,7 @@
   .closer{padding:0 0 88px;text-align:center}
   .closer h2{font-size:24px;margin-bottom:16px}
 
-  .demo-head{padding:22px 0 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .demo-head{padding:40px 0 30px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
   .demo-head .eyebrow{font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
   .demo-head h1{font-size:clamp(24px,3.6vw,34px);margin:.3em 0 .2em}
   .demo-head p{margin:0;max-width:64ch}
@@ -89,7 +89,7 @@
      "how it works" section, whose padding:24px 0 72px was silently adding 96px
      of dead air under this bar. */
   .sr-steps{display:flex;align-items:flex-start;justify-content:center;gap:0;
-            max-width:720px;margin:0 auto 22px;flex-wrap:nowrap;overflow-x:auto}
+            max-width:720px;margin:0 auto 56px;flex-wrap:nowrap;overflow-x:auto}
   .sr-steps .step{display:flex;align-items:flex-start;flex:1 1 0;min-width:0}
   .sr-steps .step:last-child{flex:0 0 auto}
   .sr-steps .body{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;width:104px;flex:0 0 104px}
@@ -110,36 +110,55 @@
   @media (max-width:760px){ .sr-steps .body{width:80px;flex-basis:80px} .sr-steps .nm{font-size:11.5px} }
 
 
-  /* Step 1. One headline, one column, one button, all above the fold.
-     The video is a placeholder, so it is capped rather than left to become the
-     tallest thing on the page and push Begin out of view. */
-  .welcome{max-width:560px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
-  .welcome h2{font-size:29px;line-height:1.2;letter-spacing:-.01em;text-wrap:balance}
-  .welcome p.sub{color:var(--tx-2);font-size:14.5px;margin:0;max-width:470px;text-wrap:pretty}
-  .welcome .video{width:100%;aspect-ratio:16/9;max-height:196px;background:var(--tile);box-shadow:var(--inset);
-                  border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;
-                  color:var(--tx-dis);font-size:13px;gap:10px;cursor:pointer}
-  .welcome .video .play{width:44px;height:44px;border-radius:50%;background:var(--card);box-shadow:var(--inset);
+  /* Step 1. Spacing carries the grouping: a heading and its subtitle are one
+     unit and sit close, the blocks between them get real air. A single uniform
+     gap made every element look equally related to every other one, which is
+     what read as cluttered even though nothing was actually crowded. */
+  .welcome{max-width:560px;margin:0 auto;text-align:center}
+  .welcome .lede{margin:0 0 40px}
+  .welcome h2{font-size:31px;line-height:1.25;letter-spacing:-.01em;text-wrap:balance;margin:0 0 14px}
+  .welcome p.sub{color:var(--tx-2);font-size:15px;line-height:1.65;margin:0 auto;max-width:460px;text-wrap:pretty}
+  .welcome .video{width:100%;aspect-ratio:16/9;max-height:250px;margin:0 0 32px;background:var(--tile);
+                  box-shadow:var(--inset);border-radius:var(--r-lg);display:flex;align-items:center;
+                  justify-content:center;color:var(--tx-dis);font-size:13px;gap:10px;cursor:pointer}
+  .welcome .video .play{width:46px;height:46px;border-radius:50%;background:var(--card);box-shadow:var(--inset);
                         display:flex;align-items:center;justify-content:center;color:var(--tx-2);font-size:15px}
-  .heads{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:13px 18px;width:100%}
+  .heads{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:18px 22px;margin:0 0 36px;text-align:center}
   .heads b{color:var(--tx)}
-  .heads p{color:var(--tx-2);font-size:13.5px;margin:0;line-height:1.5}
+  .heads p{color:var(--tx-2);font-size:13.5px;margin:0;line-height:1.7}
+  .welcome .go{display:flex;flex-direction:column;align-items:center;gap:14px}
   .micro{color:var(--tx-dis);font-size:12.5px;margin:0}
 
   /* On a phone the same content has to clear a much shorter fold, and Begin is
      the whole point of the screen. Tighten the two things that cost the most
      height: the video placeholder and the gaps. */
+  /* The constraint here is viewport HEIGHT, not width: a 1280x800 laptop is
+     wide and short. Give tall screens the full breathing room and claw a
+     little back only where the fold actually bites, so the button stays
+     reachable without cramping every screen to suit the shortest one. */
+  @media (max-height:880px){
+    .demo-head{padding:22px 0 18px}
+    .sr-steps{margin-bottom:34px}
+    .welcome .lede{margin-bottom:26px}
+    .welcome h2{font-size:27px;margin-bottom:11px}
+    .welcome .video{max-height:170px;margin-bottom:22px}
+    .heads{padding:14px 20px;margin-bottom:24px}
+  }
+
+  /* Phones are narrow AND short, so this sits after the height query and must
+     not undo it. Only type size and padding change here; the vertical rhythm
+     is whatever the height query already decided. */
   @media (max-width:560px){
-    .demo-head{padding:20px 0 14px}
-    .sr-steps{margin-bottom:22px}
-    .welcome{gap:12px}
-    .welcome h2{font-size:24px}
-    .welcome p.sub{font-size:13.5px}
-    .welcome .video{max-height:150px}
-    .heads{padding:11px 14px}
+    .sr-steps{margin-bottom:30px}
+    .welcome h2{font-size:25px;margin-bottom:10px}
+    .welcome p.sub{font-size:14px;line-height:1.6}
+    .welcome .lede{margin-bottom:24px}
+    .welcome .video{max-height:150px;margin-bottom:20px}
+    .heads{padding:14px 16px;margin-bottom:22px}
     .heads p{font-size:12.5px}
     .micro{font-size:11.5px}
   }
+
 </style>
 </head>
 <body>
@@ -215,21 +234,24 @@
 <section class="view" id="view-demo">
   <div class="wrap">
     <div class="demo-head">
-      <div class="eyebrow">Live demo</div>
       <span class="sandbox">Sandbox, fake data only</span>
     </div>
 
     <div class="sr-steps" id="steps"></div>
 
     <div class="welcome" id="welcome">
-      <h2>Give Lean Labs a number worth publishing</h2>
-      <p class="sub">Answer five quick questions about the work Lean Labs did for you, and every answer joins an average they can put on their website.</p>
+      <div class="lede">
+        <h2>Give Lean Labs a number worth publishing</h2>
+        <p class="sub">Answer five quick questions about the work Lean Labs did for you, and every answer joins an average they can put on their website.</p>
+      </div>
       <div class="video"><span class="play">&#9658;</span><span>Welcome video</span></div>
       <div class="heads">
         <p><b>Heads up:</b> you are playing a Lean Labs client, and the gap-scan agent wrote these questions from lean-labs.com. Most take a single tap, and nothing you type is stored.</p>
       </div>
-      <p class="micro">Takes about two minutes, and nothing publishes without your yes.</p>
-      <button class="btn primary" id="beginBtn">Begin</button>
+      <div class="go">
+        <p class="micro">Takes about two minutes, and nothing publishes without your yes.</p>
+        <button class="btn primary" id="beginBtn">Begin</button>
+      </div>
     </div>
 
     <div class="demo-grid" id="demoGrid" style="display:none">
