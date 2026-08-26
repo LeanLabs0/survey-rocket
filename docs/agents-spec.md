@@ -1,6 +1,8 @@
 # Survey Rocket: the two agents
 
 **Spec v1.** Ralph, 2026-08-26. **Status: proposed, not built.**
+
+> **This is the phase 1 build.** Survey Rocket ships for Lean Labs first, on Lean Labs' own surveys. NFI follows once Kevin approves the prototype. Nothing here needs a client HubSpot portal, an identity token, or Edward's database, so none of those block it.
 Companion to `completion-backend-spec.md` (the signal) and `response-contract.md` (the output). This one covers the conversation and the survey that drives it.
 
 **Where this lives:** both agents go in `LeanLabs0/factor8-agent-sdk`, **private**, as agent definitions beside `reputation-rocket.md`. Ralph lifted the handoff's no-Factor8 guard on 2026-08-26 after we confirmed that repo already holds the Reputation Rocket conversational agent on the same shape: `model: haiku`, `allowed-tools: []`, driven from a frontend chat.
@@ -221,9 +223,9 @@ Nothing starts before the schema, because everything reads it. Factor8 already c
 | 3 | The prompt, plus an eval set of about 40 real answers seeded with what the regex gets wrong today | 1d | the eval is how you know it is better, not a vibe |
 | 4 | Wire `engine.js` to call it on free-text turns only, with the regex as fallback | 0.5d | the only frontend change |
 | 5 | Lean Labs demo survey as a real record on the real path | 0.5d | kills the parallel demo script in `index.html` |
-| 6 | **NFI can launch here.** 11 Sep | | steps 1 to 5 plus the completion backend |
+| 6 | **Kevin can review here.** No date pressure | | steps 1 to 5. No HubSpot, no tokens, no Edward |
 | 7 | Read the AEO audit pipeline's output, decide how much of the scan already exists | 0.5d | before estimating step 8 |
-| 8 | `survey-rocket-designer.md`: scan and stat entry points, drafting into the editor | 2 to 3d | after NFI |
+| 8 | `survey-rocket-designer.md`: scan and stat entry points, drafting into the editor | 2 to 3d | see the note below on doing this before phase 2 |
 
 ### Not in scope
 

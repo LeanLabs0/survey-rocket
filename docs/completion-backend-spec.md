@@ -5,6 +5,8 @@ Covers ClickUp 868ku8ucw "Build Functioning AI Agent" (was due 21 Aug). Target i
 
 **Scope guard.** This is built in a new repo alongside `LeanLabs0/survey-rocket`. It is not a Factor8 skill and does not belong in `factor8-agent-sdk`, `ll-mcp-app`, or `AIS-OS`.
 
+> **Phasing, set 2026-08-26.** Survey Rocket is being built for Lean Labs first. NFI comes after Kevin approves the prototype. Everything in this document that depends on a client's HubSpot portal, a signed identity token, or the 11 Sep NFI date is **phase 2** and is not on the current critical path. The phase 1 build is in `agents-spec.md`.
+
 **Honest limitation, up front.** No HubSpot private app token exists for this yet. Until one lands, none of this can be tested against a real portal, and nothing here should be described to a client as verified. Section 8 gives the free path to a real test.
 
 ---

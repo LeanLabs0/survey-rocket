@@ -5,6 +5,8 @@
 
 This is the shape of one stored survey response. Build the dashboard against it. If it needs to change, that is a conversation rather than a silent edit, because the chat engine already produces these values today.
 
+> **Phasing, set 2026-08-26.** Survey Rocket is being built for Lean Labs first. NFI comes after Kevin approves the prototype. Everything in this document that depends on a client's HubSpot portal, a signed identity token, or the 11 Sep NFI date is **phase 2** and is not on the current critical path. The phase 1 build is in `agents-spec.md`.
+
 ## The line between us
 
 **Ralph's backend owns the completion signal and an append-only raw response record. Edward owns the database, the aggregation, and the dashboard.**
