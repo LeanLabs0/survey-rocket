@@ -204,6 +204,10 @@
   </footer>
 </section>
 
+<script>/* The live judge. A small server-side agent reads each free-text answer,
+   pulls the number out of a sentence, and reads sentiment with negation. If it is
+   slow or down the chat falls back to the local rules and nobody sees an error. */
+window.SR_JUDGE_ENABLED = true;</script>
 <script src="js/engine.js"></script>
 <script>
 (function(){

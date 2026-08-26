@@ -9,6 +9,35 @@
   var NEG_RX = [/\bnot recommend\b/, /\bnever recommend\b/, /\bwouldn'?t recommend\b/, /\bwould not recommend\b/, /\bterrible\b/, /\bawful\b/, /\bworst\b/, /\ba mess\b/, /\bwaste\b/, /\bdisappoint/, /\bhate\b/, /\buseless\b/, /\bconfusing\b/, /\bregret\b/, /\bdon'?t like\b/, /\bdo not like\b/, /\bfrustrat/, /\bbroken\b/, /\bnever (use|again)\b/, /\bbad experience\b/];
   var WORDNUM = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000 };
 
+  /* The judge. A small server-side agent that reads one free-text answer and
+     decides accept / probe / reject, extracts the number a human would hear,
+     and reads sentiment with negation. The regexes below stay as the fallback:
+     if the judge is slow, down, or degraded, the chat keeps working exactly as
+     it did before, and nobody answering a survey ever sees an error. */
+  var JUDGE_URL = "https://factor8-agent-sdk.fly.dev/api/v1/public/survey-rocket/turn";
+  var JUDGE_TIMEOUT_MS = 12000;
+
+  function judge(question, answer, type, probes, min, max) {
+    if (!global.SR_JUDGE_ENABLED) return Promise.resolve(null);
+    var body = { question: question || "", answer: answer, type: type, probes: probes || 0 };
+    if (type === "number") {
+      body.min = typeof min === "number" ? min : 0;
+      body.max = typeof max === "number" ? max : 100000;
+    }
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, JUDGE_TIMEOUT_MS) : null;
+    return fetch(JUDGE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ctl ? ctl.signal : undefined
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (o) { return o && !o.degraded ? o : null; })
+      .catch(function () { return null; })
+      .then(function (o) { if (timer) clearTimeout(timer); return o; });
+  }
+
   var QUOTE_Q = "Last one. What would you say to someone in a role like yours who is considering this? Optional, type skip to finish.";
   var QUOTE_PERM = "Mind if we use that as a quote on our website?";
   var QUOTE_ATTR = "Thanks. What is your name, your role, and how long you have worked with us?";
@@ -68,6 +97,7 @@
     this.phase = null;
     this.multi = [];
     this.answers = {};
+    this.probes = {};
     this.quotePending = !!this.o.quoteAsk;
     this.done = false;
     this.o.log.innerHTML = "";
@@ -211,15 +241,34 @@
     this._me(raw); this.o.input.value = "";
 
     if (this.phase === "number") {
-      var p = parseNumber(raw);
       var mn = (q && typeof q.min === "number" && !isNaN(q.min)) ? q.min : 0;
       var mx = (q && typeof q.max === "number" && !isNaN(q.max)) ? q.max : 100000;
       if (mn > mx) { var sw = mn; mn = mx; mx = sw; }
-      if (p.ok && p.n >= mn && p.n <= mx) { this._record(q.id, p.n); this._input(false); this._next(); }
-      else if (p.vague) { this._nag("I need a number for this one. A rough count works. 100? 300? 500?"); }
-      else if (p.decimal) { this._nag("Whole numbers work best here. What is the closest whole number?"); }
-      else if (p.ok) { this._nag("That number looks off, it should be between " + mn + " and " + mx.toLocaleString("en-US") + ". Try again?"); }
-      else { this._nag("I did not catch a number in that. Digits work best, 100? 300? 500?"); }
+      var qid = q && q.id;
+      var ngen = this.gen;
+      this.probes = this.probes || {};
+      var probes = this.probes[qid] || 0;
+      this._input(false);
+      judge(q && q.q, raw, "number", probes, mn, mx).then(function (v) {
+        if (self.gen !== ngen) return;   // Restart happened mid-flight.
+        if (v && v.verdict === "accept" && typeof v.value_number === "number") {
+          self._record(qid, v.value_number); self._next(); return;
+        }
+        if (v && v.verdict === "probe" && v.reply) {
+          self.probes[qid] = probes + 1;
+          self._input(true, "Type a number…");
+          self._nag(v.reply); return;
+        }
+        // No usable judgment. The original rules, unchanged.
+        var p = parseNumber(raw);
+        if (p.ok && p.n >= mn && p.n <= mx) { self._record(qid, p.n); self._next(); return; }
+        self.probes[qid] = probes + 1;
+        self._input(true, "Type a number…");
+        if (p.vague) { self._nag("I need a number for this one. A rough count works. 100? 300? 500?"); }
+        else if (p.decimal) { self._nag("Whole numbers work best here. What is the closest whole number?"); }
+        else if (p.ok) { self._nag("That number looks off, it should be between " + mn + " and " + mx.toLocaleString("en-US") + ". Try again?"); }
+        else { self._nag("I did not catch a number in that. Digits work best, 100? 300? 500?"); }
+      });
     } else if (this.phase === "text") {
       var id = this._curId || (q && q.id);
       this._curId = null;
@@ -231,28 +280,18 @@
       }
     } else if (this.phase === "quote") {
       if (raw.toLowerCase() === "skip") { this._input(false); this._finish(); }
-      else if (isNegative(raw)) {
-        this._record("_quote", raw);
-        this._record("_quotePermission", "private feedback");
+      else {
         this._input(false);
-        this._bot("Thank you for the honesty. That stays private feedback, it will not be published anywhere.", function () { self._finish(); });
-      } else {
-        this._record("_quote", raw);
-        this._input(false);
-        this._bot(this.quoteCopy.perm, function () {
-          self._chips([{ text: "Yes, use it" }, { text: "No thanks" }], function (o, b, box) {
-            self._lock(box, [b]); self._me(o.text);
-            if (o.text === "Yes, use it") {
-              self._record("_quotePermission", "approved");
-              self.phase = "attribution";
-              self._bot(self.quoteCopy.attr, function () {
-                self._input(true, "Name, role, years… or skip");
-              });
-            } else {
-              self._record("_quotePermission", "declined");
-              self._finish();
-            }
-          });
+        var qgen = this.gen;
+        judge(this.quoteCopy.q, raw, "quote", 0).then(function (v) {
+          if (self.gen !== qgen) return;   // Restart happened mid-flight.
+          // The judge reads negation ("I wouldn't hesitate to recommend them")
+          // and context ("confusing at first, then it clicked"), which the
+          // keyword list cannot. Without a judgment, fall back to that list.
+          // Either way the question is the same: would this person be happy to
+          // see these words published under their own name?
+          var negative = v ? v.sentiment === "negative" : isNegative(raw);
+          self._handleQuote(raw, negative);
         });
       }
     } else if (this.phase === "attribution") {
@@ -261,6 +300,32 @@
       this._input(false);
       this._finish();
     }
+  };
+
+  /** Record a quote, then either close it out privately or ask permission. */
+  SurveyChat.prototype._handleQuote = function (raw, negative) {
+    var self = this;
+    this._record("_quote", raw);
+    if (negative) {
+      this._record("_quotePermission", "private feedback");
+      this._bot("Thank you for the honesty. That stays private feedback, it will not be published anywhere.", function () { self._finish(); });
+      return;
+    }
+    this._bot(this.quoteCopy.perm, function () {
+      self._chips([{ text: "Yes, use it" }, { text: "No thanks" }], function (o, b, box) {
+        self._lock(box, [b]); self._me(o.text);
+        if (o.text === "Yes, use it") {
+          self._record("_quotePermission", "approved");
+          self.phase = "attribution";
+          self._bot(self.quoteCopy.attr, function () {
+            self._input(true, "Name, role, years… or skip");
+          });
+        } else {
+          self._record("_quotePermission", "declined");
+          self._finish();
+        }
+      });
+    });
   };
 
   SurveyChat.prototype._finish = function () {
