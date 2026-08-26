@@ -83,6 +83,38 @@
   .dash-note{padding:0 20px 18px;font-size:12px;color:var(--tx-dis)}
   .dash-cta{padding:0 20px 20px}
   .dash-lock{padding:36px 20px;text-align:center;color:var(--tx-dis);font-size:13.5px}
+
+  /* Step tracker, the reputationrocket.ai shape adapted to Survey Rocket. */
+  .steps{display:flex;align-items:flex-start;justify-content:center;gap:0;margin:0 0 26px;flex-wrap:nowrap;overflow-x:auto}
+  .step{display:flex;align-items:flex-start;flex:1 1 0;min-width:0}
+  .step:last-child{flex:0 0 auto}
+  .step .body{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;width:118px;flex:0 0 118px}
+  .step .dot{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+             background:var(--tile);box-shadow:var(--inset);color:var(--tx-dis);font-size:15px;font-weight:600;transition:.25s}
+  .step.on .dot{background:var(--green);color:#04120c;box-shadow:none}
+  .step.done .dot{background:transparent;box-shadow:var(--inset);color:var(--green)}
+  .step .idx{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx-dis)}
+  .step .nm{font-size:13.5px;color:var(--tx-2);font-weight:500}
+  .step.on .nm{color:var(--tx);font-weight:600}
+  .step .pill{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--tile);color:var(--tx-dis);box-shadow:var(--inset)}
+  .step.on .pill{background:rgba(0,212,146,.14);color:var(--green);box-shadow:none}
+  .step.done .pill{color:var(--green)}
+  .step .line{flex:1 1 auto;height:2px;background:var(--line);margin-top:21px;min-width:14px;border-radius:2px}
+  .step.done .line,.step.on .line{background:var(--green)}
+  @media (max-width:760px){ .step .body{width:88px;flex-basis:88px} .step .nm{font-size:12px} }
+
+  /* Step 1. Headline, sub, video, heads up, microcopy, one button. */
+  .welcome{max-width:620px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px}
+  .welcome h2{font-size:26px;line-height:1.25}
+  .welcome p.sub{color:var(--tx-2);font-size:15px}
+  .welcome .video{width:100%;aspect-ratio:16/9;background:var(--tile);box-shadow:var(--inset);border-radius:var(--r-lg);
+                  display:flex;align-items:center;justify-content:center;color:var(--tx-dis);font-size:13px;gap:10px}
+  .welcome .video .play{width:52px;height:52px;border-radius:50%;background:var(--card);box-shadow:var(--inset);
+                        display:flex;align-items:center;justify-content:center;color:var(--tx-2);font-size:17px}
+  .heads{display:flex;gap:12px;text-align:left;background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:16px 18px;width:100%}
+  .heads b{color:var(--tx)}
+  .heads p{color:var(--tx-2);font-size:13.5px;margin:0}
+  .micro{color:var(--tx-dis);font-size:12.5px}
 </style>
 </head>
 <body>
@@ -164,7 +196,22 @@
       <span class="sandbox">Sandbox, fake data only</span>
     </div>
 
-    <div class="demo-grid">
+    <div class="steps" id="steps"></div>
+
+    <div class="welcome" id="welcome">
+      <h2>Give Lean Labs a number worth publishing</h2>
+      <p class="sub">Answer five quick questions about the work Lean Labs did for you, and every answer joins an average they can put on their website.</p>
+      <div class="video"><span class="play">&#9658;</span><span>Welcome video</span></div>
+      <div class="heads">
+        <div>
+          <p><b>Heads up:</b> the questions are the easy part. Most take a single tap, and you can skip anything you would rather not answer.</p>
+        </div>
+      </div>
+      <p class="micro">Takes about two minutes, and nothing publishes without your yes.</p>
+      <button class="btn primary" id="beginBtn">Begin</button>
+    </div>
+
+    <div class="demo-grid" id="demoGrid" style="display:none">
       <div class="chat-frame">
         <div class="chat-head"><span class="av">SR</span><div><b>Lean Labs client outcomes</b><small>customer check-in</small></div><span class="chat-prog" id="prog"></span></div>
         <div class="chat-log" id="log" aria-live="polite"></div>
@@ -262,6 +309,46 @@ window.SR_JUDGE_ENABLED = true;</script>
     document.getElementById("respcount").textContent="128 responses";
   }
 
+  /* The tracker is driven by the chat's own state, never by a second copy of it.
+     Step 3 begins when the engine runs out of questions and moves to the quote,
+     step 4 when it finishes. One source of truth, so the bar can never claim a
+     step the chat is not on. */
+  var STEPS=[
+    {name:"Welcome"},
+    {name:"Quick Chat"},
+    {name:"Your Quote"},
+    {name:"All Set"}
+  ];
+  var stepAt=0;
+
+  function renderSteps(){
+    var host=document.getElementById("steps"), html="";
+    for(var i=0;i<STEPS.length;i++){
+      var cls = i<stepAt ? "step done" : (i===stepAt ? "step on" : "step");
+      var pill = i<stepAt ? "Done" : (i===stepAt ? "In progress" : "Pending");
+      var mark = i<stepAt ? "&#10003;" : String(i+1);
+      html += '<div class="'+cls+'"><div class="body">'
+            +   '<span class="dot">'+mark+'</span>'
+            +   '<span class="idx">Step '+(i+1)+'</span>'
+            +   '<span class="nm">'+STEPS[i].name+'</span>'
+            +   '<span class="pill">'+pill+'</span>'
+            + '</div>'
+            + (i<STEPS.length-1 ? '<span class="line"></span>' : '')
+            + '</div>';
+    }
+    host.innerHTML=html;
+  }
+
+  function setStep(i){ if(i!==stepAt){ stepAt=i; renderSteps(); } }
+
+  /* Which step the chat is actually on, read off the engine rather than counted
+     here. answered < total means questions; otherwise the quote; done is done. */
+  function syncStep(){
+    if(!chat) return setStep(0);
+    if(chat.done) return setStep(3);
+    setStep(chat.state < SCRIPT.length ? 1 : 2);
+  }
+
   function startDemo(){
     if(!chat){
       chat=new SurveyChat({
@@ -278,9 +365,10 @@ window.SR_JUDGE_ENABLED = true;</script>
           perm:"Mind if Lean Labs used that as a quote on their website?",
           attr:"Thanks. What is your name and role, so Lean Labs can attribute the quote?"
         },
-        onComplete:revealDash
+        onAnswer:syncStep,
+        onComplete:function(a){ syncStep(); revealDash(a); }
       });
-      document.getElementById("restartBtn").addEventListener("click",function(){ resetDash(); chat.start(); });
+      document.getElementById("restartBtn").addEventListener("click",function(){ resetDash(); chat.start(); syncStep(); });
     }
     chat.start();
   }
@@ -291,10 +379,17 @@ window.SR_JUDGE_ENABLED = true;</script>
     if(["#/","#/demo","#/#how"].indexOf(h)===-1){ location.replace("#/"); h="#/"; }
     document.getElementById("view-landing").classList.toggle("active",!demo);
     document.getElementById("view-demo").classList.toggle("active",demo);
-    if(demo && !started){ started=true; startDemo(); }
+    if(demo && !started){ started=true; renderSteps(); }
     if(h==="#/#how"){ var el2=document.getElementById("how"); if(el2) el2.scrollIntoView(); }
     else window.scrollTo(0,0);
   }
+  document.getElementById("beginBtn").addEventListener("click",function(){
+    document.getElementById("welcome").style.display="none";
+    document.getElementById("demoGrid").style.display="";
+    setStep(1);
+    startDemo();
+  });
+
   window.addEventListener("hashchange",route);
   document.querySelectorAll('a[href="#/#how"]').forEach(function(a){
     a.addEventListener("click",function(){
