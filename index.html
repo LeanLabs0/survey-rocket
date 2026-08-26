@@ -109,6 +109,21 @@
   .sr-steps .step.done .line{background:var(--green)}
   @media (max-width:760px){ .sr-steps .body{width:80px;flex-basis:80px} .sr-steps .nm{font-size:11.5px} }
 
+  /* On a phone the same content has to clear a much shorter fold, and Begin is
+     the whole point of the screen. Tighten the two things that cost the most
+     height: the video placeholder and the gaps. */
+  @media (max-width:560px){
+    .demo-head{padding:20px 0 14px}
+    .sr-steps{margin-bottom:22px}
+    .welcome{gap:12px}
+    .welcome h2{font-size:24px}
+    .welcome p.sub{font-size:13.5px}
+    .welcome .video{max-height:150px}
+    .heads{padding:11px 14px}
+    .heads p{font-size:12.5px}
+    .micro{font-size:11.5px}
+  }
+
   /* Step 1. One headline, one column, one button, all above the fold.
      The video is a placeholder, so it is capped rather than left to become the
      tallest thing on the page and push Begin out of view. */
