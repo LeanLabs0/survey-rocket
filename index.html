@@ -111,7 +111,8 @@
   .demo-stage{padding:0 0 64px}
   .stage-chat{max-width:560px;margin:0 auto;text-align:center}
   .stage-chat .chat-frame{text-align:left}
-  .stage-dash{max-width:660px;margin:0 auto}
+  .stage-dash{max-width:660px;margin:0 auto;text-align:center}
+  .stage-dash .dash{text-align:left}
   #log{min-height:320px;max-height:54vh}
   .dash-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
   .dash-top h3{font-size:15px}
@@ -410,6 +411,10 @@
     </div>
 
     <div class="demo-stage stage-dash" id="stageDash" style="display:none">
+      <div class="lede">
+        <h2>This is what you would see in your dashboard</h2>
+        <p class="sub">Your client&rsquo;s answer just joined the average. When enough people have answered, the number at the top is the one that goes on your website.</p>
+      </div>
       <div class="dash canvas" id="dashbox">
         <div class="dash-top"><h3>Lean Labs, client results</h3><span class="chip" id="respcount">128 responses</span><span class="chip gold">Sample data</span></div>
         <div id="dashbody">
