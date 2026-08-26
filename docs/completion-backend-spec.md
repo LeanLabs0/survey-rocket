@@ -178,13 +178,13 @@ Short version: append-only JSONL on a Fly volume plus one structured log line pe
 
 ## 6. Deployment
 
-**FastAPI on Fly.io, new repo `LeanLabs0/survey-rocket-api`, app `survey-rocket-api`.**
+**FastAPI on Fly.io, new repo `LeanLabs0/survey-rocket-api`, PRIVATE, app `survey-rocket-api`.**
 
 The org already runs `factor8-agent-sdk`, `domain-agents` and `fan-out-engine` there. `fan-out-engine`'s `fly.toml` and Dockerfile copy across verbatim. Ralph has the account, the CLI and the muscle memory. A few dollars a month.
 
 Rejected: a serverless function adds a new deploy target, secret store and runtime to reason about for one endpoint, two weeks before a client launch, and the saving is not real. A Supabase edge function would couple this to a datastore decision that is Edward's and has not been made. Folding it into `aeo-tools` or `ll-mcp-app` couples the launch to an unrelated release train and mixes Lean Labs' portal token into the same process as a client's.
 
-Not inside `LeanLabs0/survey-rocket`: that repo serves Pages from root, so server files would be publicly fetchable.
+Not inside `LeanLabs0/survey-rocket`: that repo is public and serves Pages from root, so every file in it is downloadable by anyone. The repo must be private, because it holds the agent system prompts (see `agents-spec.md`), the token-minting logic, and the HubSpot integration.
 
 `min_machines_running = 1` for the launch window, then back to 0. The respondent never waits on the response, but a cold start plus keepalive plus a flaky network is three things stacking in the one week where it must not fail.
 
