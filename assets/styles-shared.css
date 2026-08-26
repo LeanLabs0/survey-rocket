@@ -77,5 +77,5 @@ button,input,select,textarea{font-family:var(--font-body)}
 .hbar .fill{display:block;height:100%;background:var(--green);border-radius:var(--r-sm) 3px 3px var(--r-sm);min-width:2px}
 .hbar .val{color:var(--tx-2);font-variant-numeric:tabular-nums;text-align:right;font-weight:500}
 
-footer.pagefoot{border-top:1px solid var(--line);margin-top:40px;padding:18px 20px;font-size:12.5px;color:var(--tx-dis);display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
-footer.pagefoot a{color:var(--tx-2)}
+footer.pagefoot{border-top:1px solid var(--line);margin-top:40px;padding:18px 20px;font-size:12.5px;color:var(--tx-2);display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+footer.pagefoot a{color:var(--tx-2);display:inline-flex;align-items:center;min-height:32px;padding:2px 0}

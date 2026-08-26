@@ -40,7 +40,7 @@
   .vid-frame .third b{display:block;font-family:var(--font-heading);font-weight:600;color:var(--tx);font-size:15px}
   .vid-frame .third span{font-size:12.5px;color:var(--tx-2)}
   .vid-frame .dur{position:absolute;right:20px;bottom:20px;font-size:12px;color:var(--tx-2);box-shadow:var(--inset);border-radius:var(--r-sm);padding:3px 9px;background:rgba(13,13,13,.6)}
-  .vid .cap{text-align:center;font-size:12.5px;color:var(--tx-dis);margin-top:12px}
+  .vid .cap{text-align:center;font-size:12.5px;color:var(--tx-2);margin-top:12px}
 
   .steps{padding:24px 0 72px}
   .steps h2{text-align:center;font-size:26px;margin-bottom:8px}
@@ -80,7 +80,7 @@
   @media (max-width:880px){.split{grid-template-columns:1fr;gap:28px}.split.flip .shot{order:0}}
   .split p{color:var(--tx-2);font-size:15.5px;line-height:1.7;margin:0 0 12px}
   .shot{aspect-ratio:4/3;margin:0;background:var(--tile);box-shadow:var(--inset);border-radius:var(--r-lg);
-        display:flex;align-items:center;justify-content:center;color:var(--tx-dis);font-size:12px;
+        display:flex;align-items:center;justify-content:center;color:var(--tx-2);font-size:12px;
         letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:20px}
   .twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media (max-width:820px){.twocol{grid-template-columns:1fr}}
@@ -104,6 +104,32 @@
   .band p{color:var(--tx-2);font-size:15.5px;line-height:1.7;margin:0 auto 26px;max-width:52ch}
   .band .ctas{justify-content:center}
   .band .note{margin-top:16px}
+
+  /* Keyboard focus. Five interactive elements showed nothing at all when
+     tabbed to, so a keyboard user could not tell where they were. :focus-visible
+     rather than :focus, so a mouse click never draws a ring. */
+  a:focus-visible, button:focus-visible, input:focus-visible, .opt:focus-visible{
+    outline:2px solid var(--green); outline-offset:3px; border-radius:var(--r-sm)}
+  .chat-input input:focus-visible{outline-offset:0}
+
+  /* Answer chips were 29px tall. They are the main thing a thumb hits on a
+     phone, and 29px is well under the touch-target floor. */
+  .opt{min-height:40px}
+  .chat-input input,.chat-input .send{min-height:40px}
+
+  /* Screens and bubbles arrive rather than appearing, the way
+     reputationrocket.ai does it. The global prefers-reduced-motion rule in
+     styles-shared.css already switches all of this off for anyone who asks. */
+  @keyframes srStageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .demo-stage,#welcome{animation:srStageIn .34s ease both}
+  @keyframes srBubbleIn{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}
+  .bub,.opts{animation:srBubbleIn .26s ease both}
+
+  /* A skip link, because the tracker and the chat sit between the top of the
+     page and anything a keyboard user wants to reach. */
+  .skip-link{position:absolute;left:-9999px;top:8px;z-index:60;background:var(--card);
+             color:var(--tx);padding:10px 16px;border-radius:var(--r-md);box-shadow:var(--inset)}
+  .skip-link:focus{left:16px}
   .closer h2{font-size:24px;margin-bottom:16px}
 
   /* Step 2 and step 3 are separate screens now, each one centred column,
@@ -132,13 +158,13 @@
   .sr-steps .step:last-child{flex:0 0 auto}
   .sr-steps .body{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;width:104px;flex:0 0 104px}
   .sr-steps .dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-                 background:var(--tile);box-shadow:var(--inset);color:var(--tx-dis);font-size:14px;font-weight:600;transition:.25s}
+                 background:var(--tile);box-shadow:var(--inset);color:var(--tx-2);font-size:14px;font-weight:600;transition:.25s}
   .sr-steps .step.on .dot{background:var(--green);color:#04120c;box-shadow:none}
   .sr-steps .step.done .dot{background:transparent;box-shadow:var(--inset);color:var(--green)}
-  .sr-steps .idx{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx-dis)}
+  .sr-steps .idx{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx-2)}
   .sr-steps .nm{font-size:13px;color:var(--tx-2);font-weight:500}
   .sr-steps .step.on .nm{color:var(--tx);font-weight:600}
-  .sr-steps .pill{font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--tile);color:var(--tx-dis);box-shadow:var(--inset)}
+  .sr-steps .pill{font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--tile);color:var(--tx-2);box-shadow:var(--inset)}
   .sr-steps .step.on .pill{background:rgba(0,212,146,.14);color:var(--green);box-shadow:none}
   .sr-steps .step.done .pill{color:var(--green)}
   .sr-steps .line{flex:1 1 auto;height:2px;background:var(--line);margin-top:18px;min-width:12px;border-radius:2px}
@@ -158,14 +184,14 @@
   .lede .sub{color:var(--tx-2);font-size:15px;line-height:1.65;margin:0 auto;max-width:460px;text-wrap:pretty}
   .welcome .video{width:100%;aspect-ratio:16/9;max-height:250px;margin:0 0 32px;background:var(--tile);
                   box-shadow:var(--inset);border-radius:var(--r-lg);display:flex;align-items:center;
-                  justify-content:center;color:var(--tx-dis);font-size:13px;gap:10px;cursor:pointer}
+                  justify-content:center;color:var(--tx-2);font-size:13px;gap:10px;cursor:pointer}
   .welcome .video .play{width:46px;height:46px;border-radius:50%;background:var(--card);box-shadow:var(--inset);
                         display:flex;align-items:center;justify-content:center;color:var(--tx-2);font-size:15px}
   .heads{background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:18px 22px;margin:0 0 36px;text-align:center}
   .heads b{color:var(--tx)}
   .heads p{color:var(--tx-2);font-size:13.5px;margin:0;line-height:1.7}
   .welcome .go{display:flex;flex-direction:column;align-items:center;gap:14px}
-  .micro{color:var(--tx-dis);font-size:12.5px;margin:0}
+  .micro{color:var(--tx-2);font-size:12.5px;margin:0}
 
   /* On a phone the same content has to clear a much shorter fold, and Begin is
      the whole point of the screen. Tighten the two things that cost the most
@@ -202,6 +228,7 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to the demo</a>
 
 <header class="topbar">
   <a class="wordmark" href="#/"><span class="rocket">SR</span>Survey Rocket</a>
@@ -374,8 +401,9 @@
   </footer>
 </section>
 
-<section class="view" id="view-demo">
+<section class="view" id="view-demo" tabindex="-1">
   <div class="wrap">
+    <div id="main"></div>
     <div class="sr-steps" id="steps"></div>
 
     <div class="welcome" id="welcome">
