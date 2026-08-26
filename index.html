@@ -341,13 +341,25 @@ window.SR_JUDGE_ENABLED = true;</script>
 
   function setStep(i){ if(i!==stepAt){ stepAt=i; renderSteps(); } }
 
-  /* Which step the chat is actually on, read off the engine rather than counted
-     here. answered < total means questions; otherwise the quote; done is done. */
+  /* Which step the chat is on, read off the engine's own progress line rather
+     than recomputed here. The engine writes that line in _prog() at exactly the
+     three transitions we care about, so the tracker cannot drift from it.
+
+     onAnswer alone is not enough: it fires while the answer is being recorded,
+     before _next() advances, so the quote step would never light. */
   function syncStep(){
     if(!chat) return setStep(0);
-    if(chat.done) return setStep(3);
-    setStep(chat.state < SCRIPT.length ? 1 : 2);
+    var t=(document.getElementById("prog").textContent||"").toLowerCase();
+    if(t.indexOf("done")===0) return setStep(3);
+    if(t.indexOf("wrapping")===0) return setStep(2);
+    if(t.indexOf("question")===0) return setStep(1);
+    setStep(chat.done ? 3 : 1);
   }
+
+  /* The engine owns that line, so watch it rather than polling the chat. */
+  new MutationObserver(syncStep).observe(
+    document.getElementById("prog"), {childList:true, characterData:true, subtree:true}
+  );
 
   function startDemo(){
     if(!chat){
