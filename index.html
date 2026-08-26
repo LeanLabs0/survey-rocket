@@ -73,15 +73,18 @@
   .demo-head p{margin:0;max-width:64ch}
   .sandbox{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:6px 12px;border-radius:var(--r-sm);box-shadow:var(--inset);color:var(--alert);font-size:11.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
   .sandbox::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--alert)}
-  .demo-grid{display:grid;grid-template-columns:minmax(0,500px) 1fr;gap:20px;align-items:start;padding:24px 0 60px}
-  @media (max-width:860px){.demo-grid{grid-template-columns:1fr}}
+  /* Step 2 and step 3 are separate screens now, each one centred column,
+     rather than a chat squeezed beside a dashboard nobody could read yet. */
+  .demo-stage{padding:8px 0 64px}
+  .stage-chat{max-width:560px;margin:0 auto}
+  .stage-dash{max-width:660px;margin:0 auto}
   #log{min-height:320px;max-height:54vh}
   .dash-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
   .dash-top h3{font-size:15px}
   .dash .tiles{grid-template-columns:1fr 1fr;padding:16px 20px}
   .dash .chart{margin:0 20px 16px}
   .dash-note{padding:0 20px 18px;font-size:12px;color:var(--tx-dis)}
-  .dash-cta{padding:0 20px 20px}
+  .dash-cta{padding:0 20px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .dash-lock{padding:36px 20px;text-align:center;color:var(--tx-dis);font-size:13.5px}
 
   /* Step tracker, the reputationrocket.ai shape adapted to Survey Rocket.
@@ -254,7 +257,7 @@
       </div>
     </div>
 
-    <div class="demo-grid" id="demoGrid" style="display:none">
+    <div class="demo-stage stage-chat" id="stageChat" style="display:none">
       <div class="chat-frame">
         <div class="chat-head"><span class="av">SR</span><div><b>Lean Labs client outcomes</b><small>customer check-in</small></div><span class="chat-prog" id="prog"></span></div>
         <div class="chat-log" id="log" aria-live="polite"></div>
@@ -265,10 +268,12 @@
         </div>
       </div>
 
+    </div>
+
+    <div class="demo-stage stage-dash" id="stageDash" style="display:none">
       <div class="dash canvas" id="dashbox">
         <div class="dash-top"><h3>Lean Labs, client results</h3><span class="chip" id="respcount">128 responses</span><span class="chip gold">Sample data</span></div>
-        <div class="dash-lock" id="dashlock">Finish the chat and your answers join these results.</div>
-        <div id="dashbody" style="display:none">
+        <div id="dashbody">
           <div class="tiles">
             <div class="tile"><div class="lbl">Share of clients whose conversion rate went up after working with Lean Labs</div><div class="num" id="t-outcome">78%</div><div class="src">Everyone who picked any increase</div></div>
             <div class="tile"><div class="lbl">Net Promoter Score</div><div class="num" id="t-nps">52</div><div class="src">% promoters minus % detractors</div></div>
@@ -283,7 +288,10 @@
             <div class="hbar"><span class="cat">Down</span><span class="track"><i class="fill" style="width:9%"></i></span><span class="val" id="b4">5</span></div>
           </div>
           <div class="dash-note" id="joinnote" style="display:none">Your answer just moved these numbers. That is the whole product.</div>
-          <div class="dash-cta"><a class="btn primary" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a></div>
+          <div class="dash-cta">
+            <a class="btn primary" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
+            <button class="btn ghost" id="dashRestart">Start over</button>
+          </div>
         </div>
       </div>
     </div>
@@ -318,7 +326,11 @@ window.SR_JUDGE_ENABLED = true;</script>
   ];
 
   function revealDash(answers){
-    document.getElementById("dashlock").style.display="none";
+    // Step 3 is a screen of its own now. The chat is done, so it steps aside
+    // rather than sharing the width with results nobody could read until now.
+    document.getElementById("stageChat").style.display="none";
+    document.getElementById("stageDash").style.display="";
+    window.scrollTo({top:0, behavior:"smooth"});
     document.getElementById("dashbody").style.display="block";
     document.getElementById("respcount").textContent="129 responses";
     var bandIds=["Up more than 50%","Up 20 to 50%","Up less than 20%","About the same","Down"];
@@ -347,20 +359,26 @@ window.SR_JUDGE_ENABLED = true;</script>
   }
 
   function resetDash(){
-    document.getElementById("dashlock").style.display="block";
-    document.getElementById("dashbody").style.display="none";
+    // The stage owns visibility now, so this only restores the sample data.
     document.getElementById("respcount").textContent="128 responses";
+    document.getElementById("joinnote").style.display="none";
+    var base=[39,55,13,16,5], maxC=55;
+    for(var i=0;i<5;i++){
+      var row=document.getElementById("b"+i);
+      row.textContent=String(base[i]);
+      row.parentElement.querySelector(".fill").style.width=Math.max(4,Math.round(base[i]/maxC*100))+"%";
+    }
+    document.getElementById("t-outcome").textContent="78%";
+    document.getElementById("t-nps").textContent="52";
   }
 
   /* The tracker is driven by the chat's own state, never by a second copy of it.
-     Step 3 begins when the engine runs out of questions and moves to the quote,
-     step 4 when it finishes. One source of truth, so the bar can never claim a
-     step the chat is not on. */
+     Three steps: the optional quote is not a screen of its own, it happens
+     inside the chat, and reaching the dashboard is what finishing means. */
   var STEPS=[
     {name:"Welcome"},
     {name:"Quick Chat"},
-    {name:"Your Quote"},
-    {name:"All Set"}
+    {name:"Your Dashboard"}
   ];
   var stepAt=0;
 
@@ -393,10 +411,10 @@ window.SR_JUDGE_ENABLED = true;</script>
   function syncStep(){
     if(!chat) return setStep(0);
     var t=(document.getElementById("prog").textContent||"").toLowerCase();
-    if(t.indexOf("done")===0) return setStep(3);
-    if(t.indexOf("wrapping")===0) return setStep(2);
-    if(t.indexOf("question")===0) return setStep(1);
-    setStep(chat.done ? 3 : 1);
+    // "Wrapping up" is the optional quote, which is still the chat.
+    if(t.indexOf("done")===0) return setStep(2);
+    if(t.indexOf("wrapping")===0 || t.indexOf("question")===0) return setStep(1);
+    setStep(chat.done ? 2 : 1);
   }
 
   /* The engine owns that line, so watch it rather than polling the chat. */
@@ -423,7 +441,15 @@ window.SR_JUDGE_ENABLED = true;</script>
         onAnswer:syncStep,
         onComplete:function(a){ syncStep(); revealDash(a); }
       });
-      document.getElementById("restartBtn").addEventListener("click",function(){ resetDash(); chat.start(); syncStep(); });
+      function restart(){
+        resetDash();
+        document.getElementById("stageDash").style.display="none";
+        document.getElementById("stageChat").style.display="";
+        chat.start();
+        syncStep();
+      }
+      document.getElementById("restartBtn").addEventListener("click",restart);
+      document.getElementById("dashRestart").addEventListener("click",restart);
     }
     chat.start();
   }
@@ -440,7 +466,8 @@ window.SR_JUDGE_ENABLED = true;</script>
   }
   document.getElementById("beginBtn").addEventListener("click",function(){
     document.getElementById("welcome").style.display="none";
-    document.getElementById("demoGrid").style.display="";
+    document.getElementById("stageChat").style.display="";
+    document.getElementById("stageDash").style.display="none";
     setStep(1);
     startDemo();
   });
