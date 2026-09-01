@@ -1,11 +1,11 @@
-/* Survey Rocket prototype store. localStorage only, by design for the Lean Labs test phase.
-   Limitation stated in the README: surveys and responses live in THIS browser.
-   Phase 2 swaps these functions for a real data store without touching the pages. */
+/* Survey Rocket survey store: the editor's working copies, in localStorage.
+   Responses never live here; they post to the shared store on completion and
+   Results reads them back from it. Save in the editor also publishes the
+   definition so the survey's one link serves the latest version. */
 (function (global) {
   "use strict";
 
   var K_SURVEYS = "sr:surveys:v1";
-  var K_RESPONSES = "sr:responses:v1";
 
   function seedSurveys() {
     return [
@@ -64,57 +64,6 @@
     return sv;
   }
 
-  /* Seeded sample responses so the dashboard is not empty on first visit.
-     Marked seeded:true and labeled in the UI. */
-  function seedResponses() {
-    var out = [];
-    var bands = ["Down", "Flat", "Up to 25% up", "26 to 75% up", "More than 75% up"];
-    var bandCounts = [1, 3, 6, 8, 5]; /* 23 responses */
-    var services = ["AEO program", "Website Launchpad", "Growth retainer"];
-    var npsSpread = [9, 10, 9, 8, 9, 10, 7, 9, 10, 8, 9, 6, 10, 9, 8, 9, 10, 9, 7, 9, 10, 5, 9];
-    var changedNotes = [
-      "We finally show up in AI answers for our category.",
-      "Sales stopped arguing with marketing about lead quality.",
-      "The site went from brochure to pipeline source.",
-      null, null,
-      "Faster launches, way fewer meetings.",
-      null,
-      "We publish twice as fast with half the review cycles.",
-      null, null,
-      "Leads mention the new pages on calls now.",
-      null
-    ];
-    var i, b, n = 0;
-    for (b = 0; b < bands.length; b++) {
-      for (i = 0; i < bandCounts[b]; i++) {
-        out.push({
-          surveyId: "client-outcomes",
-          seeded: true,
-          at: "2026-07-" + (10 + (n % 18)),
-          answers: {
-            service: services[n % services.length],
-            leads: 8 + (n * 7) % 90,
-            pipeline: bands[b],
-            nps: npsSpread[n % npsSpread.length],
-            changed: changedNotes[n % changedNotes.length]
-          }
-        });
-        n++;
-      }
-    }
-    var clar = ["Clear", "Very clear", "Clear", "Neutral", "Very clear", "Clear", "Very clear", "Clear"];
-    var wishes = ["A checklist of what you would need from us.", null, "Who owns what on each side.", null, null, "How fast the first sprint moves.", null, null];
-    for (i = 0; i < 8; i++) {
-      out.push({
-        surveyId: "project-onboarding",
-        seeded: true,
-        at: "2026-07-" + (12 + i),
-        answers: { clarity: clar[i], speed: i % 5 === 3 ? "Too slow" : "About right", wish: wishes[i] }
-      });
-    }
-    return out;
-  }
-
   function read(key, fallback) {
     try {
       var raw = localStorage.getItem(key);
@@ -129,11 +78,11 @@
   var Store = {
     init: function () {
       if (!read(K_SURVEYS, null)) write(K_SURVEYS, seedSurveys());
-      if (!read(K_RESPONSES, null)) write(K_RESPONSES, seedResponses());
+      /* the pre-merge response store; clear it so no stale copy lingers */
+      try { localStorage.removeItem("sr:responses:v1"); } catch (e) {}
     },
     reset: function () {
       write(K_SURVEYS, seedSurveys());
-      write(K_RESPONSES, seedResponses());
     },
     surveys: function () { return read(K_SURVEYS, []).map(upgradeSurvey); },
     saveSurveys: function (list) { return write(K_SURVEYS, list); },
@@ -150,21 +99,11 @@
       if (!hit) list.push(survey);
       return this.saveSurveys(list);
     },
-    responses: function (surveyId) {
-      var all = read(K_RESPONSES, []);
-      return surveyId ? all.filter(function (r) { return r.surveyId === surveyId; }) : all;
+    removeSurvey: function (id) {
+      return this.saveSurveys(this.surveys().filter(function (s) { return s.id !== id; }));
     },
-    addResponse: function (surveyId, answers) {
-      var all = read(K_RESPONSES, []);
-      all.push({ surveyId: surveyId, seeded: false, at: new Date().toISOString().slice(0, 10), answers: answers });
-      return write(K_RESPONSES, all);
-    },
-    /* portable respondent link: survey definition packed into the URL fragment */
-    encodeShare: function (survey) {
-      survey = upgradeSurvey(survey);
-      var json = JSON.stringify({ schema_version: 1, id: survey.id, name: survey.name, cadence: survey.cadence, settings: survey.settings, questions: survey.questions });
-      return btoa(unescape(encodeURIComponent(json)));
-    },
+    /* legacy share links: #p= fragments issued before the publish endpoint.
+       They keep working forever; nothing mints new ones. */
     decodeShare: function (b64) {
       try { return upgradeSurvey(JSON.parse(decodeURIComponent(escape(atob(b64))))); }
       catch (e) { return null; }

@@ -110,6 +110,21 @@
       post(payload).catch(function () { saveOutbox(outbox().concat([payload])); });
     },
 
+    /* A published survey definition, by id. The one link a survey has:
+       survey.html fetches this on load, so the newest Save is what every
+       respondent answers, on any device. Null when unpublished or offline. */
+    fetchSurvey: function (surveyId) {
+      return fetch(API.replace("/responses", "/surveys/") + encodeURIComponent(surveyId))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return null;
+          if (d.definition && d.definition.questions) return d.definition;
+          if (d.questions) return d;
+          return null;
+        })
+        .catch(function () { return null; });
+    },
+
     /* Aggregates for the respondent-facing results moment. Numbers only,
        never text answers or contact fields; null on any failure so the page
        degrades to a plain thank-you rather than an error. */

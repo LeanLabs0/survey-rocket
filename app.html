@@ -172,6 +172,33 @@
   .krow .v.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--tx-2)}
   .krow .v.pend{color:var(--alert);font-weight:400}
   .setnote{padding:0 22px 20px;font-size:12.5px;color:var(--tx-dis)}
+
+  /* connect gate: the admin key moment, rendered inside whatever needs it */
+  .gatebox{max-width:480px}
+  .gatebox h4{font-size:14px;margin-bottom:6px}
+  .gatebox p{margin:0 0 12px;font-size:13px;color:var(--tx-2);line-height:1.5}
+  .gaterow{display:flex;gap:8px;flex-wrap:wrap}
+  .gateinp{flex:1;min-width:200px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:10px 12px;color:var(--tx);font-size:13.5px}
+  .gatestatus{margin-top:8px;font-size:12.5px;color:var(--tx-2);min-height:1.2em}
+
+  /* one toast for the whole app; the old savedmsg only existed inside the
+     editor, so settings and shelf confirmations rendered into a hidden node */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tile);box-shadow:var(--inset);color:var(--tx);padding:11px 18px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:80;max-width:min(92vw,560px);text-align:center}
+  .toast.show{opacity:1}
+  .toast.err{color:var(--red)}
+
+  /* option chips: options are a list, not a comma string in a box that
+     visibly cuts off its own value */
+  .optchips{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
+  .optchip{display:inline-flex;align-items:center;gap:6px;background:var(--page);box-shadow:var(--inset);border-radius:999px;padding:5px 6px 5px 12px;font-size:12.5px;color:var(--tx)}
+  .optchip .optx{border:0;background:var(--tile);color:var(--tx-2);border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;line-height:1;padding:0}
+  .optchip .optx:hover{color:var(--red)}
+  .optadd{flex:1;min-width:150px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:999px;padding:8px 12px;color:var(--tx);font-size:12.5px}
+
+  .revrow{margin-top:10px}
+  .revrow input{width:100%;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:9px 12px;color:var(--tx);font-size:13px}
+  .scan-note{font-size:12px;color:var(--tx-dis);margin-top:6px}
+  .scan-actions{margin-top:16px}
 </style>
 </head>
 <body>
@@ -180,8 +207,8 @@
 <aside class="side">
   <div class="wordmark"><span class="rocket">SR</span>Survey Rocket</div>
   <button class="navitem" data-r="#/surveys">Surveys</button>
-  <button class="navitem" data-r="#/dashboard">Dashboard</button>
-  <button class="navitem" data-r="#/submissions">Submissions</button>
+  <button class="navitem" data-r="#/scan">Scan my site</button>
+  <button class="navitem" data-r="#/results">Results</button>
   <button class="navitem" data-r="#/settings">Settings</button>
   <div class="acctline"><b>Lean Labs</b>Survey Rocket test account</div>
 </aside>
@@ -190,11 +217,10 @@
 <div class="overlay" id="chooser" role="dialog" aria-modal="true" aria-label="New survey">
   <div class="modal">
     <h3>New survey</h3>
-    <p class="sub">Three ways to start. Every path ends in the editor.</p>
-    <div class="choices">
+    <p class="sub">Two ways to start. Both end in the editor.</p>
+    <div class="choices" style="grid-template-columns:1fr 1fr">
       <button class="choice" id="chooseManual"><b>Write it myself</b><p>Start from a blank survey and type your exact questions.</p></button>
-      <button class="choice" id="chooseGaps"><b>Find my gaps</b><p>We read your main pages and show which claims have no proof behind them, with drafted surveys for each gap.</p><span class="chip gold">Later phase, preview</span></button>
-      <button class="choice" id="chooseScan"><b>Start from a stat</b><p>Type the stat you want to publish. We draft the questions that produce it.</p><span class="chip gold">Later phase, preview</span></button>
+      <button class="choice" id="chooseScan"><b>Scan my site</b><p>We read your pages and draft a survey for each claim with no proof behind it. Name a stat if you already have one in mind.</p><span class="chip">Takes about a minute</span></button>
     </div>
     <button class="close" id="chooserClose">Cancel</button>
   </div>
@@ -223,7 +249,6 @@
       <div class="canvas">
         <div class="ed-head">
           <input class="name" id="ed-name" aria-label="Survey name">
-          <span class="chip" id="ed-status"></span>
         </div>
         <div class="qwrap" id="qwrap"></div>
         <div class="qadd"><button class="btn ghost small" id="addQ">+ Add question</button></div>
@@ -231,13 +256,15 @@
           <div class="head"><b>Require name and email</b><button class="switch" id="togContact" role="switch" aria-label="Require name and email"><i></i></button></div>
           <div class="head"><b>Show results on completion</b><button class="switch" id="togResults" role="switch" aria-label="Show results on completion"><i></i></button></div>
           <div class="head"><b>Ask for a review</b><button class="switch" id="togReview" role="switch" aria-label="Ask for a review"><i></i></button></div>
-          <p>After the last question the bot asks what they would tell a peer. A favorable answer triggers a permission ask to use it as a website quote, then attribution. Negative answers stay private feedback.</p>
+          <div class="revrow" id="revRow" style="display:none">
+            <input id="revUrl" type="url" placeholder="https:// link to your review page" aria-label="Review link">
+          </div>
+          <p>Ask for a review shows your review link after the last question, with a maybe later option. Show results shares the running averages on completion.</p>
         </div>
         <div class="ed-foot">
           <button class="btn primary" id="saveBtn">Save</button>
-          <button class="btn ghost" id="activateBtn">Activate</button>
-          <a class="btn ghost" id="openSurveyBtn" target="_blank" rel="noopener" title="The page a respondent sees">Open live survey</a>
-          <button class="btn ghost" id="shareBtn" title="Portable link that carries the survey, works on any device">Copy share link</button>
+          <button class="btn ghost" id="copyLinkBtn">Copy link</button>
+          <a class="btn ghost" id="openSurveyBtn" target="_blank" rel="noopener" title="The page a respondent sees">Preview</a>
           <span class="savedmsg" id="savedmsg"></span>
         </div>
       </div>
@@ -253,61 +280,30 @@
 <!-- DASHBOARD -->
 <section class="view" id="v-results">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Account</div><h1>Dashboard</h1><p>One dashboard per survey, computed live from the responses stored in this browser. Seeded sample responses are included so the first visit is not empty.</p></div>
+    <div class="pagehead"><div class="eyebrow">Account</div><h1>Results</h1><p>Live results for every survey, newest answers first. Answers arrive here the moment someone finishes.</p></div>
     <div class="dashtabs" id="dashtabs"></div>
     <div id="dashpanel"></div>
   </div>
 </section>
 
-<!-- SETTINGS -->
-<section class="view" id="v-submissions">
-  <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Account</div><h1>Submissions</h1><p>Every response that reached the shared store, newest first. When, who, where from, and what happened with the review ask.</p></div>
-    <div class="canvas" style="padding:18px 20px">
-      <div id="sub-empty" style="color:var(--tx-2);font-size:13.5px;display:none">Nothing here yet. Either no one has answered, or the admin key in Settings is missing or wrong.</div>
-      <div class="rawscroll"><table class="raw" id="sub-table" style="display:none">
-        <thead><tr><th>When</th><th>Survey</th><th>Name</th><th>Email</th><th>Country</th><th>Review</th><th>Answers</th></tr></thead>
-        <tbody id="sub-body"></tbody>
-      </table></div>
-    </div>
-  </div>
-</section>
-
 <section class="view" id="v-settings">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Account</div><h1>Settings</h1><p>Managed by Lean Labs during the pilot. Nothing here needs your attention to run a survey.</p></div>
+    <div class="pagehead"><div class="eyebrow">Account</div><h1>Settings</h1><p>Paste your admin key here once. Lean Labs handles the rest during the pilot.</p></div>
     <div class="canvas">
       <div class="setgrid">
+        <div class="setcard" id="card-admin">
+          <h4>Connection</h4>
+          <div id="settingsGate"></div>
+          <div class="krow"><span class="k">What it is</span><span class="v">Lean Labs gives you this key during the pilot. It turns on live results and site scans. Lost it? Ask your Lean Labs team.</span></div>
+        </div>
         <div class="setcard">
           <h4>Data</h4>
-          <div class="krow"><span class="k">Storage</span><span class="v">Shared store on factor8, plus this browser as a working copy</span></div>
-          <div class="krow"><span class="k">Responses</span><span class="v">Leave the respondent&rsquo;s device on completion</span></div>
-          <div class="krow"><span class="k">Reset</span><span class="v"><button class="btn ghost small" id="resetBtn">Reset to seed data</button></span></div>
-        </div>
-        <div class="setcard">
-          <h4>HubSpot connection</h4>
-          <div class="krow"><span class="k">Status</span><span class="v pend">Pending, token not issued yet</span></div>
-          <div class="krow"><span class="k">Write-back</span><span class="v">Properties + timeline note + completed flag</span></div>
-          <div class="krow"><span class="k">Reminders</span><span class="v">Stop automatically once someone completes the survey</span></div>
-        </div>
-        <div class="setcard">
-          <h4>Survey links</h4>
-          <div class="krow"><span class="k">Same browser</span><span class="v mono">survey.html?id=&lt;survey&gt;</span></div>
-          <div class="krow"><span class="k">Any device</span><span class="v mono">survey.html#p=&lt;payload&gt;</span></div>
-          <div class="krow"><span class="k">Contact token</span><span class="v pend">Comes with the HubSpot phase</span></div>
-        </div>
-        <div class="setcard">
-          <h4>Admin access</h4>
-          <div class="krow"><span class="k">Admin key</span><span class="v"><input id="adminKey" type="password" placeholder="paste the admin key" style="background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:8px 10px;color:var(--tx);font-size:13px;width:200px"></span></div>
-          <div class="krow"><span class="k">Unlocks</span><span class="v">Submissions view and the site scans. Stored in this browser only.</span></div>
-        </div>
-        <div class="setcard">
-          <h4>Branding</h4>
-          <div class="krow"><span class="k">Account</span><span class="v">Lean Labs test</span></div>
-          <div class="krow"><span class="k">Custom styling</span><span class="v">Coming after launch</span></div>
+          <div class="krow"><span class="k">Storage</span><span class="v">Survey Rocket&rsquo;s server, plus a working copy in this browser</span></div>
+          <div class="krow"><span class="k">Answers</span><span class="v">Sent to Survey Rocket when a respondent finishes</span></div>
+          <div class="krow"><span class="k">Sample surveys</span><span class="v"><button class="btn ghost small" id="resetBtn">Restore sample surveys</button></span></div>
         </div>
       </div>
-      <div class="setnote">The share link carries the survey definition so anyone can answer on any device, and their answers post to the shared store when they finish. Surveys you edit here still live in this browser until saved and shared.</div>
+      <div class="setnote">Share links work on any device. Answers are sent to Survey Rocket when a respondent finishes. Edits stay in this browser until you save.</div>
     </div>
   </div>
 </section>
@@ -315,80 +311,34 @@
 <!-- ONE STAT SCAN -->
 <section class="view" id="v-scan">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Start from a stat &middot; preview of a later phase</div><h1>Start from a stat</h1><p>Name the stat you want to own. The scan checks whether your site already backs it, then drafts the questions that produce it. Nothing goes live without your edit and approval.</p></div>
+    <div class="pagehead"><div class="eyebrow">New survey</div><h1>Scan your site</h1><p>The scan reads your pages and drafts a survey for each claim with no proof behind it. Name a stat if you already know the one you want. Drafts land in the editor, and nothing goes live without your approval.</p></div>
     <div class="scan-grid">
       <div class="scan-card">
-        <h3>What are we scanning?</h3>
+        <h3>Point the scan at your site</h3>
         <label for="scan-url">Your website</label>
-        <input id="scan-url" value="https://www.lean-labs.com">
-        <label for="scan-stat">The stat you want to publish</label>
-        <input id="scan-stat" value="X% of clients grow qualified pipeline in the first 90 days">
-        <div style="margin-top:16px"><button class="btn primary" id="scanBtn">Scan the site</button></div>
+        <input id="scan-url" placeholder="https://www.yourcompany.com" autocomplete="url">
+        <label for="scan-company">Company name</label>
+        <input id="scan-company" placeholder="Your company">
+        <label for="scan-stat">The stat you want to publish (optional)</label>
+        <input id="scan-stat" placeholder="__% of customers see results in the first 90 days">
+        <div class="scan-note">Write it with a blank number. Your customers&rsquo; answers fill in the real one.</div>
+        <div class="scan-actions"><button class="btn primary" id="scanBtn">Scan the site</button></div>
         <div class="scan-log" id="scanLog"></div>
+        <div id="scanGate"></div>
       </div>
-      <div class="scan-card" id="scanResults" style="display:none">
-        <div class="gapline">Nothing on your site backs this stat today. Here is the survey that produces it.</div>
-        <div class="statcard">
-          <div class="stat">"78% of clients grow qualified pipeline in the first 90 days"</div>
-          <div class="why">Drafted to produce the stat you named. Sample value, the real number comes from your responses.</div>
-          <ol>
-            <li>Which Lean Labs program are you on? <b>Multiple choice</b></li>
-            <li>About how many qualified leads per month does your site produce now? <b>Number, validated</b></li>
-            <li>Compared with before working with us, how has qualified pipeline changed? <b>Multiple choice, ranges</b></li>
-            <li>How likely are you to recommend Lean Labs to a peer? <b>Multiple choice, 0 to 10</b></li>
-          </ol>
-          <button class="btn primary use-draft" data-draft="pipeline">Use this draft in the editor</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- GLOBAL GAP SCAN -->
-<section class="view" id="v-gaps">
-  <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Find my gaps &middot; preview of a later phase</div><h1>Find my gaps</h1><p>We read your main pages, list the claims you already publish, and draft a survey for each proof gap. Every draft still lands in the editor for your approval.</p></div>
-    <div class="scan-grid">
-      <div class="scan-card">
-        <h3>What are we scanning?</h3>
-        <label for="gaps-url">Your website</label>
-        <input id="gaps-url" value="https://www.lean-labs.com">
-        <div style="margin-top:16px"><button class="btn primary" id="gapsBtn">Read my site</button></div>
-        <div class="scan-log" id="gapsLog"></div>
-      </div>
-      <div class="scan-card" id="gapsResults" style="display:none">
-        <h3>What you publish today</h3>
-        <div class="found-chips">
-          <span class="chip">$100M in client revenue</span>
-          <span class="chip">70+ five-star reviews</span>
-          <span class="chip">Since 2013</span>
-          <span class="chip">Seed to Series C</span>
-        </div>
-        <p style="margin:6px 0 0;font-size:12.5px;color:var(--tx-dis)">Track record and reviews. Strong, but none of it is a measured client outcome.</p>
-        <div class="gapline">2 proof gaps found. Each one below comes with a drafted survey. Sample values, the real numbers come from your responses.</div>
-        <div class="statcard">
-          <div class="stat">1. "78% of clients grow qualified pipeline in the first 90 days"</div>
-          <div class="why">The outcome buyers pay for, and no page measures it.</div>
-          <ol><li>Program, leads per month, pipeline change ranges, recommend 0 to 10 <b>4 questions</b></li></ol>
-          <button class="btn primary use-draft" data-draft="pipeline">Use this draft</button>
-        </div>
-        <div class="statcard">
-          <div class="stat">2. "9 in 10 clients call the kickoff process clear"</div>
-          <div class="why">Onboarding worry is a common sales objection. Easy to collect.</div>
-          <ol><li>Kickoff clarity, first 30 days pace, day-one wish <b>3 questions</b></li></ol>
-          <button class="btn primary use-draft" data-draft="kickoff">Use this draft</button>
-        </div>
-      </div>
+      <div class="scan-card" id="scanResults" style="display:none"></div>
     </div>
   </div>
 </section>
 
 <footer class="pagefoot">
-  <span>Survey Rocket prototype &middot; Lean Labs test account &middot; data lives in this browser, HubSpot write-back pending</span>
-  <span>Questions editable in the Editor, asked verbatim on the live survey page</span>
+  <span>Survey Rocket, a Lean Labs product</span>
+  <span>Questions? Ask your Lean Labs team.</span>
 </footer>
 </main>
 </div>
+
+<div class="toast" id="toast" role="status"></div>
 
 <script>/* The live judge. A small server-side agent reads each free-text answer,
    pulls the number out of a sentence, and reads sentiment with negation. If it is
@@ -402,16 +352,29 @@ window.SR_JUDGE_ENABLED = true;</script>
   "use strict";
   SRStore.init();
   var currentId = SRStore.surveys()[0] ? SRStore.surveys()[0].id : null;
-  var TYPES=[["choice","Multiple choice"],["multi","Multiple select"],["number","Number, validated"],["text","Open text, optional"]];
+  var TYPES=[["choice","Multiple choice"],["multi","Multiple select"],["number","Number"],["text","Open text"]];
 
   function el(tag,cls,text){ var e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e; }
-  /* in-memory working copy for the editor; Save/Activate/Share persist it */
-  var editBuf=null;
+  /* in-memory working copy for the editor; Save persists and publishes it.
+     A brand-new survey lives ONLY here until the first Save, so cancelling
+     out of the editor no longer strands an undeletable Untitled card. */
+  var editBuf=null, dirty=false;
   function cur(){
-    if(!editBuf || editBuf.id!==currentId) editBuf=SRStore.getSurvey(currentId);
+    if(editBuf && editBuf.id===currentId) return editBuf;
+    editBuf=SRStore.getSurvey(currentId);
     return editBuf;
   }
   function setCurrent(id){ currentId=id; editBuf=null; }
+  function markDirty(){ dirty=true; }
+  function newDraft(){
+    editBuf={schema_version:1, id:"__new__", name:"Untitled survey", cadence:"Draft", status:"Draft",
+      settings:{require_contact:false, show_results:false, review_ask:false, review_links:{}},
+      provenance:{source:"hand", drafted_by:null, approved_by:null, approved_at:null},
+      questions:[{id:"q1", type:"choice", q:"Your first question goes here.", options:["Option A","Option B"]}]};
+    currentId="__new__";
+  }
+  function plural(n,w){ return n+" "+w+(n===1?"":"s"); }
+  function surveyUrl(sv){ return new URL("survey.html?id="+encodeURIComponent(sv.id), location.href).href; }
   function slug(name){
     var base=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"survey";
     var list=SRStore.surveys().map(function(s){return s.id;});
@@ -420,73 +383,104 @@ window.SR_JUDGE_ENABLED = true;</script>
     return id;
   }
 
-  /* ---------- router ---------- */
-  var ROUTE_VIEW={"#/surveys":"home","#/dashboard":"results","#/submissions":"submissions","#/settings":"settings","#/editor":"editor","#/scan":"scan","#/gaps":"gaps"};
-  var NAV_FOR={"#/surveys":"#/surveys","#/editor":"#/surveys","#/scan":"#/surveys","#/gaps":"#/surveys","#/dashboard":"#/dashboard","#/submissions":"#/submissions","#/settings":"#/settings"};
+  /* ---------- router: five views, id in the hash, legacy routes redirect ---------- */
+  var VIEW_EL={surveys:"home",editor:"editor",results:"results",scan:"scan",settings:"settings"};
+  var NAV_HASH={surveys:"#/surveys",editor:"#/surveys",results:"#/results",scan:"#/scan",settings:"#/settings"};
+  var LEGACY={"#/dashboard":"#/results","#/submissions":"#/results","#/gaps":"#/scan"};
+  var lastHash=null;
   function route(){
     var h=location.hash||"#/surveys";
-    if(!ROUTE_VIEW[h]){ location.replace("#/surveys"); h="#/surveys"; }
-    ["home","editor","results","settings","scan","gaps","submissions"].forEach(function(v){
-      document.getElementById("v-"+v).classList.toggle("active",ROUTE_VIEW[h]===v);
+    if(LEGACY[h]){ location.replace(LEGACY[h]); return; }
+    var seg=h.slice(2).split("/");
+    var name=seg[0]||"surveys";
+    var id=seg[1]?decodeURIComponent(seg[1]):null;
+    if(!VIEW_EL[name]){ location.replace("#/surveys"); return; }
+    if(name==="editor" && !id){ location.replace(currentId&&currentId!=="__new__"?"#/editor/"+encodeURIComponent(currentId):"#/surveys"); return; }
+    if(lastHash && lastHash.indexOf("#/editor")===0 && h.indexOf("#/editor")!==0 && dirty){
+      if(!window.confirm("You have unsaved changes. Leave the editor?")){ location.replace(lastHash); return; }
+      dirty=false; editBuf=null;
+    }
+    if(name==="editor" && id==="new" && (!editBuf || editBuf.id!=="__new__")) newDraft();
+    if(name==="editor" && id && id!=="new" && id!==currentId) setCurrent(id);
+    if(name==="results" && id) dashSel=id;
+    Object.keys(VIEW_EL).forEach(function(v){
+      document.getElementById("v-"+VIEW_EL[v]).classList.toggle("active",v===name);
     });
-    document.querySelectorAll(".navitem").forEach(function(b){ b.classList.toggle("on",b.dataset.r===NAV_FOR[h]); });
-    if(h==="#/surveys") renderShelf();
-    if(h==="#/editor"){ renderEditor(); renderPreview(); }
-    if(h==="#/dashboard") renderDash();
-    if(h==="#/submissions") renderSubmissions();
+    document.querySelectorAll(".navitem").forEach(function(b){ b.classList.toggle("on",b.dataset.r===NAV_HASH[name]); });
+    if(name==="surveys") renderShelf();
+    if(name==="editor"){ renderEditor(); renderPreview(); }
+    if(name==="results") renderResults();
+    if(name==="settings") renderSettings();
+    lastHash=h;
     window.scrollTo(0,0);
   }
-  /* Kevin 8/31: "I need to see an admin view." When, who, where from, and
-     what happened with the review ask; the raw record a click away. */
-  function renderSubmissions(){
-    var body=document.getElementById("sub-body");
-    var table=document.getElementById("sub-table");
-    var empty=document.getElementById("sub-empty");
-    body.innerHTML=""; table.style.display="none"; empty.style.display="block";
-    empty.textContent="Loading\u2026";
-    fetch(SR_API+"/responses",{headers:{"X-SR-Admin-Key":adminKey()}})
+  window.addEventListener("beforeunload",function(e){ if(dirty){ e.preventDefault(); e.returnValue=""; } });
+
+  /* ---------- the shared store: one fetch, one cache ---------- */
+  var srv={rows:null, authorized:null, at:0};
+  function fetchServer(force){
+    if(!force && srv.rows && Date.now()-srv.at<30000) return Promise.resolve(srv);
+    return fetch(SR_API+"/responses",{headers:{"X-SR-Admin-Key":adminKey()}})
       .then(function(r){ return r.json(); })
-      .then(function(d){
-        var rows=d.responses||[];
-        if(!rows.length){
-          empty.textContent = d.authorized===false
-            ? "Locked. Paste the admin key in Settings to see submissions."
-            : "No submissions yet. Share a survey link and answers will land here.";
-          return;
-        }
-        empty.style.display="none"; table.style.display="table";
-        rows.forEach(function(rec){
-          var tr=document.createElement("tr"); tr.className="rrow"; tr.title="Click for the full record";
-          var m=rec.meta||{}, rp=rec.respondent||{}, rv=rec.review||{};
-          tr.appendChild(el("td",null,(m.received_at||"").replace("T"," ").slice(0,16)));
-          tr.appendChild(el("td",null,rec.survey_name||rec.survey_id||""));
-          tr.appendChild(el("td",null,rp.name||"\u2014"));
-          tr.appendChild(el("td",null,rp.email||"\u2014"));
-          tr.appendChild(el("td",null,m.country||"\u2014"));
-          tr.appendChild(el("td",null,rv.asked?rv.outcome:"not asked"));
-          tr.appendChild(el("td",null,String((rec.answers||[]).length)));
-          var dtr=document.createElement("tr"); dtr.className="detail"; dtr.style.display="none";
-          var dtd=document.createElement("td"); dtd.colSpan=7;
-          var pre=document.createElement("pre");
-          pre.style.cssText="font-size:11.5px;white-space:pre-wrap;color:var(--tx-2);margin:8px 0";
-          pre.textContent=JSON.stringify(rec,null,2);
-          dtd.appendChild(pre); dtr.appendChild(dtd);
-          tr.addEventListener("click",function(){ dtr.style.display=dtr.style.display==="none"?"table-row":"none"; });
-          body.appendChild(tr); body.appendChild(dtr);
-        });
-      })
-      .catch(function(){ empty.textContent="Could not reach the shared store."; });
+      .then(function(d){ srv={rows:d.responses||[], authorized:d.authorized!==false, at:Date.now()}; return srv; })
+      .catch(function(){ return {rows:null, authorized:null, at:0}; });
   }
 
-  (function(){
-    var inp=document.getElementById("adminKey");
-    if(!inp) return;
-    inp.value=adminKey();
-    inp.addEventListener("change",function(){
-      try{ localStorage.setItem("sr:adminkey", inp.value.trim()); }catch(e){}
-      flashSaved(inp.value.trim()?"Admin key saved in this browser.":"Admin key cleared.");
-    });
-  })();
+  /* One connect moment, rendered inside whatever view needs the key. Saves on
+     click, tests immediately, and tells a bad key apart from a dead network
+     instead of blaming one for the other. */
+  function renderConnectGate(container, onConnected){
+    container.innerHTML="";
+    var box=el("div","gatebox");
+    box.appendChild(el("h4",null,"Connect your admin key"));
+    box.appendChild(el("p",null,"Lean Labs gives you this key during the pilot. It turns on live results and site scans, and it stays in this browser."));
+    var row=el("div","gaterow");
+    var inp=document.createElement("input"); inp.type="password"; inp.placeholder="Paste your admin key"; inp.className="gateinp";
+    inp.setAttribute("aria-label","Admin key");
+    var btn=el("button","btn primary","Connect");
+    var status=el("div","gatestatus");
+    function attempt(){
+      var key=inp.value.trim();
+      if(!key){ status.textContent="Paste the key first."; return; }
+      try{ localStorage.setItem("sr:adminkey", key); }catch(e){}
+      btn.disabled=true; status.textContent="Checking\u2026";
+      fetchServer(true).then(function(st){
+        btn.disabled=false;
+        if(st.authorized===true){ status.textContent="Connected."; if(onConnected) onConnected(); }
+        else if(st.authorized===false){ status.textContent="That key does not look right. Check for missing characters and paste it again."; }
+        else { status.textContent="Could not reach the server. Check your connection and try again."; }
+      });
+    }
+    btn.addEventListener("click",attempt);
+    inp.addEventListener("keydown",function(e){ if(e.key==="Enter") attempt(); });
+    row.appendChild(inp); row.appendChild(btn);
+    box.appendChild(row); box.appendChild(status);
+    container.appendChild(box);
+  }
+
+  function renderSettings(){
+    var mount=document.getElementById("settingsGate");
+    if(adminKey()){
+      mount.innerHTML="";
+      var row=el("div","krow");
+      row.appendChild(el("span","k","Status"));
+      row.appendChild(el("span","v","Connected"));
+      mount.appendChild(row);
+      var row2=el("div","krow");
+      row2.appendChild(el("span","k","Admin key"));
+      var vv=el("span","v");
+      var clr=el("button","btn ghost small","Change key");
+      clr.addEventListener("click",function(){
+        try{ localStorage.removeItem("sr:adminkey"); }catch(e){}
+        srv={rows:null,authorized:null,at:0};
+        renderSettings();
+      });
+      vv.appendChild(clr); row2.appendChild(vv);
+      mount.appendChild(row2);
+    } else {
+      renderConnectGate(mount, renderSettings);
+    }
+  }
 
   window.addEventListener("hashchange",route);
   document.querySelectorAll(".navitem").forEach(function(b){ b.addEventListener("click",function(){ location.hash=b.dataset.r; }); });
@@ -494,39 +488,69 @@ window.SR_JUDGE_ENABLED = true;</script>
   /* ---------- surveys shelf ---------- */
   function renderShelf(){
     var shelf=document.getElementById("shelf"); shelf.innerHTML="";
-    SRStore.surveys().forEach(function(s){
+    var list=SRStore.surveys();
+    if(!list.length){
+      shelf.appendChild(el("div","emptystate","No surveys yet. Hit New survey to write your first one."));
+      return;
+    }
+    list.forEach(function(sv){
       var c=el("div","survey-card");
-      c.appendChild(el("h4",null,s.name));
-      var resp=SRStore.responses(s.id).length;
-      c.appendChild(el("div","meta",s.cadence+" · "+s.questions.length+" questions"+(resp?" · "+resp+" responses":"")));
+      c.appendChild(el("h4",null,sv.name));
+      var base=sv.cadence+" \u00B7 "+plural(sv.questions.length,"question");
+      var meta=el("div","meta",base);
+      c.appendChild(meta);
+      SRHubSpot.results(sv.id).then(function(res){
+        if(res && res.responses) meta.textContent=base+" \u00B7 "+plural(res.responses,"answer");
+      });
       var row=el("div","row");
-      row.appendChild(el("span","chip"+(s.status==="Active"?" teal":""),s.status));
       var edit=el("button","btn ghost small","Edit");
-      edit.addEventListener("click",function(){ setCurrent(s.id); location.hash="#/editor"; });
+      edit.addEventListener("click",function(){ location.hash="#/editor/"+encodeURIComponent(sv.id); });
       row.appendChild(edit);
-      var res=el("button","btn ghost small","Dashboard");
-      res.addEventListener("click",function(){ dashSel=s.id; location.hash="#/dashboard"; });
+      var res=el("button","btn ghost small","Results");
+      res.addEventListener("click",function(){ location.hash="#/results/"+encodeURIComponent(sv.id); });
       row.appendChild(res);
+      var link=el("button","btn ghost small","Copy link");
+      link.addEventListener("click",function(){
+        navigator.clipboard.writeText(surveyUrl(sv)).then(function(){
+          flashSaved("Link copied. It works on any device once the survey is saved.");
+        },function(){ window.prompt("Copy the survey link:", surveyUrl(sv)); });
+      });
+      row.appendChild(link);
+      var dup=el("button","iconbtn","\u29C9"); dup.title="Duplicate survey";
+      dup.addEventListener("click",function(){
+        var copy=JSON.parse(JSON.stringify(sv));
+        copy.name=sv.name+" copy"; copy.id=slug(copy.name);
+        copy.provenance={source:"hand", drafted_by:null, approved_by:null, approved_at:null};
+        SRStore.upsertSurvey(copy); renderShelf();
+        flashSaved("Duplicated. The copy is its own survey with its own link.");
+      });
+      row.appendChild(dup);
+      var del=el("button","iconbtn del","\u00D7"); del.title="Delete survey";
+      del.addEventListener("click",function(){
+        if(window.confirm('Delete "'+sv.name+'"? Answers already collected stay in Results.')){
+          SRStore.removeSurvey(sv.id);
+          if(currentId===sv.id){ currentId=null; editBuf=null; }
+          renderShelf();
+        }
+      });
+      row.appendChild(del);
       c.appendChild(row);
       shelf.appendChild(c);
     });
   }
 
-  /* ---------- chooser + scans ---------- */
+  /* ---------- chooser + scans ---------- */  /* ---------- chooser + scans ---------- */
   var chooser=document.getElementById("chooser");
   document.getElementById("newSurveyBtn").addEventListener("click",function(){ chooser.classList.add("open"); });
   document.getElementById("chooserClose").addEventListener("click",function(){ chooser.classList.remove("open"); });
   chooser.addEventListener("click",function(e){ if(e.target===chooser) chooser.classList.remove("open"); });
   document.getElementById("chooseManual").addEventListener("click",function(){
     chooser.classList.remove("open");
-    var s={schema_version:1, id:slug("untitled-survey"), name:"Untitled survey", cadence:"Draft", status:"Draft",
-      settings:{require_contact:false, show_results:false, review_ask:false, review_links:{}},
-      provenance:{source:"hand", drafted_by:null, approved_by:null, approved_at:null},
-      questions:[{id:"q1", type:"choice", q:"Your first question goes here.", options:["Option A","Option B"]}]};
-    SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
+    newDraft();
+    location.hash="#/editor/new";
+    if(location.hash==="#/editor/new") route();
   });
   document.getElementById("chooseScan").addEventListener("click",function(){ chooser.classList.remove("open"); location.hash="#/scan"; });
-  document.getElementById("chooseGaps").addEventListener("click",function(){ chooser.classList.remove("open"); location.hash="#/gaps"; });
 
   /* The real gap-scan agent on factor8. It reads the site's actual pages, so
      a run takes around a minute; the log shows elapsed time rather than the
@@ -541,7 +565,9 @@ window.SR_JUDGE_ENABLED = true;</script>
     if(btn && btn.disabled) return;
     logBox.style.display="block"; logBox.innerHTML=""; results.style.display="none";
     if(!adminKey()){
-      logBox.appendChild(el("div",null,"The scan needs the admin key. Paste it in Settings first."));
+      logBox.style.display="none";
+      var gate=document.getElementById("scanGate");
+      renderConnectGate(gate, function(){ gate.innerHTML=""; });
       return;
     }
     if(btn){ btn.disabled=true; btn.setAttribute("aria-busy","true"); }
@@ -551,7 +577,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     logBox.appendChild(line);
     var tick=setInterval(function(){
       if(!alive) return clearInterval(tick);
-      line.textContent="Reading the site and checking each claim\u2026 "+Math.round((Date.now()-started)/1000)+"s (a real scan takes about a minute)";
+      line.textContent="Reading your pages and checking each claim\u2026 "+Math.round((Date.now()-started)/1000)+"s. Most scans take about a minute.";
     },1000);
     fetch(SR_API+"/scan",{
       method:"POST",
@@ -559,14 +585,18 @@ window.SR_JUDGE_ENABLED = true;</script>
       body:JSON.stringify(opts.body)
     }).then(function(r){ return r.json(); }).then(function(d){
       alive=false; clearInterval(tick); release();
-      if(d.error || !d.gaps){ logBox.appendChild(el("div",null,"Scan failed: "+(d.error||d.detail||"unknown"))); return; }
+      if(d.error || !d.gaps){
+        console.warn("sr scan:", d.error||d.detail||"unknown");
+        logBox.appendChild(el("div",null,"The scan could not finish. Wait a minute and try again, or tell your Lean Labs team if it keeps failing."));
+        return;
+      }
       line.textContent="Read "+(d.pages_read||[]).length+" pages in "+Math.round((Date.now()-started)/1000)+"s.";
-      logBox.appendChild(el("div","ok",d.gaps.length+" proof gap"+(d.gaps.length===1?"":"s")+" found, each with a drafted survey."));
+      logBox.appendChild(el("div","ok",d.gaps.length===1?"1 proof gap found, with a drafted survey.":d.gaps.length+" proof gaps found, each with a drafted survey."));
       renderGapResults(results, d.gaps);
       results.style.display="block";
     }).catch(function(){
       alive=false; clearInterval(tick); release();
-      logBox.appendChild(el("div",null,"Scan failed. The agent may be busy; try again in a minute."));
+      logBox.appendChild(el("div",null,"The scan timed out. Wait a minute and try again."));
     });
   }
 
@@ -584,19 +614,19 @@ window.SR_JUDGE_ENABLED = true;</script>
       settings:{require_contact:false, show_results:false, review_ask:false, review_links:{}},
       provenance:{source:"scan", drafted_by:"survey-rocket-designer", approved_by:null, approved_at:null},
       questions:qs};
-    SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
-    setTimeout(function(){ flashSaved("Draft created by the gap-scan agent. Review and edit before activating."); },300);
+    SRStore.upsertSurvey(s); location.hash="#/editor/"+encodeURIComponent(s.id);
+    setTimeout(function(){ flashSaved("Draft ready. Review every question, edit freely, then save."); },300);
   }
 
   function renderGapResults(container, gaps){
     container.innerHTML="";
-    container.appendChild(el("h3",null,"What the agent found"));
+    container.appendChild(el("h3",null,"What the scan found"));
     gaps.forEach(function(g){
       var card=el("div",null,null); card.style.cssText="border-top:1px solid var(--line);padding:14px 0";
       card.appendChild(el("div",null,null)).outerHTML="";
       var claim=el("div",null,"Claim: \u201C"+(g.claim||"")+"\u201D"); claim.style.cssText="font-size:13px;color:var(--tx-2);margin-bottom:6px";
       var stat=el("div",null,"Target stat: "+(g.target_stat||"")); stat.style.cssText="font-size:13.5px;color:var(--tx);margin-bottom:8px";
-      var meta=el("div",null,(g.questions||[]).length+" drafted questions"); meta.style.cssText="font-size:12px;color:var(--tx-dis);margin-bottom:10px";
+      var meta=el("div",null,plural((g.questions||[]).length,"drafted question")); meta.style.cssText="font-size:12px;color:var(--tx-dis);margin-bottom:10px";
       var btn=el("button","btn primary small","Use this draft in the editor");
       btn.addEventListener("click",function(){ useAgentDraft(g); });
       card.appendChild(claim); card.appendChild(stat); card.appendChild(meta); card.appendChild(btn);
@@ -604,42 +634,30 @@ window.SR_JUDGE_ENABLED = true;</script>
     });
   }
 
+  var scanUrlInp=document.getElementById("scan-url"), scanCoInp=document.getElementById("scan-company");
+  try{ scanUrlInp.value=localStorage.getItem("sr:scanurl")||""; scanCoInp.value=localStorage.getItem("sr:scanco")||""; }catch(e){}
+  scanUrlInp.addEventListener("blur",function(){
+    try{ localStorage.setItem("sr:scanurl",scanUrlInp.value.trim()); }catch(e){}
+    if(!scanCoInp.value.trim() && scanUrlInp.value.trim()){
+      try{
+        var host=new URL(scanUrlInp.value.trim()).hostname.replace(/^www\./,"").split(".")[0];
+        scanCoInp.value=host.split(/[-_]/).map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1); }).join(" ");
+        try{ localStorage.setItem("sr:scanco",scanCoInp.value); }catch(e2){}
+      }catch(e){}
+    }
+  });
+  scanCoInp.addEventListener("blur",function(){ try{ localStorage.setItem("sr:scanco",scanCoInp.value.trim()); }catch(e){} });
   document.getElementById("scanBtn").addEventListener("click",function(){
-    runScan({logId:"scanLog", resultsId:"scanResults", btn:this,
-      body:{url:document.getElementById("scan-url").value.trim(), company_name:"Lean Labs",
-            target_stat:document.getElementById("scan-stat").value.trim()}});
-  });
-  document.getElementById("gapsBtn").addEventListener("click",function(){
-    runScan({logId:"gapsLog", resultsId:"gapsResults", btn:this,
-      body:{url:document.getElementById("gaps-url").value.trim(), company_name:"Lean Labs"}});
-  });
-
-  var DRAFTS={
-    pipeline:{name:"Pipeline outcomes", questions:[
-      {id:"service", type:"choice", q:"Which Lean Labs program are you on?", options:["AEO program","Website Launchpad","Growth retainer","Other"]},
-      {id:"leads", type:"number", q:"About how many qualified leads per month does your site produce now?", min:0, max:10000},
-      {id:"pipeline", type:"choice", q:"Compared with before working with us, how has qualified pipeline changed?", options:["Down","Flat","Up to 25% up","26 to 75% up","More than 75% up"]},
-      {id:"nps", type:"choice", nps:true, q:"How likely are you to recommend Lean Labs to a peer?", options:["0","1","2","3","4","5","6","7","8","9","10"]}
-    ]},
-    kickoff:{name:"Kickoff clarity", questions:[
-      {id:"clarity", type:"choice", q:"How clear was the kickoff process?", options:["Very unclear","Unclear","Neutral","Clear","Very clear"]},
-      {id:"speed", type:"choice", q:"How was the pace of the first 30 days?", options:["Too slow","About right","Too fast"]},
-      {id:"wish", type:"text", optional:true, q:"Anything you wish you had known on day one? Optional, type skip to move on."}
-    ]}
-  };
-  document.querySelectorAll(".use-draft").forEach(function(b){
-    b.addEventListener("click",function(){
-      var d=DRAFTS[b.dataset.draft]; if(!d) return;
-      var s={schema_version:1, id:slug(d.name), name:d.name, cadence:"Draft", status:"Draft",
-        settings:{require_contact:false, show_results:false, review_ask:false, review_links:{}},
-        provenance:{source:"template", drafted_by:null, approved_by:null, approved_at:null},
-        questions:JSON.parse(JSON.stringify(d.questions))};
-      SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
-      setTimeout(function(){ flashSaved("Draft created from the scan. Review and edit before activating."); },300);
-    });
+    var url=scanUrlInp.value.trim();
+    if(!url){ flashSaved("Type your website address first.",true); return; }
+    if(!/^https?:\/\//i.test(url)){ url="https://"+url; scanUrlInp.value=url; }
+    var body={url:url, company_name:scanCoInp.value.trim()||"the company"};
+    var stat=document.getElementById("scan-stat").value.trim();
+    if(stat) body.target_stat=stat;
+    runScan({logId:"scanLog", resultsId:"scanResults", btn:this, body:body});
   });
 
-  /* ---------- editor ---------- */
+  /* ---------- editor ---------- */  /* ---------- editor ---------- */
   function validateSurvey(s){
     if(s.questions.length===0) return "Add at least one question first.";
     for(var i=0;i<s.questions.length;i++){
@@ -648,20 +666,26 @@ window.SR_JUDGE_ENABLED = true;</script>
       if((q.type==="choice"||q.type==="multi") && !(q.options&&q.options.length)) return "Q"+(i+1)+" needs at least one option.";
       if(q.type==="number" && typeof q.min==="number" && typeof q.max==="number" && q.min>q.max) return "Q"+(i+1)+" has a minimum above its maximum.";
     }
+    if(s.settings && s.settings.review_ask && !Object.keys(s.settings.review_links||{}).some(function(k){ return (s.settings.review_links[k]||"").trim(); }))
+      return "Add a review link, or turn off the review ask.";
     return null;
   }
+  var toastTimer=null;
   function flashSaved(msg,isErr){
-    var m=document.getElementById("savedmsg"); m.textContent=msg;
-    m.style.color=isErr?"var(--red)":"var(--green)";
-    m.classList.add("show");
-    setTimeout(function(){ m.classList.remove("show"); },3200);
+    var t=document.getElementById("toast");
+    t.textContent=msg; t.classList.toggle("err",!!isErr); t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove("show"); },3200);
+    var m=document.getElementById("savedmsg");
+    if(m && document.getElementById("v-editor").classList.contains("active")){
+      m.textContent=msg; m.style.color=isErr?"var(--red)":"var(--green)"; m.classList.add("show");
+      setTimeout(function(){ m.classList.remove("show"); },3200);
+    }
   }
   function renderEditor(){
     var s=cur(); if(!s){ location.hash="#/surveys"; return; }
     var name=document.getElementById("ed-name"); name.value=s.name;
-    name.oninput=function(){ s.q_dirty=true; s.name=name.value; renderPreviewSoon(); };
-    document.getElementById("ed-status").textContent=s.status;
-    document.getElementById("openSurveyBtn").href="survey.html?id="+encodeURIComponent(s.id);
+    name.oninput=function(){ s.name=name.value; renderPreviewSoon(); };
+    document.getElementById("openSurveyBtn").href="survey.html?id="+encodeURIComponent(s.id==="__new__"?"":s.id);
     var qwrap=document.getElementById("qwrap"); qwrap.innerHTML="";
     s.questions.forEach(function(q,qi){
       var card=el("div","qcard");
@@ -675,6 +699,7 @@ window.SR_JUDGE_ENABLED = true;</script>
       var sel=document.createElement("select"); sel.setAttribute("aria-label","Question "+(qi+1)+" type");
       TYPES.forEach(function(t){ var o=document.createElement("option"); o.value=t[0]; o.textContent=t[1]; if(q.type===t[0])o.selected=true; sel.appendChild(o); });
       sel.addEventListener("change",function(){
+        markDirty();
         q.type=sel.value;
         if(q.type==="text") q.optional=true;
         if((q.type==="choice"||q.type==="multi") && !q.options) q.options=["Option A","Option B"];
@@ -683,13 +708,30 @@ window.SR_JUDGE_ENABLED = true;</script>
       });
       ctl.appendChild(sel);
       if(q.type==="choice"||q.type==="multi"){
-        var oi=document.createElement("input"); oi.className="optsinp"; oi.value=(q.options||[]).join(", ");
-        oi.placeholder="Options, comma separated"; oi.setAttribute("aria-label","Question "+(qi+1)+" options");
-        oi.addEventListener("input",function(){
-          q.options=oi.value.split(",").map(function(x){return x.trim();}).filter(Boolean);
-          renderPreviewSoon();
-        });
-        ctl.appendChild(oi);
+        var opts=el("div","optchips");
+        var renderOpts=function(){
+          opts.innerHTML="";
+          (q.options||[]).forEach(function(o,oi2){
+            var chip=el("span","optchip");
+            chip.appendChild(el("span",null,o));
+            var x=el("button","optx","\u00D7"); x.title="Remove option"; x.setAttribute("aria-label","Remove option "+o);
+            x.addEventListener("click",function(){ q.options.splice(oi2,1); renderOpts(); renderPreviewSoon(); });
+            chip.appendChild(x);
+            opts.appendChild(chip);
+          });
+          var add=document.createElement("input"); add.className="optadd";
+          add.placeholder="Add an option, press Enter"; add.setAttribute("aria-label","Add an option to question "+(qi+1));
+          add.addEventListener("keydown",function(e){
+            if(e.key==="Enter" && add.value.trim()){
+              (q.options=q.options||[]).push(add.value.trim());
+              renderOpts(); renderPreviewSoon();
+              opts.querySelector(".optadd").focus();
+            }
+          });
+          opts.appendChild(add);
+        };
+        renderOpts();
+        ctl.appendChild(opts);
       }
       if(q.type==="number"){
         var mn=document.createElement("input"); mn.className="num"; mn.value=q.min; mn.setAttribute("aria-label","Minimum");
@@ -700,17 +742,31 @@ window.SR_JUDGE_ENABLED = true;</script>
         ctl.appendChild(pair);
       }
       var up=el("button","iconbtn","↑"); up.title="Move up"; up.disabled=qi===0;
-      up.addEventListener("click",function(){ s.questions.splice(qi,1); s.questions.splice(qi-1,0,q); renderEditor(); renderPreview(); });
+      up.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); s.questions.splice(qi-1,0,q); renderEditor(); renderPreview(); });
       var dn=el("button","iconbtn","↓"); dn.title="Move down"; dn.disabled=qi===s.questions.length-1;
-      dn.addEventListener("click",function(){ s.questions.splice(qi,1); s.questions.splice(qi+1,0,q); renderEditor(); renderPreview(); });
+      dn.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); s.questions.splice(qi+1,0,q); renderEditor(); renderPreview(); });
       var del=el("button","iconbtn del","×"); del.title="Delete question";
-      del.addEventListener("click",function(){ s.questions.splice(qi,1); renderEditor(); renderPreview(); });
+      del.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); renderEditor(); renderPreview(); });
       var tools=el("div","qtools"); tools.appendChild(up); tools.appendChild(dn); tools.appendChild(del);
       ctl.appendChild(tools);
       card.appendChild(ctl);
       qwrap.appendChild(card);
     });
     s.settings=s.settings||{require_contact:false,show_results:false,review_ask:false,review_links:{}};
+    var revRow=document.getElementById("revRow"), revUrl=document.getElementById("revUrl");
+    function syncRev(){
+      revRow.style.display=s.settings.review_ask?"block":"none";
+      var links=s.settings.review_links||{};
+      var k=Object.keys(links)[0]||"review";
+      revUrl.value=links[k]||"";
+      revUrl.oninput=function(){
+        var l=s.settings.review_links=s.settings.review_links||{};
+        var key=Object.keys(l)[0]||"review";
+        if(revUrl.value.trim()) l[key]=revUrl.value.trim(); else delete l[key];
+        markDirty();
+      };
+    }
+    syncRev();
     [["togContact","require_contact"],["togResults","show_results"],["togReview","review_ask"]].forEach(function(pair){
       var tog=document.getElementById(pair[0]), key=pair[1];
       tog.classList.toggle("on",!!s.settings[key]);
@@ -719,46 +775,60 @@ window.SR_JUDGE_ENABLED = true;</script>
         s.settings[key]=!s.settings[key];
         tog.classList.toggle("on",s.settings[key]);
         tog.setAttribute("aria-checked",String(s.settings[key]));
+        markDirty();
+        syncRev();
         renderPreview();
       };
     });
   }
   document.getElementById("addQ").addEventListener("click",function(){
     var s=cur(); if(!s) return;
+    markDirty();
     s.questions.push({id:"q"+(s.questions.length+1)+"-"+Math.floor(Math.random()*1000), type:"choice", q:"New question", options:["Option A","Option B"]});
     renderEditor(); renderPreview();
   });
+  /* Save is the one verb: keep the working copy, publish the definition so
+     the survey's single link serves this version everywhere. Publishing
+     needs the admin key; without one the survey still saves locally. */
+  function publish(sv){
+    if(!adminKey()) return Promise.resolve({skipped:true});
+    return fetch(SR_API+"/surveys/"+encodeURIComponent(sv.id),{
+      method:"PUT",
+      headers:{"Content-Type":"application/json","X-SR-Admin-Key":adminKey()},
+      body:JSON.stringify({schema_version:1, id:sv.id, name:sv.name, cadence:sv.cadence, settings:sv.settings, questions:sv.questions})
+    }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+  }
   document.getElementById("saveBtn").addEventListener("click",function(){
     var s=cur(); if(!s) return;
     var err=validateSurvey(s);
     if(err){ flashSaved(err,true); return; }
-    SRStore.upsertSurvey(s);
-    flashSaved("Saved to this browser.");
-  });
-  document.getElementById("activateBtn").addEventListener("click",function(){
-    var s=cur(); if(!s) return;
-    var err=validateSurvey(s);
-    if(err){ flashSaved(err,true); return; }
-    s.status="Active"; SRStore.upsertSurvey(s);
-    document.getElementById("ed-status").textContent="Active";
-    flashSaved("Activated and saved. The live survey link now serves this version.");
-  });
-  document.getElementById("shareBtn").addEventListener("click",function(){
-    var s=cur(); if(!s) return;
-    var err=validateSurvey(s);
-    if(err){ flashSaved(err,true); return; }
-    SRStore.upsertSurvey(s);
-    var url=new URL("survey.html#p="+SRStore.encodeShare(s), location.href).href;
-    navigator.clipboard.writeText(url).then(function(){
-      flashSaved("Share link copied. Works on any device, answers stay on the answerer's device for now.");
-    },function(){
-      window.prompt("Copy the share link:", url);
+    if(currentId==="__new__"){
+      s.id=slug(s.name);
+      currentId=s.id;
+      SRStore.upsertSurvey(s);
+      location.replace("#/editor/"+encodeURIComponent(s.id));
+    } else {
+      SRStore.upsertSurvey(s);
+    }
+    dirty=false;
+    document.getElementById("openSurveyBtn").href="survey.html?id="+encodeURIComponent(s.id);
+    publish(s).then(function(r){
+      if(r && r.ok) flashSaved("Saved. Your link now serves this version.");
+      else if(r && r.skipped) flashSaved("Saved in this browser. Connect your admin key in Settings to publish the link.");
+      else flashSaved("Saved in this browser. Publishing failed, try again in a minute.",true);
     });
   });
+  document.getElementById("copyLinkBtn").addEventListener("click",function(){
+    var s=cur(); if(!s) return;
+    if(currentId==="__new__"){ flashSaved("Save first, then the survey gets its link.",true); return; }
+    navigator.clipboard.writeText(surveyUrl(s)).then(function(){
+      flashSaved("Link copied. Save publishes your latest edits to it.");
+    },function(){ window.prompt("Copy the survey link:", surveyUrl(s)); });
+  });
 
-  /* live chat preview (static render, same strings the engine uses) */
+  /* live chat preview (static render, same strings the engine uses) */  /* live chat preview (static render, same strings the engine uses) */
   var pvTimer=null;
-  function renderPreviewSoon(){ clearTimeout(pvTimer); pvTimer=setTimeout(renderPreview,250); }
+  function renderPreviewSoon(){ markDirty(); clearTimeout(pvTimer); pvTimer=setTimeout(renderPreview,250); }
   function renderPreview(){
     var s=cur(); if(!s) return;
     var log=document.getElementById("pv-log"); log.innerHTML="";
@@ -779,52 +849,148 @@ window.SR_JUDGE_ENABLED = true;</script>
     log.appendChild(el("div","bub bot","That is everything. Thank you."));
     var st=s.settings||{};
     if(st.show_results) log.appendChild(el("div","bub bot","(shows the running results)"));
-    if(st.review_ask) log.appendChild(el("div","bub bot","Thanks so much for submitting this data. Would you be open to leaving us a review?"));
+    if(st.review_ask) log.appendChild(el("div","bub bot","Thanks for your answers. Would you be open to leaving us a review?"));
     log.scrollTop=0;
   }
 
-  /* ---------- dashboard, computed from responses ---------- */
+  /* ---------- results: analytics and the response list, from the server ---------- */
   var dashSel=null;
-  function renderDash(){
-    var tabs=document.getElementById("dashtabs"); tabs.innerHTML="";
-    var list=SRStore.surveys();
-    if(!dashSel || !SRStore.getSurvey(dashSel)) dashSel=list[0] ? list[0].id : null;
-    list.forEach(function(s){
-      var t=el("button","dashtab"+(s.id===dashSel?" on":""),s.name);
-      t.addEventListener("click",function(){ dashSel=s.id; renderDash(); });
-      tabs.appendChild(t);
-    });
-    var panel=document.getElementById("dashpanel"); panel.innerHTML="";
-    var s=SRStore.getSurvey(dashSel);
-    if(!s){ panel.appendChild(el("div","emptystate","No surveys yet.")); return; }
-    var resp=SRStore.responses(s.id);
-    var seeded=resp.filter(function(r){return r.seeded;}).length;
-    var live=resp.length-seeded;
+  var REVIEW_LABEL={not_asked:"Not asked", dismissed:"Passed", clicked:"Opened review page", declined:"Declined"};
 
+  function adaptRecord(rec){
+    var map={};
+    (rec.answers||[]).forEach(function(a){
+      var v=null;
+      if(a.value_list!==null && a.value_list!==undefined) v=a.value_list;
+      else if(a.value_number!==null && a.value_number!==undefined) v=a.value_number;
+      else if(a.value_text!==null && a.value_text!==undefined) v=a.value_text;
+      map[a.question_id]=v;
+    });
+    var at=((rec.meta&&rec.meta.received_at)||rec.completed_at||"");
+    return {at:at.replace("T"," ").slice(0,16), answers:map, rec:rec};
+  }
+
+  /* Chart shape for a survey. Local surveys carry their own questions; a
+     survey answered on a device this browser never authored is rebuilt from
+     the records themselves, so Results never shows a blind tab. */
+  function shapeFor(sid, rows){
+    var local=SRStore.getSurvey(sid);
+    if(local) return {name:local.name, questions:local.questions};
+    var qmap={}, order=[], nm=sid;
+    rows.forEach(function(r){
+      if(r.rec.survey_name) nm=r.rec.survey_name;
+      (r.rec.answers||[]).forEach(function(a){
+        var q=qmap[a.question_id];
+        if(!q){
+          q=qmap[a.question_id]={id:a.question_id, q:a.question_text||a.question_id, type:a.type||"text", nps:!!a.nps, options:[]};
+          order.push(q);
+        }
+        if(q.type==="choice" && a.value_text && q.options.indexOf(a.value_text)===-1) q.options.push(a.value_text);
+      });
+    });
+    return {name:nm, questions:order};
+  }
+
+  function buildResponseTable(rows){
+    var scroll=el("div","rawscroll");
+    var table=document.createElement("table"); table.className="raw";
+    var thead=document.createElement("thead"); var hr=document.createElement("tr");
+    ["When","Name","Email","Country","Review","Answers"].forEach(function(h){ hr.appendChild(el("th",null,h)); });
+    thead.appendChild(hr); table.appendChild(thead);
+    var tbody=document.createElement("tbody");
+    rows.forEach(function(row){
+      var rec=row.rec, m=rec.meta||{}, rp=rec.respondent||{}, rv=rec.review||{};
+      var tr=document.createElement("tr"); tr.className="rrow"; tr.title="Click for the full answers";
+      tr.appendChild(el("td",null,row.at));
+      tr.appendChild(el("td",null,rp.name||"\u2014"));
+      tr.appendChild(el("td",null,rp.email||"\u2014"));
+      tr.appendChild(el("td",null,m.country||"\u2014"));
+      tr.appendChild(el("td",null,rv.asked?(REVIEW_LABEL[rv.outcome]||"Not asked"):"Not asked"));
+      tr.appendChild(el("td",null,String((rec.answers||[]).length)));
+      var dtr=document.createElement("tr"); dtr.className="detail"; dtr.style.display="none";
+      var dtd=document.createElement("td"); dtd.colSpan=6;
+      var grid=el("div","detailgrid");
+      (rec.answers||[]).forEach(function(a){
+        var d=el("div");
+        d.appendChild(el("span","dk",a.question_text||a.question_id));
+        var v=row.answers[a.question_id];
+        d.appendChild(el("span","dv",v==null?"skipped":(Array.isArray(v)?v.join(", "):String(v))));
+        grid.appendChild(d);
+      });
+      dtd.appendChild(grid); dtr.appendChild(dtd);
+      tr.addEventListener("click",function(){ dtr.style.display=dtr.style.display==="none"?"table-row":"none"; });
+      tbody.appendChild(tr); tbody.appendChild(dtr);
+    });
+    table.appendChild(tbody); scroll.appendChild(table);
+    return scroll;
+  }
+
+  function renderResults(){
+    var tabs=document.getElementById("dashtabs");
+    var panel=document.getElementById("dashpanel");
+    tabs.innerHTML=""; panel.innerHTML="";
+    panel.appendChild(el("div","emptystate","Loading\u2026"));
+    fetchServer().then(function(st){
+      tabs.innerHTML=""; panel.innerHTML="";
+      if(!adminKey() || st.authorized===false){
+        var c=el("div","canvas"); c.style.padding="22px";
+        var p=el("p",null,"Live results need your admin key.");
+        p.style.cssText="margin:0 0 12px;font-size:13.5px;color:var(--tx-2)";
+        c.appendChild(p);
+        renderConnectGate(c, renderResults);
+        panel.appendChild(c);
+        return;
+      }
+      if(st.rows===null){
+        panel.appendChild(el("div","emptystate","Could not load results. Check your connection and try again."));
+        return;
+      }
+      var bySurvey={};
+      st.rows.forEach(function(rec){
+        var sid=rec.survey_id||"shared";
+        (bySurvey[sid]=bySurvey[sid]||[]).push(adaptRecord(rec));
+      });
+      var ids=SRStore.surveys().map(function(x){ return x.id; });
+      Object.keys(bySurvey).forEach(function(sid){ if(ids.indexOf(sid)===-1) ids.push(sid); });
+      if(!ids.length){
+        panel.appendChild(el("div","emptystate","No surveys yet. Head to Surveys and create your first one."));
+        return;
+      }
+      if(!dashSel || ids.indexOf(dashSel)===-1) dashSel=ids[0];
+      ids.forEach(function(sid){
+        var rows=bySurvey[sid]||[];
+        var t=el("button","dashtab"+(sid===dashSel?" on":""),shapeFor(sid,rows).name);
+        t.addEventListener("click",function(){ dashSel=sid; renderResults(); });
+        tabs.appendChild(t);
+      });
+      renderResultPanel(panel, dashSel, bySurvey[dashSel]||[]);
+    });
+  }
+
+  function renderResultPanel(panel, sid, rows){
+    rows=rows.slice().sort(function(a,b){ return a.at<b.at?1:-1; });
+    var shape=shapeFor(sid, rows);
     var canvas=el("div","canvas");
     var top=el("div","dash-top");
-    top.appendChild(el("h3",null,s.name));
-    top.appendChild(el("span","chip",resp.length+" responses"));
-    if(seeded) top.appendChild(el("span","chip gold",seeded+" seeded samples"));
-    if(live) top.appendChild(el("span","chip teal",live+" collected in this browser"));
+    top.appendChild(el("h3",null,shape.name));
+    top.appendChild(el("span","chip",plural(rows.length,"answer")));
     canvas.appendChild(top);
 
-    if(resp.length===0){
-      canvas.appendChild(el("div","emptystate","No responses yet. The dashboard lights up with the first one."));
+    if(!rows.length){
+      canvas.appendChild(el("div","emptystate","No answers yet for this survey. Copy its share link in the editor and send it to one customer."));
       panel.appendChild(canvas); return;
     }
 
-    /* tiles */
     var tiles=el("div","tiles");
     var t1=el("div","tile");
-    t1.appendChild(el("div","lbl","Responses"));
-    t1.appendChild(el("div","num",String(resp.length)));
-    t1.appendChild(el("div","src",live+" live, "+seeded+" seeded"));
+    t1.appendChild(el("div","lbl","Answers"));
+    t1.appendChild(el("div","num",String(rows.length)));
+    t1.appendChild(el("div","src","Everyone who finished the survey"));
     tiles.appendChild(t1);
-    s.questions.forEach(function(q){
+    shape.questions.forEach(function(q){
       if(q.nps){
         var prom=0,pas=0,det=0;
-        resp.forEach(function(r){
+        rows.forEach(function(r){
           var v=parseInt(r.answers[q.id],10);
           if(isNaN(v)) return;
           if(v>=9)prom++; else if(v>=7)pas++; else det++;
@@ -834,39 +1000,39 @@ window.SR_JUDGE_ENABLED = true;</script>
           var t2=el("div","tile");
           t2.appendChild(el("div","lbl","Net Promoter Score"));
           t2.appendChild(el("div","num",String(Math.round((prom-det)/tot*100))));
-          t2.appendChild(el("div","src","% promoters minus % detractors, "+tot+" answers"));
+          t2.appendChild(el("div","src","% promoters minus % detractors, "+plural(tot,"answer")));
           tiles.appendChild(t2);
         }
       } else if(q.type==="number"){
-        var vals=resp.map(function(r){return r.answers[q.id];}).filter(function(v){return typeof v==="number";});
+        var vals=rows.map(function(r){ return r.answers[q.id]; }).filter(function(v){ return typeof v==="number"; });
         if(vals.length){
-          var avg=Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length);
+          var avg=Math.round(vals.reduce(function(a,b){ return a+b; },0)/vals.length);
           var t3=el("div","tile");
-          t3.appendChild(el("div","lbl",q.q.length>60?q.q.slice(0,57)+"…":q.q));
+          t3.appendChild(el("div","lbl",q.q));
+          t3.title=q.q;
           t3.appendChild(el("div","num",avg.toLocaleString("en-US")));
-          t3.appendChild(el("div","src","Average across "+vals.length+" answers"));
+          t3.appendChild(el("div","src","Average across "+plural(vals.length,"answer")));
           tiles.appendChild(t3);
         }
       }
     });
     canvas.appendChild(tiles);
 
-    /* charts for choice questions (non-nps) */
     var charts=el("div","charts");
-    s.questions.forEach(function(q){
+    shape.questions.forEach(function(q){
       if(q.type!=="choice" || q.nps) return;
       var counts={};
       (q.options||[]).forEach(function(o){ counts[o]=0; });
       var answered=0;
-      resp.forEach(function(r){
+      rows.forEach(function(r){
         var v=r.answers[q.id];
         if(v!=null && counts.hasOwnProperty(v)){ counts[v]++; answered++; }
       });
       if(!answered) return;
       var chart=el("div","chart");
       chart.appendChild(el("h4",null,q.q));
-      chart.appendChild(el("div","sub",answered+" answers"));
-      var maxC=Math.max.apply(null,(q.options||[]).map(function(o){return counts[o];}))||1;
+      chart.appendChild(el("div","sub",plural(answered,"answer")));
+      var maxC=Math.max.apply(null,(q.options||[]).map(function(o){ return counts[o]; }))||1;
       (q.options||[]).forEach(function(o){
         var row=el("div","hbar");
         row.appendChild(el("span","cat",o));
@@ -884,40 +1050,37 @@ window.SR_JUDGE_ENABLED = true;</script>
     });
     if(charts.children.length) canvas.appendChild(charts);
 
-    /* open-text answer cards (internal, never publishable) */
     var textCards=el("div","charts");
-    s.questions.forEach(function(q){
+    shape.questions.forEach(function(q){
       if(q.type!=="text") return;
-      var rows=resp.map(function(r){ return {v:r.answers[q.id], at:r.at, seeded:r.seeded}; })
-        .filter(function(x){ return typeof x.v==="string" && x.v.trim(); })
-        .reverse();
-      if(!rows.length) return;
+      var trows=rows.map(function(r){ return {v:r.answers[q.id], at:r.at}; })
+        .filter(function(x){ return typeof x.v==="string" && x.v.trim(); });
+      if(!trows.length) return;
       var card=el("div","txtcard");
       card.appendChild(el("h4",null,q.q));
-      card.appendChild(el("div","sub",rows.length+" of "+resp.length+" answered"));
+      card.appendChild(el("div","sub",trows.length+" of "+rows.length+" answered"));
       card.appendChild(el("span","intlabel","Internal answers, not for publishing"));
       var listBox=el("div");
-      function renderRows(limit){
+      var renderRows=function(limit){
         listBox.innerHTML="";
-        rows.slice(0,limit).forEach(function(x){
+        trows.slice(0,limit).forEach(function(x){
           var row=el("div","txtrow");
-          row.appendChild(el("span","a","“"+x.v+"”"));
+          row.appendChild(el("span","a","\u201C"+x.v+"\u201D"));
           var m=el("span","m");
           m.appendChild(el("span",null,x.at));
-          m.appendChild(el("span","chip"+(x.seeded?" gold":" teal"),x.seeded?"seeded":"live"));
           row.appendChild(m);
           listBox.appendChild(row);
         });
-      }
+      };
       renderRows(5);
       card.appendChild(listBox);
-      if(rows.length>5){
-        var more=el("button","showmore","Show all "+rows.length);
+      if(trows.length>5){
+        var more=el("button","showmore","Show all "+trows.length);
         var expanded=false;
         more.addEventListener("click",function(){
           expanded=!expanded;
-          renderRows(expanded?rows.length:5);
-          more.textContent=expanded?"Show fewer":"Show all "+rows.length;
+          renderRows(expanded?trows.length:5);
+          more.textContent=expanded?"Show fewer":"Show all "+trows.length;
         });
         card.appendChild(more);
       }
@@ -925,108 +1088,18 @@ window.SR_JUDGE_ENABLED = true;</script>
     });
     if(textCards.children.length) canvas.appendChild(textCards);
 
-    /* quotes */
-    var quotes=resp.filter(function(r){ return r.answers._quote && r.answers._quotePermission==="approved"; });
-    if(quotes.length){
-      var qh=el("div","pagehead"); qh.style.padding="0 22px";
-      qh.appendChild(el("h3",null,"Quotes collected"));
-      canvas.appendChild(qh);
-      var qgrid=el("div","quotes");
-      quotes.slice(-6).forEach(function(r){
-        var card=el("div","quote");
-        card.appendChild(el("p",null,"“"+r.answers._quote+"”"));
-        card.appendChild(el("small",null,r.answers._quoteAttribution||"Approved, unattributed"));
-        card.appendChild(el("span","chip teal","Approved for website"));
-        qgrid.appendChild(card);
-      });
-      canvas.appendChild(qgrid);
-    }
-
-    /* raw responses, collapsed by default */
-    var rawBox=el("div","rawtoggle");
-    var rawBtn=el("button","btn ghost small","View all responses ("+resp.length+")");
-    var copyBtn=el("button","btn ghost small","Copy all as JSON");
-    copyBtn.style.marginLeft="8px";
-    copyBtn.addEventListener("click",function(){
-      var payload=JSON.stringify({survey:s.name, questions:s.questions.map(function(q){return {id:q.id,q:q.q};}), responses:resp}, null, 2);
-      navigator.clipboard.writeText(payload).then(function(){
-        copyBtn.textContent="Copied";
-        setTimeout(function(){ copyBtn.textContent="Copy all as JSON"; },2000);
-      },function(){ window.prompt("Copy the responses JSON:", payload); });
-    });
-    rawBox.appendChild(rawBtn); rawBox.appendChild(copyBtn);
-    var rawWrap=el("div","rawwrap"); rawWrap.style.display="none";
-    rawBtn.addEventListener("click",function(){
-      var open=rawWrap.style.display!=="none";
-      rawWrap.style.display=open?"none":"block";
-      rawBtn.textContent=open?("View all responses ("+resp.length+")"):"Hide responses";
-      if(!open && !rawWrap.hasChildNodes()) renderRaw();
-    });
-    function shortAns(v){
-      if(v==null) return "skipped";
-      if(Array.isArray(v)) return v.join(", ");
-      return String(v);
-    }
-    function renderRaw(){
-      var scroll=el("div","rawscroll");
-      var table=document.createElement("table"); table.className="raw";
-      var thead=document.createElement("thead"); var hr=document.createElement("tr");
-      hr.appendChild(el("th",null,"Date")); hr.appendChild(el("th",null,"Source"));
-      s.questions.forEach(function(q,i){ hr.appendChild(el("th",null,"Q"+(i+1))); });
-      var hasQuote=resp.some(function(r){ return r.answers && r.answers._quote!==undefined; });
-      if(hasQuote) hr.appendChild(el("th",null,"Quote"));
-      thead.appendChild(hr); table.appendChild(thead);
-      var tbody=document.createElement("tbody");
-      resp.slice().reverse().forEach(function(r){
-        var tr=document.createElement("tr"); tr.className="rrow"; tr.title="Click for the full response";
-        tr.appendChild(el("td",null,r.at));
-        tr.appendChild(el("td",null,r.seeded?"seeded":"live"));
-        s.questions.forEach(function(q){ tr.appendChild(el("td",null,shortAns(r.answers[q.id]))); });
-        if(hasQuote) tr.appendChild(el("td",null,r.answers._quote?("“"+r.answers._quote+"”"):"none"));
-        var dtr=document.createElement("tr"); dtr.className="detail"; dtr.style.display="none";
-        var dtd=document.createElement("td"); dtd.colSpan=2+s.questions.length+(hasQuote?1:0);
-        var grid=el("div","detailgrid");
-        s.questions.forEach(function(q){
-          var d=el("div");
-          d.appendChild(el("span","dk",q.q.length>70?q.q.slice(0,67)+"…":q.q));
-          d.appendChild(el("span","dv",shortAns(r.answers[q.id])));
-          grid.appendChild(d);
-        });
-        if(r.answers._quote){
-          var dq=el("div");
-          dq.appendChild(el("span","dk","Quote"));
-          dq.appendChild(el("span","dv","“"+r.answers._quote+"” ("+(r.answers._quotePermission||"no permission asked")+")"));
-          grid.appendChild(dq);
-          if(r.answers._quoteAttribution){
-            var da=el("div");
-            da.appendChild(el("span","dk","Attribution"));
-            da.appendChild(el("span","dv",r.answers._quoteAttribution));
-            grid.appendChild(da);
-          }
-        }
-        dtd.appendChild(grid); dtr.appendChild(dtd);
-        tr.addEventListener("click",function(){
-          dtr.style.display=dtr.style.display==="none"?"table-row":"none";
-        });
-        tbody.appendChild(tr); tbody.appendChild(dtr);
-      });
-      table.appendChild(tbody);
-      scroll.appendChild(table);
-      rawWrap.appendChild(scroll);
-      rawWrap.appendChild(el("div","sub","Newest first. In the real product each row links to the HubSpot contact; test-phase rows are anonymous."));
-    }
-    canvas.appendChild(rawBox);
-    canvas.appendChild(rawWrap);
-
-    var note=el("div","autonote");
-    note.textContent="Every new response updates these numbers the moment it lands. Answer the live survey in this browser and watch the counts move.";
-    canvas.appendChild(note);
+    var tableWrap=el("div","rawwrap");
+    var th=el("div","pagehead"); th.style.cssText="padding:0;margin:18px 0 10px";
+    th.appendChild(el("h3",null,"Every answer"));
+    tableWrap.appendChild(th);
+    tableWrap.appendChild(buildResponseTable(rows));
+    canvas.appendChild(tableWrap);
     panel.appendChild(canvas);
   }
 
-  /* ---------- settings ---------- */
+  /* ---------- settings ---------- */  /* ---------- settings ---------- */
   document.getElementById("resetBtn").addEventListener("click",function(){
-    if(window.confirm("Reset surveys and responses in this browser back to the seed data?")){
+    if(window.confirm("Replace the surveys in this browser with the sample surveys? Answers already sent to Survey Rocket are kept.")){
       SRStore.reset();
       setCurrent(SRStore.surveys()[0].id);
       dashSel=null;

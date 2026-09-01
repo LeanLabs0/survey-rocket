@@ -19,8 +19,11 @@
   .rs-missing{text-align:center;padding:60px 20px;color:var(--tx-2)}
 
   /* contact gate (settings.require_contact) and the completion blocks */
-  .rs-gate{padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+  .rs-gate{padding:24px 22px;display:flex;flex-direction:column;gap:12px}
+  .rs-gate h3{font-size:17px}
   .rs-gate p{font-size:13.5px;color:var(--tx-2);margin:0}
+  .rs-gate .g-note{font-size:12px;color:var(--tx-dis)}
+  #g-contact{display:flex;flex-direction:column;gap:10px}
   .rs-gate input{background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:11px 14px;color:var(--tx);font-size:14px}
   .rs-gate .btn{align-self:flex-start}
   .rs-after{max-width:560px;margin:18px auto 0;display:none;flex-direction:column;gap:14px}
@@ -45,19 +48,23 @@
       <button class="send" id="rs-send" disabled>Send</button>
     </div>
   </div>
-  <div class="rs-gate" id="gate" style="display:none">
-    <p>Before we start, your name and work email. This survey records who answered.</p>
-    <input id="g-name" type="text" autocomplete="name" placeholder="Your name">
-    <input id="g-email" type="email" autocomplete="email" placeholder="you@company.com">
+  <div class="rs-gate canvas" id="gate" style="display:none">
+    <h3 id="g-title">Ready when you are</h3>
+    <p id="g-meta"></p>
+    <div id="g-contact" style="display:none">
+      <p>First, your name and work email. They are saved with your answers so the team knows who said what.</p>
+      <input id="g-name" type="text" autocomplete="name" placeholder="Your name">
+      <input id="g-email" type="email" autocomplete="email" placeholder="you@company.com">
+    </div>
+    <p class="g-note">Your answers are recorded when you finish.</p>
     <button class="btn primary" id="g-go">Start the survey</button>
   </div>
   <div class="rs-missing" id="missing" style="display:none">
-    This survey link is not valid, or the survey lives in another browser.<br>
-    Ask for a fresh share link.
+    This survey link is not working.<br>
+    Ask whoever sent it for a fresh link.
   </div>
   <div class="rs-note" id="note">
-    Your answers are recorded when you finish.
-    <button class="btn danger small" id="rs-restart" style="margin-left:8px">Restart</button>
+    <button class="btn danger small" id="rs-restart">Restart</button>
     <button class="btn ghost small" id="rs-copy" style="margin-left:4px;display:none">Copy my answers</button>
   </div>
 </div>
@@ -68,7 +75,7 @@
     <div id="afterRows"></div>
   </div>
   <div class="rs-review" id="afterReview" style="display:none">
-    <p>Thanks so much for submitting this data. Would you be open to leaving us a review?</p>
+    <p>Thanks for your answers. Would you be open to leaving us a review?</p>
     <div class="btns" id="reviewBtns"></div>
   </div>
 </div>
@@ -84,16 +91,25 @@ window.SR_JUDGE_ENABLED = true;</script>
 (function(){
   "use strict";
   var params=new URLSearchParams(location.search);
-  var survey=null, fromStore=false;
+
+  function countWord(n){
+    var words=["zero","one","two","three","four","five","six","seven","eight","nine"];
+    return n<words.length?words[n]:String(n);
+  }
+  function cap(w){ return w.charAt(0).toUpperCase()+w.slice(1); }
 
   var hash=location.hash||"";
   if(hash.indexOf("#p=")===0){
-    survey=SRStore.decodeShare(hash.slice(3));
+    boot(SRStore.decodeShare(hash.slice(3)));
   } else if(params.get("id")){
-    survey=SRStore.getSurvey(params.get("id"));
-    fromStore=true;
+    SRHubSpot.fetchSurvey(params.get("id")).then(function(sv){
+      boot(sv || SRStore.getSurvey(params.get("id")));
+    });
+  } else {
+    boot(null);
   }
 
+  function boot(survey){
   if(!survey || !survey.questions || !survey.questions.length){
     document.getElementById("frame").style.display="none";
     document.getElementById("note").style.display="none";
@@ -102,7 +118,7 @@ window.SR_JUDGE_ENABLED = true;</script>
   }
 
   document.getElementById("rs-title").textContent=survey.name||"Survey";
-  document.getElementById("rs-sub").textContent=survey.cadence||"";
+  document.getElementById("rs-sub").textContent="Lean Labs";
   document.title=survey.name||"Survey";
 
   var settings=survey.settings||{};
@@ -158,7 +174,7 @@ window.SR_JUDGE_ENABLED = true;</script>
         var a=document.createElement("a");
         a.className="btn primary"; a.target="_blank"; a.rel="noopener";
         a.href=links[p];
-        a.textContent="Leave a review on "+p.charAt(0).toUpperCase()+p.slice(1);
+        a.textContent="Leave a review";
         a.addEventListener("click",function(){ sendRecord(true,"clicked"); });
         btns.appendChild(a);
       });
@@ -200,20 +216,26 @@ window.SR_JUDGE_ENABLED = true;</script>
 
   document.getElementById("rs-restart").addEventListener("click",startRun);
 
-  /* Contact gate, only when the survey asks for it (Kevin's toggle). */
-  if(settings.require_contact){
-    document.getElementById("rs-log").style.display="none";
-    document.getElementById("gate").style.display="flex";
-    document.getElementById("g-go").addEventListener("click",function(){
+  /* The start card. Who is asking, how long it takes, what happens to the
+     answers; name and email fields appear when the survey requires them. */
+  var frame=document.getElementById("frame"), note=document.getElementById("note"), gate=document.getElementById("gate");
+  frame.style.display="none"; note.style.display="none";
+  gate.style.display="flex";
+  document.getElementById("g-title").textContent=survey.name||"Ready when you are";
+  var qn=survey.questions.length;
+  document.getElementById("g-meta").textContent=cap(countWord(qn))+" quick question"+(qn===1?"":"s")+" from Lean Labs. Most answers are one tap.";
+  if(settings.require_contact) document.getElementById("g-contact").style.display="flex";
+  document.getElementById("g-go").addEventListener("click",function(){
+    if(settings.require_contact){
       var name=document.getElementById("g-name").value.trim();
       var email=document.getElementById("g-email").value.trim();
       if(!name || email.indexOf("@")<1) return;
       respondent.name=name; respondent.email=email;
-      document.getElementById("gate").style.display="none";
-      document.getElementById("rs-log").style.display="";
-      startRun();
-    });
-  }
+    }
+    gate.style.display="none";
+    frame.style.display=""; note.style.display="";
+    startRun();
+  });
   document.getElementById("rs-copy").addEventListener("click",function(){
     if(!lastAnswers) return;
     var text=JSON.stringify({survey:survey.name, answers:lastAnswers}, null, 2);
@@ -222,7 +244,7 @@ window.SR_JUDGE_ENABLED = true;</script>
       setTimeout(function(){ document.getElementById("rs-copy").textContent="Copy my answers"; },2000);
     },function(){ window.prompt("Copy your answers:", text); });
   });
-  if(!settings.require_contact) startRun();
+  }
 })();
 </script>
 </body>
