@@ -4,7 +4,7 @@
   --page:#0D0D0D; --card:#141414; --btn:#1C1C1C; --btn-hover:#2A2A2A; --tile:#212121;
   --tx:#FFFFFF; --tx-2:#949494; --tx-dis:#757575; --icon:#B0B0B0; --line:#2B2B2B;
   --alert:#FDE68A; --green:#00D492; --red:#E5484D; --yellow:#FFA600; --blue:#93C5FD;
-  --nfi:#24456B;
+  --nfi:#24456B; --tx-3:#8E8E8E;
   --inset:inset 0 0 0 1px var(--line);
   --r-sm:4px; --r-md:8px; --r-lg:16px;
   --font-heading:'Plus Jakarta Sans',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
@@ -70,10 +70,10 @@ button,input,select,textarea{font-family:var(--font-body)}
 .tile{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px 15px 13px}
 .tile .lbl{font-size:12px;color:var(--tx-2);line-height:1.4;min-height:34px}
 .tile .num{font-family:var(--font-heading);font-size:29px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums;margin:5px 0 2px}
-.tile .src{font-size:11px;color:var(--tx-dis)}
+.tile .src{font-size:11px;color:var(--tx-3)}
 .chart{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px}
 .chart h4{font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--tx)}
-.chart .sub{font-size:11.5px;color:var(--tx-dis);margin:2px 0 12px}
+.chart .sub{font-size:11.5px;color:var(--tx-3);margin:2px 0 12px}
 .hbar{display:grid;grid-template-columns:140px 1fr 30px;gap:8px;align-items:center;margin:6px 0;font-size:12px}
 .hbar .cat{color:var(--tx-2);text-align:right;line-height:1.25}
 .hbar .track{display:block;height:13px;background:var(--tile);border-radius:var(--r-sm);overflow:hidden}
@@ -88,7 +88,7 @@ footer.pagefoot a{color:var(--tx-2);display:inline-flex;align-items:center;min-h
    respondent page shipped 29px chips; it lives here now so every page gets it. */
 .opt,.send,.btn,.chat-input input{min-height:40px}
 @media (pointer:coarse){
-  .opt,.send,.btn,.btn.small,.chat-input input{min-height:44px}
+  .opt,.send,.btn,.btn.small,.chat-input input,.navitem,.dashtab,.showmore,select{min-height:44px}
 }
 .opts:focus{outline:none}
 
