@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles-shared.css">
+<link rel="stylesheet" href="assets/styles-app.css">
 <style>
   .rs-shell{max-width:560px;margin:34px auto 60px;padding:0 16px}
   .rs-brand{display:flex;align-items:center;gap:10px;margin-bottom:16px;justify-content:center}
@@ -37,9 +38,12 @@
   .rs-review .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 </style>
 </head>
-<body>
+<body class="rs">
 <div class="rs-shell">
-  <div class="rs-brand"><span class="mark">SR</span><span id="brandName">Survey Rocket</span></div>
+  <div class="rs-brand">
+    <div style="display:flex;align-items:center;gap:10px"><span class="mark">SR</span><span id="brandName">Survey Rocket</span></div>
+    <span class="sender">Sent by Lean Labs</span>
+  </div>
   <div class="chat-frame" id="frame">
     <div class="chat-head"><span class="av">SR</span><div><b id="rs-title">Survey</b><small id="rs-sub"></small></div><span class="chat-prog" id="rs-prog"></span></div>
     <div class="chat-log" id="rs-log" aria-live="polite"></div>

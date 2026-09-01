@@ -248,7 +248,7 @@
         <a class="btn primary" href="#/demo">See the live demo</a>
         <a class="btn ghost" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
       </div>
-      <div class="note">No sign-up. The demo takes about 2 minutes.</div>
+      <div class="note">No sign-up. The demo takes about two minutes.</div>
     </div>
 
     <figure class="vid">
@@ -369,7 +369,7 @@
         <h2>Try it before you talk to us</h2>
         <p>Play the customer in the sandbox demo. Answer a short survey and watch the dashboard move.</p>
         <div class="ctas"><a class="btn primary" href="#/demo">Try the live demo</a></div>
-        <div class="note">No sign-up. The demo takes about 2 minutes.</div>
+        <div class="note">No sign-up. The demo takes about two minutes.</div>
       </div>
     </section>
 
@@ -381,7 +381,7 @@
         <div class="qa"><h3>Can we write our own questions?</h3><p>Yes. The survey asks your questions word for word and never invents its own.</p></div>
         <div class="qa"><h3>What happens to negative feedback?</h3><p>It stays private. The permission request only appears after a positive answer, so nothing critical reaches your website.</p></div>
         <div class="qa"><h3>What does it need from our HubSpot?</h3><p>A private app connection Lean Labs sets up with you, plus a few contact properties. Your team keeps working in HubSpot as usual.</p></div>
-        <div class="qa"><h3>How fast can we launch?</h3><p>Setup for a first survey takes TK. To launch, we need your questions and your customer list.</p></div>
+        <div class="qa"><h3>How fast can we launch?</h3><p>As fast as you can send us your questions and your customer list. Lean Labs handles the setup from there.</p></div>
       </div>
     </section>
 
@@ -462,7 +462,7 @@
           </div>
           <div class="dash-note" id="joinnote" style="display:none">Your answer just moved these numbers. That is the whole product.</div>
           <div class="dash-review" id="dashReview">
-            <p>Thanks so much for submitting this data. Would you be open to leaving us a review?</p>
+            <p>Thanks for your answers. Would you be open to leaving us a review?</p>
             <div class="dash-cta">
               <a class="btn primary" href="https://www.lean-labs.com" target="_blank" rel="noopener">Leave us a review</a>
               <button class="btn danger" id="dashRestart">Start over</button>
@@ -502,6 +502,7 @@ window.SR_JUDGE_ENABLED = true;</script>
   ];
 
   function revealDash(answers){
+    setStepsDone();
     // Step 3 is a screen of its own now. The chat is done, so it steps aside
     // rather than sharing the width with results nobody could read until now.
     document.getElementById("stageChat").style.display="none";
@@ -556,14 +557,15 @@ window.SR_JUDGE_ENABLED = true;</script>
     {name:"Quick Chat"},
     {name:"Your Dashboard"}
   ];
-  var stepAt=0;
+  var stepAt=0, stepDone=false;
 
   function renderSteps(){
     var host=document.getElementById("steps"), html="";
+    var reach=stepAt+(stepDone?1:0);
     for(var i=0;i<STEPS.length;i++){
-      var cls = i<stepAt ? "step done" : (i===stepAt ? "step on" : "step");
-      var pill = i<stepAt ? "Done" : (i===stepAt ? "In progress" : "Pending");
-      var mark = i<stepAt ? "&#10003;" : String(i+1);
+      var cls = i<reach ? "step done" : (i===stepAt ? "step on" : "step");
+      var pill = i<reach ? "Done" : (i===stepAt ? "In progress" : "Pending");
+      var mark = i<reach ? "&#10003;" : String(i+1);
       html += '<div class="'+cls+'"><div class="body">'
             +   '<span class="dot">'+mark+'</span>'
             +   '<span class="idx">Step '+(i+1)+'</span>'
@@ -577,6 +579,7 @@ window.SR_JUDGE_ENABLED = true;</script>
   }
 
   function setStep(i){ if(i!==stepAt){ stepAt=i; renderSteps(); } }
+  function setStepsDone(){ if(!stepDone){ stepDone=true; renderSteps(); } }
 
   /* Which step the chat is on, read off the engine's own progress line rather
      than recomputed here. The engine writes that line in _prog() at exactly the
@@ -612,6 +615,7 @@ window.SR_JUDGE_ENABLED = true;</script>
         onComplete:function(a){ syncStep(); revealDash(a); }
       });
       function restart(){
+        stepDone=false;
         resetDash();
         document.getElementById("stageDash").style.display="none";
         document.getElementById("stageChat").style.display="";

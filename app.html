@@ -9,24 +9,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles-shared.css">
+<link rel="stylesheet" href="assets/styles-app.css">
 <style>
   .app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
-  .side{border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+  .side{border-right:1px solid var(--line)}
   .wordmark{display:flex;align-items:center;gap:10px;font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--tx);padding:4px 10px 16px}
   .wordmark .rocket{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--r-md);background:var(--tile);box-shadow:var(--inset);color:var(--tx);font-size:11px;font-weight:600;flex:0 0 28px}
   .navitem{display:flex;align-items:center;gap:10px;border:0;background:transparent;color:var(--tx-2);font-size:14px;font-weight:500;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;text-align:left;width:100%}
   .navitem:hover{background:var(--btn);color:var(--tx)}
   .navitem.on{background:var(--tx);color:var(--page)}
-  .side .acctline{margin-top:auto;padding:12px 10px;font-size:12px;color:var(--tx-dis);border-top:1px solid var(--line)}
-  .side .acctline b{display:block;color:var(--tx-2);font-weight:500}
+  .side-inner .acctline{margin-top:auto;padding:12px 10px;font-size:12px;border-top:1px solid var(--line)}
+  .side-inner .acctline b{display:block;color:var(--tx-2);font-weight:500}
   @media (max-width:800px){
     .app{grid-template-columns:1fr}
     /* Wrap, never scroll: a horizontal strip once pushed the Settings item
        entirely off a 390px screen with no cue that it existed. */
-    .side{position:sticky;top:0;z-index:40;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;border-right:0;border-bottom:1px solid var(--line);background:var(--page);padding:10px 12px;gap:4px}
+    .side{position:sticky;top:0;z-index:40;border-right:0;border-bottom:1px solid var(--line);background:var(--page)}
     .wordmark{flex:1 1 100%;padding:0 2px 8px}
     .navitem{width:auto;flex:1 1 auto;justify-content:center;padding:10px 8px;border-radius:999px}
-    .side .acctline{display:none}
+    .side-inner .acctline{display:none}
   }
   main{min-width:0}
   .view{display:none}
@@ -202,17 +203,17 @@
 </style>
 </head>
 <body>
-
+<a class="skip-link" href="#main">Skip to content</a>
 <div class="app" id="appShell">
-<aside class="side">
+<aside class="side"><div class="side-inner">
   <div class="wordmark"><span class="rocket">SR</span>Survey Rocket</div>
   <button class="navitem" data-r="#/surveys">Surveys</button>
   <button class="navitem" data-r="#/scan">Scan my site</button>
   <button class="navitem" data-r="#/results">Results</button>
   <button class="navitem" data-r="#/settings">Settings</button>
-  <div class="acctline"><b>Lean Labs</b>Survey Rocket test account</div>
-</aside>
-<main>
+  <div class="acctline"><b>Lean Labs</b>Pilot account</div>
+</div></aside>
+<main id="main">
 
 <div class="overlay" id="chooser" role="dialog" aria-modal="true" aria-label="New survey">
   <div class="modal">
@@ -222,7 +223,7 @@
       <button class="choice" id="chooseManual"><b>Write it myself</b><p>Start from a blank survey and type your exact questions.</p></button>
       <button class="choice" id="chooseScan"><b>Scan my site</b><p>We read your pages and draft a survey for each claim with no proof behind it. Name a stat if you already have one in mind.</p><span class="chip">Takes about a minute</span></button>
     </div>
-    <button class="close" id="chooserClose">Cancel</button>
+    <div class="modal-foot"><button class="btn ghost" id="chooserClose">Cancel</button></div>
   </div>
 </div>
 
@@ -541,9 +542,29 @@ window.SR_JUDGE_ENABLED = true;</script>
 
   /* ---------- chooser + scans ---------- */  /* ---------- chooser + scans ---------- */
   var chooser=document.getElementById("chooser");
-  document.getElementById("newSurveyBtn").addEventListener("click",function(){ chooser.classList.add("open"); });
-  document.getElementById("chooserClose").addEventListener("click",function(){ chooser.classList.remove("open"); });
-  chooser.addEventListener("click",function(e){ if(e.target===chooser) chooser.classList.remove("open"); });
+  function openChooser(){
+    chooser.classList.add("open");
+    var first=chooser.querySelector(".choice");
+    if(first) first.focus();
+  }
+  function closeChooser(){
+    chooser.classList.remove("open");
+    var nb=document.getElementById("newSurveyBtn");
+    if(nb) nb.focus();
+  }
+  document.getElementById("newSurveyBtn").addEventListener("click",openChooser);
+  document.getElementById("chooserClose").addEventListener("click",closeChooser);
+  chooser.addEventListener("click",function(e){ if(e.target===chooser) closeChooser(); });
+  document.addEventListener("keydown",function(e){
+    if(!chooser.classList.contains("open")) return;
+    if(e.key==="Escape"){ closeChooser(); return; }
+    if(e.key==="Tab"){
+      var focusables=chooser.querySelectorAll("button");
+      var first=focusables[0], last=focusables[focusables.length-1];
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    }
+  });
   document.getElementById("chooseManual").addEventListener("click",function(){
     chooser.classList.remove("open");
     newDraft();
@@ -1050,7 +1071,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     });
     if(charts.children.length) canvas.appendChild(charts);
 
-    var textCards=el("div","charts");
+    var textCards=el("div","charts autofit");
     shape.questions.forEach(function(q){
       if(q.type!=="text") return;
       var trows=rows.map(function(r){ return {v:r.answers[q.id], at:r.at}; })

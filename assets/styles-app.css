@@ -1,0 +1,77 @@
+/* Survey Rocket app layer. Shared by app.html and survey.html so a fix on
+   one product surface can never miss the other again: the 44px touch floor
+   lived only on the landing page for a week while real respondents got 29px
+   chips. Tokens and primitives stay in styles-shared.css; this file is the
+   product chrome. */
+
+:root{
+  /* tertiary text: AA on every surface in the system (5.2:1 on --btn).
+     --tx-dis stays for disabled CONTROLS only, where AA does not apply. */
+  --tx-3:#8E8E8E;
+  --fs-h1:28px; --fs-h2:20px; --fs-h3:16px; --fs-body:15px; --fs-sm:13.5px; --fs-xs:12px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:64px;
+  --elev-modal:0 24px 64px rgba(0,0,0,.55), inset 0 0 0 1px var(--line);
+}
+
+/* focus and skip link, promoted from the landing page's inline block */
+a:focus-visible,button:focus-visible,.opt:focus-visible,.navitem:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--green);outline-offset:0}
+.skip-link{position:absolute;left:8px;top:-48px;z-index:100;background:var(--tx);color:var(--page);padding:10px 16px;border-radius:var(--r-md);font-size:13.5px;text-decoration:none;transition:top .15s}
+.skip-link:focus{top:8px}
+
+/* the secondary text tier, lifted off the AA floor in one move */
+.pagehead .eyebrow,.survey-card .meta,.tile .src,.chart .sub,.krow .k,
+.txtcard .intlabel,.txtrow .m,.detailgrid .dk,.setnote,.pv-note,.scan-note,
+.scan-card label,.closerbox p,.side .acctline,.rs-note,.rs-gate .g-note,
+table.raw th,.chat-head small,.chat-prog,.savedmsg,.qcard .qnum{color:var(--tx-3)}
+
+/* app shell: content column fills the viewport, footer pins to the bottom,
+   no more 300px of black under a hairline on short views */
+.app main{display:flex;flex-direction:column;min-height:100vh;min-width:0}
+.app main>.view.active{flex:1 0 auto}
+.app footer.pagefoot{margin-top:auto}
+
+/* the sidebar border runs the full page; only the inner column is sticky */
+.side{padding:0;display:block}
+.side-inner{position:sticky;top:0;max-height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:18px 14px}
+@media (max-width:800px){
+  .side-inner{position:static;max-height:none;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 12px;gap:4px}
+}
+
+/* type ramp on page furniture */
+.pagehead h1{font-size:var(--fs-h1)}
+.pagehead p{font-size:var(--fs-sm);line-height:1.6}
+
+/* one divider style: solid hairlines, the dashed receipt look is gone */
+.krow,.txtrow,.detailgrid div{border-bottom-style:solid}
+
+/* stat tiles share a number baseline even when labels wrap unevenly */
+.tile{display:flex;flex-direction:column}
+.tile .lbl{min-height:0}
+.tile .num{margin-top:auto;padding-top:6px}
+
+/* editor switch rows: one row each, separated, never a fused blob */
+.closerbox{max-width:560px}
+.closerbox .head{min-height:48px}
+.closerbox .head + .head{border-top:1px solid var(--line)}
+
+/* native select, dressed to match the inputs */
+.qcard select{appearance:none;-webkit-appearance:none;background:var(--page) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23949494' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:30px;min-height:34px}
+
+/* modal: real elevation over the scrim, cards top-aligned */
+.modal{box-shadow:var(--elev-modal)}
+.choice{display:flex;flex-direction:column;align-items:flex-start}
+.choice p{flex:1}
+.choice .chip{margin-top:10px}
+.modal-foot{margin-top:18px;display:flex;justify-content:flex-end}
+
+/* lone open-text card spans the row instead of orphaning beside a void */
+.charts.autofit{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+
+/* respondent page: identity and ground. The card no longer floats in a
+   featureless void, and the sender is named. */
+body.rs{background:radial-gradient(90% 55% at 50% 0%,#151515 0%,var(--page) 72%)}
+.rs-brand{flex-direction:column;gap:6px}
+.rs-brand .sender{font-size:12.5px;color:var(--tx-3);font-family:var(--font-body);font-weight:400}
+.rs-shell .bub{animation:srBubIn .22s ease-out}
+@keyframes srBubIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
