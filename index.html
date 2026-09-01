@@ -146,6 +146,7 @@
   .dash .chart{margin:0 20px 16px}
   .dash-note{padding:0 20px 18px;font-size:12px;color:var(--tx-dis)}
   .dash-cta{padding:0 20px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .dash-review p{padding:0 20px;margin:0 0 12px;font-size:14px;color:var(--tx)}
   .dash-lock{padding:36px 20px;text-align:center;color:var(--tx-dis);font-size:13.5px}
 
   /* Step tracker, the reputationrocket.ai shape adapted to Survey Rocket.
@@ -460,9 +461,12 @@
             <div class="hbar"><span class="cat">Down</span><span class="track"><i class="fill" style="width:9%"></i></span><span class="val" id="b4">5</span></div>
           </div>
           <div class="dash-note" id="joinnote" style="display:none">Your answer just moved these numbers. That is the whole product.</div>
-          <div class="dash-cta">
-            <a class="btn primary" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
-            <button class="btn ghost" id="dashRestart">Start over</button>
+          <div class="dash-review" id="dashReview">
+            <p>Thanks so much for submitting this data. Would you be open to leaving us a review?</p>
+            <div class="dash-cta">
+              <a class="btn primary" href="https://www.lean-labs.com" target="_blank" rel="noopener">Leave us a review</a>
+              <button class="btn ghost" id="dashRestart">Start over</button>
+            </div>
           </div>
         </div>
       </div>
@@ -602,14 +606,8 @@ window.SR_JUDGE_ENABLED = true;</script>
         sendBtn:document.getElementById("sendBtn"),
         progEl:document.getElementById("prog"),
         script:SCRIPT,
-        quoteAsk:true,
         intro:"Hi. Quick check-in about the work Lean Labs did for you. Most answers are one tap, about 2 minutes.",
         outro:"That is everything, thank you. Watch the results panel, your answers just joined the averages.",
-        quoteCopy:{
-          q:"Last one. What would you tell someone considering Lean Labs? Optional, type skip to finish.",
-          perm:"Mind if Lean Labs used that as a quote on their website?",
-          attr:"Thanks. What is your name and role, so Lean Labs can attribute the quote?"
-        },
         onAnswer:syncStep,
         onComplete:function(a){ syncStep(); revealDash(a); }
       });

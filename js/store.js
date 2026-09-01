@@ -10,32 +10,58 @@
   function seedSurveys() {
     return [
       {
+        schema_version: 1,
         id: "client-outcomes",
         name: "Client outcomes",
         cadence: "90 day",
         status: "Active",
-        quoteAsk: true,
+        /* Kevin 8/31: no optional last question. The old quoteAsk ending is
+           gone; completion is results + review ask, driven by settings, and
+           the optional text question sits mid-survey rather than closing it. */
+        settings: { require_contact: false, show_results: true, review_ask: true, review_links: { google: "https://g.page/r/lean-labs/review" } },
         questions: [
           { id: "service", type: "choice", q: "Which Lean Labs program are you on?", options: ["AEO program", "Website Launchpad", "Growth retainer", "Other"] },
           { id: "leads", type: "number", q: "About how many qualified leads per month does your site produce now?", min: 0, max: 10000 },
           { id: "pipeline", type: "choice", q: "Compared with before working with us, how has qualified pipeline changed?", options: ["Down", "Flat", "Up to 25% up", "26 to 75% up", "More than 75% up"] },
-          { id: "nps", type: "choice", nps: true, q: "How likely are you to recommend Lean Labs to a peer?", options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] },
-          { id: "changed", type: "text", optional: true, q: "What changed most since we started? One sentence is plenty. Optional, type skip to move on." }
-        ]
+          { id: "changed", type: "text", optional: true, q: "What changed most since we started? One sentence is plenty. Optional, type skip to move on." },
+          { id: "nps", type: "choice", nps: true, q: "How likely are you to recommend Lean Labs to a peer?", options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] }
+        ],
+        provenance: { source: "template", drafted_by: null, approved_by: "Ralph", approved_at: "2026-09-01" }
       },
       {
+        schema_version: 1,
         id: "project-onboarding",
         name: "Project onboarding",
         cadence: "Day 30",
         status: "Active",
-        quoteAsk: false,
+        settings: { require_contact: false, show_results: false, review_ask: false, review_links: {} },
         questions: [
           { id: "clarity", type: "choice", q: "How clear was the kickoff process?", options: ["Very unclear", "Unclear", "Neutral", "Clear", "Very clear"] },
           { id: "speed", type: "choice", q: "How was the pace of the first 30 days?", options: ["Too slow", "About right", "Too fast"] },
           { id: "wish", type: "text", optional: true, q: "Anything you wish you had known on day one? Optional, type skip to move on." }
-        ]
+        ],
+        provenance: { source: "template", drafted_by: null, approved_by: "Ralph", approved_at: "2026-09-01" }
       }
     ];
+  }
+
+  /* v0 records (pre schema pin, or stale localStorage from an earlier visit)
+     upgrade on read. Rule 4 in docs/question-schema.md. */
+  function upgradeSurvey(sv) {
+    if (!sv) return sv;
+    if (sv.schema_version === 1) return sv;
+    sv.schema_version = 1;
+    sv.settings = sv.settings || {
+      require_contact: false,
+      /* old quoteAsk surveys ended on an optional quote; the nearest v1
+         behaviour is the review ending switched on */
+      show_results: !!sv.quoteAsk,
+      review_ask: !!sv.quoteAsk,
+      review_links: {}
+    };
+    delete sv.quoteAsk;
+    sv.provenance = sv.provenance || { source: "hand", drafted_by: null, approved_by: null, approved_at: null };
+    return sv;
   }
 
   /* Seeded sample responses so the dashboard is not empty on first visit.
@@ -109,7 +135,7 @@
       write(K_SURVEYS, seedSurveys());
       write(K_RESPONSES, seedResponses());
     },
-    surveys: function () { return read(K_SURVEYS, []); },
+    surveys: function () { return read(K_SURVEYS, []).map(upgradeSurvey); },
     saveSurveys: function (list) { return write(K_SURVEYS, list); },
     getSurvey: function (id) {
       var found = null;
@@ -135,11 +161,12 @@
     },
     /* portable respondent link: survey definition packed into the URL fragment */
     encodeShare: function (survey) {
-      var json = JSON.stringify({ name: survey.name, cadence: survey.cadence, quoteAsk: survey.quoteAsk, questions: survey.questions, id: survey.id });
+      survey = upgradeSurvey(survey);
+      var json = JSON.stringify({ schema_version: 1, id: survey.id, name: survey.name, cadence: survey.cadence, settings: survey.settings, questions: survey.questions });
       return btoa(unescape(encodeURIComponent(json)));
     },
     decodeShare: function (b64) {
-      try { return JSON.parse(decodeURIComponent(escape(atob(b64)))); }
+      try { return upgradeSurvey(JSON.parse(decodeURIComponent(escape(atob(b64))))); }
       catch (e) { return null; }
     }
   };

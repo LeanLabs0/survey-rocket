@@ -169,6 +169,7 @@
   <div class="wordmark"><span class="rocket">SR</span>Survey Rocket</div>
   <button class="navitem" data-r="#/surveys">Surveys</button>
   <button class="navitem" data-r="#/dashboard">Dashboard</button>
+  <button class="navitem" data-r="#/submissions">Submissions</button>
   <button class="navitem" data-r="#/settings">Settings</button>
   <div class="acctline"><b>Lean Labs</b>Survey Rocket test account</div>
 </aside>
@@ -215,7 +216,9 @@
         <div class="qwrap" id="qwrap"></div>
         <div class="qadd"><button class="btn ghost small" id="addQ">+ Add question</button></div>
         <div class="closerbox">
-          <div class="head"><b>Closing quote ask</b><button class="switch" id="quoteToggle" role="switch" aria-label="Closing quote ask"><i></i></button></div>
+          <div class="head"><b>Require name and email</b><button class="switch" id="togContact" role="switch" aria-label="Require name and email"><i></i></button></div>
+          <div class="head"><b>Show results on completion</b><button class="switch" id="togResults" role="switch" aria-label="Show results on completion"><i></i></button></div>
+          <div class="head"><b>Ask for a review</b><button class="switch" id="togReview" role="switch" aria-label="Ask for a review"><i></i></button></div>
           <p>After the last question the bot asks what they would tell a peer. A favorable answer triggers a permission ask to use it as a website quote, then attribution. Negative answers stay private feedback.</p>
         </div>
         <div class="ed-foot">
@@ -245,6 +248,19 @@
 </section>
 
 <!-- SETTINGS -->
+<section class="view" id="v-submissions">
+  <div class="wrap">
+    <div class="pagehead"><div class="eyebrow">Account</div><h1>Submissions</h1><p>Every response that reached the shared store, newest first. When, who, where from, and what happened with the review ask.</p></div>
+    <div class="canvas" style="padding:18px 20px">
+      <div id="sub-empty" style="color:var(--tx-2);font-size:13.5px;display:none">Nothing here yet. Either no one has answered, or the admin key in Settings is missing or wrong.</div>
+      <div class="rawscroll"><table class="raw" id="sub-table" style="display:none">
+        <thead><tr><th>When</th><th>Survey</th><th>Name</th><th>Email</th><th>Country</th><th>Review</th><th>Answers</th></tr></thead>
+        <tbody id="sub-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
 <section class="view" id="v-settings">
   <div class="wrap">
     <div class="pagehead"><div class="eyebrow">Account</div><h1>Settings</h1><p>Managed by Lean Labs during the pilot. Nothing here needs your attention to run a survey.</p></div>
@@ -252,8 +268,8 @@
       <div class="setgrid">
         <div class="setcard">
           <h4>Data</h4>
-          <div class="krow"><span class="k">Storage</span><span class="v">This browser (test phase)</span></div>
-          <div class="krow"><span class="k">Shared data store</span><span class="v pend">Phase 2</span></div>
+          <div class="krow"><span class="k">Storage</span><span class="v">Shared store on factor8, plus this browser as a working copy</span></div>
+          <div class="krow"><span class="k">Responses</span><span class="v">Leave the respondent&rsquo;s device on completion</span></div>
           <div class="krow"><span class="k">Reset</span><span class="v"><button class="btn ghost small" id="resetBtn">Reset to seed data</button></span></div>
         </div>
         <div class="setcard">
@@ -269,12 +285,17 @@
           <div class="krow"><span class="k">Contact token</span><span class="v pend">Comes with the HubSpot phase</span></div>
         </div>
         <div class="setcard">
+          <h4>Admin access</h4>
+          <div class="krow"><span class="k">Admin key</span><span class="v"><input id="adminKey" type="password" placeholder="paste the admin key" style="background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:8px 10px;color:var(--tx);font-size:13px;width:200px"></span></div>
+          <div class="krow"><span class="k">Unlocks</span><span class="v">Submissions view and the site scans. Stored in this browser only.</span></div>
+        </div>
+        <div class="setcard">
           <h4>Branding</h4>
           <div class="krow"><span class="k">Account</span><span class="v">Lean Labs test</span></div>
           <div class="krow"><span class="k">Custom styling</span><span class="v">Coming after launch</span></div>
         </div>
       </div>
-      <div class="setnote">Test-phase prototype: surveys and responses live in this browser only. The share link carries the survey definition so anyone can answer, but their answers stay on their device until the shared data store lands in phase 2.</div>
+      <div class="setnote">The share link carries the survey definition so anyone can answer on any device, and their answers post to the shared store when they finish. Surveys you edit here still live in this browser until saved and shared.</div>
     </div>
   </div>
 </section>
@@ -388,20 +409,73 @@ window.SR_JUDGE_ENABLED = true;</script>
   }
 
   /* ---------- router ---------- */
-  var ROUTE_VIEW={"#/surveys":"home","#/dashboard":"results","#/settings":"settings","#/editor":"editor","#/scan":"scan","#/gaps":"gaps"};
-  var NAV_FOR={"#/surveys":"#/surveys","#/editor":"#/surveys","#/scan":"#/surveys","#/gaps":"#/surveys","#/dashboard":"#/dashboard","#/settings":"#/settings"};
+  var ROUTE_VIEW={"#/surveys":"home","#/dashboard":"results","#/submissions":"submissions","#/settings":"settings","#/editor":"editor","#/scan":"scan","#/gaps":"gaps"};
+  var NAV_FOR={"#/surveys":"#/surveys","#/editor":"#/surveys","#/scan":"#/surveys","#/gaps":"#/surveys","#/dashboard":"#/dashboard","#/submissions":"#/submissions","#/settings":"#/settings"};
   function route(){
     var h=location.hash||"#/surveys";
     if(!ROUTE_VIEW[h]){ location.replace("#/surveys"); h="#/surveys"; }
-    ["home","editor","results","settings","scan","gaps"].forEach(function(v){
+    ["home","editor","results","settings","scan","gaps","submissions"].forEach(function(v){
       document.getElementById("v-"+v).classList.toggle("active",ROUTE_VIEW[h]===v);
     });
     document.querySelectorAll(".navitem").forEach(function(b){ b.classList.toggle("on",b.dataset.r===NAV_FOR[h]); });
     if(h==="#/surveys") renderShelf();
     if(h==="#/editor"){ renderEditor(); renderPreview(); }
     if(h==="#/dashboard") renderDash();
+    if(h==="#/submissions") renderSubmissions();
     window.scrollTo(0,0);
   }
+  /* Kevin 8/31: "I need to see an admin view." When, who, where from, and
+     what happened with the review ask; the raw record a click away. */
+  function renderSubmissions(){
+    var body=document.getElementById("sub-body");
+    var table=document.getElementById("sub-table");
+    var empty=document.getElementById("sub-empty");
+    body.innerHTML=""; table.style.display="none"; empty.style.display="block";
+    empty.textContent="Loading\u2026";
+    fetch(SR_API+"/responses",{headers:{"X-SR-Admin-Key":adminKey()}})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var rows=d.responses||[];
+        if(!rows.length){
+          empty.textContent = d.authorized===false
+            ? "Locked. Paste the admin key in Settings to see submissions."
+            : "No submissions yet. Share a survey link and answers will land here.";
+          return;
+        }
+        empty.style.display="none"; table.style.display="table";
+        rows.forEach(function(rec){
+          var tr=document.createElement("tr"); tr.className="rrow"; tr.title="Click for the full record";
+          var m=rec.meta||{}, rp=rec.respondent||{}, rv=rec.review||{};
+          tr.appendChild(el("td",null,(m.received_at||"").replace("T"," ").slice(0,16)));
+          tr.appendChild(el("td",null,rec.survey_name||rec.survey_id||""));
+          tr.appendChild(el("td",null,rp.name||"\u2014"));
+          tr.appendChild(el("td",null,rp.email||"\u2014"));
+          tr.appendChild(el("td",null,m.country||"\u2014"));
+          tr.appendChild(el("td",null,rv.asked?rv.outcome:"not asked"));
+          tr.appendChild(el("td",null,String((rec.answers||[]).length)));
+          var dtr=document.createElement("tr"); dtr.className="detail"; dtr.style.display="none";
+          var dtd=document.createElement("td"); dtd.colSpan=7;
+          var pre=document.createElement("pre");
+          pre.style.cssText="font-size:11.5px;white-space:pre-wrap;color:var(--tx-2);margin:8px 0";
+          pre.textContent=JSON.stringify(rec,null,2);
+          dtd.appendChild(pre); dtr.appendChild(dtd);
+          tr.addEventListener("click",function(){ dtr.style.display=dtr.style.display==="none"?"table-row":"none"; });
+          body.appendChild(tr); body.appendChild(dtr);
+        });
+      })
+      .catch(function(){ empty.textContent="Could not reach the shared store."; });
+  }
+
+  (function(){
+    var inp=document.getElementById("adminKey");
+    if(!inp) return;
+    inp.value=adminKey();
+    inp.addEventListener("change",function(){
+      try{ localStorage.setItem("sr:adminkey", inp.value.trim()); }catch(e){}
+      flashSaved(inp.value.trim()?"Admin key saved in this browser.":"Admin key cleared.");
+    });
+  })();
+
   window.addEventListener("hashchange",route);
   document.querySelectorAll(".navitem").forEach(function(b){ b.addEventListener("click",function(){ location.hash=b.dataset.r; }); });
 
@@ -433,29 +507,95 @@ window.SR_JUDGE_ENABLED = true;</script>
   chooser.addEventListener("click",function(e){ if(e.target===chooser) chooser.classList.remove("open"); });
   document.getElementById("chooseManual").addEventListener("click",function(){
     chooser.classList.remove("open");
-    var s={id:slug("untitled-survey"), name:"Untitled survey", cadence:"Draft", status:"Draft", quoteAsk:false,
+    var s={schema_version:1, id:slug("untitled-survey"), name:"Untitled survey", cadence:"Draft", status:"Draft",
+      settings:{require_contact:false, show_results:false, review_ask:false, review_links:{}},
+      provenance:{source:"hand", drafted_by:null, approved_by:null, approved_at:null},
       questions:[{id:"q1", type:"choice", q:"Your first question goes here.", options:["Option A","Option B"]}]};
     SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
   });
   document.getElementById("chooseScan").addEventListener("click",function(){ chooser.classList.remove("open"); location.hash="#/scan"; });
   document.getElementById("chooseGaps").addEventListener("click",function(){ chooser.classList.remove("open"); location.hash="#/gaps"; });
 
-  function runScanSteps(steps, logId, resultsId){
-    var logBox=document.getElementById(logId);
-    logBox.style.display="block"; logBox.innerHTML="";
-    document.getElementById(resultsId).style.display="none";
-    steps.forEach(function(step,i){
-      setTimeout(function(){
-        logBox.appendChild(el("div",i===steps.length-1?"ok":null,step));
-        if(i===steps.length-1) setTimeout(function(){ document.getElementById(resultsId).style.display="block"; },300);
-      },450*(i+1));
+  /* The real gap-scan agent on factor8. It reads the site's actual pages, so
+     a run takes around a minute; the log shows elapsed time rather than the
+     old theatre, which resolved in two seconds because it read nothing. */
+  var SR_API="https://factor8-agent-sdk.fly.dev/api/v1/public/survey-rocket";
+  function adminKey(){ try{ return localStorage.getItem("sr:adminkey")||""; }catch(e){ return ""; } }
+
+  function runScan(opts){
+    var logBox=document.getElementById(opts.logId);
+    var results=document.getElementById(opts.resultsId);
+    logBox.style.display="block"; logBox.innerHTML=""; results.style.display="none";
+    if(!adminKey()){
+      logBox.appendChild(el("div",null,"The scan needs the admin key. Paste it in Settings first."));
+      return;
+    }
+    var started=Date.now(), alive=true;
+    var line=el("div",null,"Reading the site\u2026 0s");
+    logBox.appendChild(line);
+    var tick=setInterval(function(){
+      if(!alive) return clearInterval(tick);
+      line.textContent="Reading the site and checking each claim\u2026 "+Math.round((Date.now()-started)/1000)+"s (a real scan takes about a minute)";
+    },1000);
+    fetch(SR_API+"/scan",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","X-SR-Admin-Key":adminKey()},
+      body:JSON.stringify(opts.body)
+    }).then(function(r){ return r.json(); }).then(function(d){
+      alive=false; clearInterval(tick);
+      if(d.error || !d.gaps){ logBox.appendChild(el("div",null,"Scan failed: "+(d.error||d.detail||"unknown"))); return; }
+      line.textContent="Read "+(d.pages_read||[]).length+" pages in "+Math.round((Date.now()-started)/1000)+"s.";
+      logBox.appendChild(el("div","ok",d.gaps.length+" proof gap"+(d.gaps.length===1?"":"s")+" found, each with a drafted survey."));
+      renderGapResults(results, d.gaps);
+      results.style.display="block";
+    }).catch(function(){
+      alive=false; clearInterval(tick);
+      logBox.appendChild(el("div",null,"Scan failed. The agent may be busy; try again in a minute."));
     });
   }
+
+  /* Drafts from the agent land in the editor as Drafts, never live.
+     approved_by stays null until a person saves the survey. */
+  function useAgentDraft(gap){
+    var qs=(gap.questions||[]).map(function(q,i){
+      return {id:q.id||("q"+(i+1)), type:q.type||"text", q:(q.q||"").replace(/\u2013|\u2014/g,", "),
+              options:q.options||undefined, nps:!!q.nps,
+              min:(typeof q.min==="number")?q.min:undefined, max:(typeof q.max==="number")?q.max:undefined,
+              optional:q.optional!==false};
+    });
+    var s={schema_version:1, id:slug(gap.survey_name||"scanned-survey"), name:gap.survey_name||"Scanned survey",
+      cadence:"Draft", status:"Draft",
+      settings:{require_contact:false, show_results:false, review_ask:false, review_links:{}},
+      provenance:{source:"scan", drafted_by:"survey-rocket-designer", approved_by:null, approved_at:null},
+      questions:qs};
+    SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
+    setTimeout(function(){ flashSaved("Draft created by the gap-scan agent. Review and edit before activating."); },300);
+  }
+
+  function renderGapResults(container, gaps){
+    container.innerHTML="";
+    container.appendChild(el("h3",null,"What the agent found"));
+    gaps.forEach(function(g){
+      var card=el("div",null,null); card.style.cssText="border-top:1px solid var(--line);padding:14px 0";
+      card.appendChild(el("div",null,null)).outerHTML="";
+      var claim=el("div",null,"Claim: \u201C"+(g.claim||"")+"\u201D"); claim.style.cssText="font-size:13px;color:var(--tx-2);margin-bottom:6px";
+      var stat=el("div",null,"Target stat: "+(g.target_stat||"")); stat.style.cssText="font-size:13.5px;color:var(--tx);margin-bottom:8px";
+      var meta=el("div",null,(g.questions||[]).length+" drafted questions"); meta.style.cssText="font-size:12px;color:var(--tx-dis);margin-bottom:10px";
+      var btn=el("button","btn primary small","Use this draft in the editor");
+      btn.addEventListener("click",function(){ useAgentDraft(g); });
+      card.appendChild(claim); card.appendChild(stat); card.appendChild(meta); card.appendChild(btn);
+      container.appendChild(card);
+    });
+  }
+
   document.getElementById("scanBtn").addEventListener("click",function(){
-    runScanSteps(["Reading lean-labs.com pages…","Checking your pages for this stat… not found","Drafting the questions that produce it…"],"scanLog","scanResults");
+    runScan({logId:"scanLog", resultsId:"scanResults",
+      body:{url:document.getElementById("scan-url").value.trim(), company_name:"Lean Labs",
+            target_stat:document.getElementById("scan-stat").value.trim()}});
   });
   document.getElementById("gapsBtn").addEventListener("click",function(){
-    runScanSteps(["Reading lean-labs.com pages…","Found 11 published claims…","Checking each claim for proof behind it…","2 proof gaps found, drafting a survey for each…"],"gapsLog","gapsResults");
+    runScan({logId:"gapsLog", resultsId:"gapsResults",
+      body:{url:document.getElementById("gaps-url").value.trim(), company_name:"Lean Labs"}});
   });
 
   var DRAFTS={
@@ -464,17 +604,19 @@ window.SR_JUDGE_ENABLED = true;</script>
       {id:"leads", type:"number", q:"About how many qualified leads per month does your site produce now?", min:0, max:10000},
       {id:"pipeline", type:"choice", q:"Compared with before working with us, how has qualified pipeline changed?", options:["Down","Flat","Up to 25% up","26 to 75% up","More than 75% up"]},
       {id:"nps", type:"choice", nps:true, q:"How likely are you to recommend Lean Labs to a peer?", options:["0","1","2","3","4","5","6","7","8","9","10"]}
-    ], quoteAsk:true},
+    ]},
     kickoff:{name:"Kickoff clarity", questions:[
       {id:"clarity", type:"choice", q:"How clear was the kickoff process?", options:["Very unclear","Unclear","Neutral","Clear","Very clear"]},
       {id:"speed", type:"choice", q:"How was the pace of the first 30 days?", options:["Too slow","About right","Too fast"]},
       {id:"wish", type:"text", optional:true, q:"Anything you wish you had known on day one? Optional, type skip to move on."}
-    ], quoteAsk:false}
+    ]}
   };
   document.querySelectorAll(".use-draft").forEach(function(b){
     b.addEventListener("click",function(){
       var d=DRAFTS[b.dataset.draft]; if(!d) return;
-      var s={id:slug(d.name), name:d.name, cadence:"Draft", status:"Draft", quoteAsk:d.quoteAsk,
+      var s={schema_version:1, id:slug(d.name), name:d.name, cadence:"Draft", status:"Draft",
+        settings:{require_contact:false, show_results:false, review_ask:false, review_links:{}},
+        provenance:{source:"template", drafted_by:null, approved_by:null, approved_at:null},
         questions:JSON.parse(JSON.stringify(d.questions))};
       SRStore.upsertSurvey(s); setCurrent(s.id); location.hash="#/editor";
       setTimeout(function(){ flashSaved("Draft created from the scan. Review and edit before activating."); },300);
@@ -550,10 +692,18 @@ window.SR_JUDGE_ENABLED = true;</script>
       card.appendChild(ctl);
       qwrap.appendChild(card);
     });
-    var tog=document.getElementById("quoteToggle");
-    tog.classList.toggle("on",!!s.quoteAsk);
-    tog.setAttribute("aria-checked",String(!!s.quoteAsk));
-    tog.onclick=function(){ s.quoteAsk=!s.quoteAsk; tog.classList.toggle("on",s.quoteAsk); tog.setAttribute("aria-checked",String(s.quoteAsk)); renderPreview(); };
+    s.settings=s.settings||{require_contact:false,show_results:false,review_ask:false,review_links:{}};
+    [["togContact","require_contact"],["togResults","show_results"],["togReview","review_ask"]].forEach(function(pair){
+      var tog=document.getElementById(pair[0]), key=pair[1];
+      tog.classList.toggle("on",!!s.settings[key]);
+      tog.setAttribute("aria-checked",String(!!s.settings[key]));
+      tog.onclick=function(){
+        s.settings[key]=!s.settings[key];
+        tog.classList.toggle("on",s.settings[key]);
+        tog.setAttribute("aria-checked",String(s.settings[key]));
+        renderPreview();
+      };
+    });
   }
   document.getElementById("addQ").addEventListener("click",function(){
     var s=cur(); if(!s) return;
@@ -594,7 +744,7 @@ window.SR_JUDGE_ENABLED = true;</script>
   function renderPreview(){
     var s=cur(); if(!s) return;
     var log=document.getElementById("pv-log"); log.innerHTML="";
-    log.appendChild(el("div","bub bot","Hi. Thanks for making time. "+s.questions.length+" quick questions"+(s.quoteAsk?", plus an optional quote at the end":"")+". Most answers are one tap."));
+    log.appendChild(el("div","bub bot","Hi. Thanks for making time. "+s.questions.length+" quick questions. Most answers are one tap."));
     s.questions.forEach(function(q){
       log.appendChild(el("div","bub bot",q.q||"(empty question)"));
       if(q.type==="choice"||q.type==="multi"){
@@ -608,16 +758,10 @@ window.SR_JUDGE_ENABLED = true;</script>
         log.appendChild(el("div","bub me","(types an answer, or skip)"));
       }
     });
-    if(s.quoteAsk){
-      log.appendChild(el("div","bub bot","Last one. What would you say to someone in a role like yours who is considering this? Optional, type skip to finish."));
-      log.appendChild(el("div","bub bot","Mind if we use that as a quote on our website?"));
-      var pbox=el("div","opts");
-      pbox.appendChild(el("span","opt ghosted","Yes, use it"));
-      pbox.appendChild(el("span","opt ghosted","No thanks"));
-      log.appendChild(pbox);
-      log.appendChild(el("div","bub bot","Thanks. What is your name, your role, and how long you have worked with us?"));
-      log.appendChild(el("div","bub me","(types name, role, years)"));
-    }
+    log.appendChild(el("div","bub bot","That is everything. Thank you."));
+    var st=s.settings||{};
+    if(st.show_results) log.appendChild(el("div","bub bot","(shows the running results)"));
+    if(st.review_ask) log.appendChild(el("div","bub bot","Thanks so much for submitting this data. Would you be open to leaving us a review?"));
     log.scrollTop=0;
   }
 
@@ -811,7 +955,8 @@ window.SR_JUDGE_ENABLED = true;</script>
       var thead=document.createElement("thead"); var hr=document.createElement("tr");
       hr.appendChild(el("th",null,"Date")); hr.appendChild(el("th",null,"Source"));
       s.questions.forEach(function(q,i){ hr.appendChild(el("th",null,"Q"+(i+1))); });
-      if(s.quoteAsk) hr.appendChild(el("th",null,"Quote"));
+      var hasQuote=resp.some(function(r){ return r.answers && r.answers._quote!==undefined; });
+      if(hasQuote) hr.appendChild(el("th",null,"Quote"));
       thead.appendChild(hr); table.appendChild(thead);
       var tbody=document.createElement("tbody");
       resp.slice().reverse().forEach(function(r){
@@ -819,9 +964,9 @@ window.SR_JUDGE_ENABLED = true;</script>
         tr.appendChild(el("td",null,r.at));
         tr.appendChild(el("td",null,r.seeded?"seeded":"live"));
         s.questions.forEach(function(q){ tr.appendChild(el("td",null,shortAns(r.answers[q.id]))); });
-        if(s.quoteAsk) tr.appendChild(el("td",null,r.answers._quote?("“"+r.answers._quote+"”"):"none"));
+        if(hasQuote) tr.appendChild(el("td",null,r.answers._quote?("“"+r.answers._quote+"”"):"none"));
         var dtr=document.createElement("tr"); dtr.className="detail"; dtr.style.display="none";
-        var dtd=document.createElement("td"); dtd.colSpan=2+s.questions.length+(s.quoteAsk?1:0);
+        var dtd=document.createElement("td"); dtd.colSpan=2+s.questions.length+(hasQuote?1:0);
         var grid=el("div","detailgrid");
         s.questions.forEach(function(q){
           var d=el("div");
