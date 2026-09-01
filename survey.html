@@ -14,7 +14,7 @@
   .rs-brand{display:flex;align-items:center;gap:10px;margin-bottom:16px;justify-content:center}
   .rs-brand .mark{width:34px;height:34px;border-radius:8px;background:var(--tile);box-shadow:var(--inset);color:var(--tx);display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;font-family:var(--font-heading)}
   .rs-brand span{font-family:var(--font-heading);font-weight:600;color:var(--tx)}
-  #rs-log{min-height:340px;max-height:60vh}
+  #rs-log{min-height:280px;max-height:min(60vh,calc(100dvh - 260px))}
   .rs-note{text-align:center;font-size:12px;color:var(--tx-dis);margin-top:14px;line-height:2}
   .rs-missing{text-align:center;padding:60px 20px;color:var(--tx-2)}
 
@@ -57,7 +57,7 @@
   </div>
   <div class="rs-note" id="note">
     Your answers are recorded when you finish.
-    <button class="btn ghost small" id="rs-restart" style="margin-left:8px">Restart</button>
+    <button class="btn danger small" id="rs-restart" style="margin-left:8px">Restart</button>
     <button class="btn ghost small" id="rs-copy" style="margin-left:4px;display:none">Copy my answers</button>
   </div>
 </div>
@@ -90,7 +90,6 @@ window.SR_JUDGE_ENABLED = true;</script>
   if(hash.indexOf("#p=")===0){
     survey=SRStore.decodeShare(hash.slice(3));
   } else if(params.get("id")){
-    SRStore.init();
     survey=SRStore.getSurvey(params.get("id"));
     fromStore=true;
   }
@@ -184,7 +183,6 @@ window.SR_JUDGE_ENABLED = true;</script>
     outro:"That is everything. Thank you.",
     onComplete:function(answers){
       lastAnswers=answers;
-      try { SRStore.addResponse(survey.id||"shared", answers); } catch(e) {}
       sendRecord(false,"not_asked");
       document.getElementById("rs-copy").style.display="inline-flex";
       showEnding();

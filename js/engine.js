@@ -16,6 +16,7 @@
      it did before, and nobody answering a survey ever sees an error. */
   var JUDGE_URL = "https://factor8-agent-sdk.fly.dev/api/v1/public/survey-rocket/turn";
   var JUDGE_TIMEOUT_MS = 12000;
+  var MAX_PROBES = 2;   // matches the server's budget; the third nag loses people
 
   function judge(question, answer, type, probes, min, max) {
     if (!global.SR_JUDGE_ENABLED) return Promise.resolve(null);
@@ -93,6 +94,7 @@
     var self = this;
     this.gen++;
     this.nagPending = false;
+    this._nagEl = null;
     this.state = 0;
     this.phase = null;
     this.multi = [];
@@ -124,9 +126,27 @@
   };
   SurveyChat.prototype._nag = function (text) {
     var self = this;
+    if (this._nagEl && this._nagEl.isConnected) {
+      this._nagEl.textContent = text;
+      this._nagEl.classList.remove("pulse");
+      void this._nagEl.offsetWidth;
+      this._nagEl.classList.add("pulse");
+      this._scroll();
+      return;
+    }
     if (this.nagPending) return;
     this.nagPending = true;
-    this._bot(text, function () { self.nagPending = false; });
+    var g = this.gen;
+    var t = el("div", "typing"); t.appendChild(el("i")); t.appendChild(el("i")); t.appendChild(el("i"));
+    this.o.log.appendChild(t); this._scroll();
+    setTimeout(function () {
+      t.remove();
+      self.nagPending = false;
+      if (g !== self.gen) return;
+      self._nagEl = el("div", "bub bot hint", text);
+      self.o.log.appendChild(self._nagEl);
+      self._scroll();
+    }, 420);
   };
   SurveyChat.prototype._me = function (text) {
     this.o.log.appendChild(el("div", "bub me", text)); this._scroll();
@@ -148,7 +168,8 @@
       box.appendChild(b);
     });
     this.o.log.appendChild(box); this._scroll();
-    var f = box.querySelector(".opt"); if (f) f.focus();
+    box.tabIndex = -1;
+    try { box.focus({ preventScroll: true }); } catch (e) { box.focus(); }
     return box;
   };
   SurveyChat.prototype._lock = function (box, picked) {
@@ -173,6 +194,7 @@
     this.state++;
     this.gen++;
     this.nagPending = false;
+    this._nagEl = null;
     this._wireGen();
     if (this.state >= this.o.script.length) {
       if (this.quotePending) { this._prog(); this.quotePending = false; this._askQuote(); }
@@ -254,16 +276,21 @@
         if (v && v.verdict === "accept" && typeof v.value_number === "number") {
           self._record(qid, v.value_number); self._next(); return;
         }
-        if (v && v.verdict === "probe" && v.reply) {
-          self.probes[qid] = probes + 1;
-          self._input(true, "Type a number…");
-          self._nag(v.reply); return;
-        }
-        // No usable judgment. The original rules, unchanged.
         var p = parseNumber(raw);
-        if (p.ok && p.n >= mn && p.n <= mx) { self._record(qid, p.n); self._next(); return; }
+        var probing = v && v.verdict === "probe" && v.reply;
+        if (!probing && p.ok && p.n >= mn && p.n <= mx) { self._record(qid, p.n); self._next(); return; }
+        if (probes >= MAX_PROBES) {
+          // Two asks is the budget. The raw words are kept for the admin view,
+          // the average never eats a guess, and the respondent moves on.
+          self._record(qid, null);
+          self.answers[qid + "_raw"] = raw;
+          self._input(false);
+          self._bot("No problem, let's leave that one and move on.", function () { self._next(); });
+          return;
+        }
         self.probes[qid] = probes + 1;
         self._input(true, "Type a number…");
+        if (probing) { self._nag(v.reply); return; }
         if (p.vague) { self._nag("I need a number for this one. A rough count works. 100? 300? 500?"); }
         else if (p.decimal) { self._nag("Whole numbers work best here. What is the closest whole number?"); }
         else if (p.ok) { self._nag("That number looks off, it should be between " + mn + " and " + mx.toLocaleString("en-US") + ". Try again?"); }

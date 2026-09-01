@@ -23,6 +23,8 @@ button,input,select,textarea{font-family:var(--font-body)}
 .btn.ghost{background:transparent;box-shadow:var(--inset);color:var(--tx)}
 .btn.ghost:hover{background:var(--btn)}
 .btn.small{padding:7px 12px;font-size:13px}
+.btn.danger{background:transparent;box-shadow:var(--inset);color:var(--tx-2)}
+.btn.danger:hover,.btn.danger:focus-visible{color:var(--red);background:var(--btn)}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:500;box-shadow:var(--inset);color:var(--tx-2)}
 .chip.teal{color:var(--green)}
 .chip.gold{color:var(--alert)}
@@ -30,13 +32,14 @@ button,input,select,textarea{font-family:var(--font-body)}
 .canvas{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--inset);overflow:hidden}
 
 /* chat */
-.chat-frame{border-radius:var(--r-lg);box-shadow:var(--inset);overflow:hidden;background:var(--page)}
+.chat-frame{border-radius:var(--r-lg);box-shadow:var(--inset);overflow:hidden;background:var(--page);display:flex;flex-direction:column}
+.chat-head,.chat-input{flex:none}
 .chat-head{background:var(--card);border-bottom:1px solid var(--line);color:var(--tx);padding:13px 16px;display:flex;align-items:center;gap:10px}
 .chat-head .av{width:30px;height:30px;border-radius:50%;background:var(--tile);box-shadow:var(--inset);display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:10.5px;color:var(--tx);flex:0 0 30px}
 .chat-head b{display:block;font-family:var(--font-heading);font-size:13.5px;font-weight:600}
 .chat-head small{color:var(--tx-2);font-size:11px;display:block}
 .chat-prog{margin-left:auto;font-size:11px;color:var(--tx-2);font-variant-numeric:tabular-nums;white-space:nowrap}
-.chat-log{padding:16px 13px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;scroll-behavior:smooth}
+.chat-log{padding:16px 13px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;scroll-behavior:smooth;flex:1 1 auto;min-height:0}
 .bub{max-width:88%;padding:10px 13px;border-radius:var(--r-md);font-size:13.5px;line-height:1.45;overflow-wrap:break-word}
 .bub.bot{align-self:flex-start;background:var(--btn);box-shadow:var(--inset);color:var(--tx-2);border-bottom-left-radius:var(--r-sm)}
 .bub.me{align-self:flex-end;background:var(--tx);color:var(--page);border-bottom-right-radius:var(--r-sm);font-weight:500}
@@ -58,7 +61,7 @@ button,input,select,textarea{font-family:var(--font-body)}
 .chat-input input::placeholder{color:var(--tx-dis)}
 .chat-input input:disabled{opacity:.55}
 .send{border:0;border-radius:var(--r-md);padding:9px 18px;background:var(--tx);color:var(--page);font-weight:500;font-size:13.5px;cursor:pointer}
-.send:disabled{opacity:.4;cursor:default}
+.send:disabled{background:var(--btn);color:var(--tx-dis);box-shadow:var(--inset);opacity:1;cursor:default}
 
 /* bars + tiles (dashboards) */
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;padding:20px 22px}
@@ -79,3 +82,17 @@ button,input,select,textarea{font-family:var(--font-body)}
 
 footer.pagefoot{border-top:1px solid var(--line);margin-top:40px;padding:18px 20px;font-size:12.5px;color:var(--tx-2);display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 footer.pagefoot a{color:var(--tx-2);display:inline-flex;align-items:center;min-height:32px;padding:2px 0}
+
+/* Touch floor. 44px wherever a finger taps; mouse-dense controls may sit at
+   36px. The landing page carried this fix alone for a week while the actual
+   respondent page shipped 29px chips; it lives here now so every page gets it. */
+.opt,.send,.btn,.chat-input input{min-height:40px}
+@media (pointer:coarse){
+  .opt,.send,.btn,.btn.small,.chat-input input{min-height:44px}
+}
+.opts:focus{outline:none}
+
+/* System hints are not conversation. One per question, updated in place. */
+.bub.hint{border-left:3px solid var(--alert);color:var(--tx)}
+.bub.hint.pulse{animation:sr-hintpulse .4s}
+@keyframes sr-hintpulse{0%,100%{transform:translateX(0)}30%{transform:translateX(4px)}60%{transform:translateX(-3px)}}

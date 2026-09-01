@@ -21,9 +21,11 @@
   .side .acctline b{display:block;color:var(--tx-2);font-weight:500}
   @media (max-width:800px){
     .app{grid-template-columns:1fr}
-    .side{position:sticky;top:0;z-index:40;height:auto;flex-direction:row;align-items:center;border-right:0;border-bottom:1px solid var(--line);background:var(--page);padding:10px 14px;overflow-x:auto}
-    .wordmark{padding:0 10px 0 0}
-    .navitem{width:auto;flex:0 0 auto;padding:8px 14px;border-radius:999px}
+    /* Wrap, never scroll: a horizontal strip once pushed the Settings item
+       entirely off a 390px screen with no cue that it existed. */
+    .side{position:sticky;top:0;z-index:40;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;border-right:0;border-bottom:1px solid var(--line);background:var(--page);padding:10px 12px;gap:4px}
+    .wordmark{flex:1 1 100%;padding:0 2px 8px}
+    .navitem{width:auto;flex:1 1 auto;justify-content:center;padding:10px 8px;border-radius:999px}
     .side .acctline{display:none}
   }
   main{min-width:0}
@@ -39,8 +41,8 @@
   .app-top{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line)}
   .app-top .acct{font-family:var(--font-heading);font-weight:600;color:var(--tx)}
   .app-top .acct small{display:block;font-family:var(--font-body);font-weight:400;color:var(--tx-2);font-size:12.5px}
-  .shelf{display:flex;gap:12px;padding:18px 22px;overflow-x:auto}
-  .survey-card{flex:0 0 260px;background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:8px}
+  .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:18px 22px}
+  .survey-card{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:8px}
   .survey-card h4{font-size:14.5px}
   .survey-card .meta{font-size:12px;color:var(--tx-dis);font-variant-numeric:tabular-nums}
   .survey-card .row{display:flex;gap:8px;align-items:center;margin-top:auto;flex-wrap:wrap}
@@ -53,12 +55,22 @@
   .qcard{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:14px;margin-top:12px}
   .qcard .qtop{display:flex;gap:8px;align-items:flex-start}
   .qcard .qnum{flex:0 0 26px;color:var(--tx-dis);font-weight:500;font-variant-numeric:tabular-nums;padding-top:8px}
-  .qcard textarea{flex:1;min-width:0;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:9px 12px;color:var(--tx);font-size:14px;resize:vertical;min-height:40px;line-height:1.4}
+  .qcard textarea{flex:1;min-width:0;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:9px 12px;color:var(--tx);font-size:14px;resize:vertical;min-height:44px;line-height:1.4;overflow-wrap:anywhere}
   .qcard .controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
   .qcard select{background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 10px;color:var(--tx);font-size:13px}
   .qcard input.optsinp{flex:1;min-width:180px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 12px;color:var(--tx);font-size:13px}
   .qcard input.num{width:90px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 10px;color:var(--tx);font-size:13px;font-variant-numeric:tabular-nums}
-  .iconbtn{border:0;background:var(--tile);box-shadow:var(--inset);color:var(--tx-2);border-radius:var(--r-sm);width:30px;height:30px;cursor:pointer;font-size:13px}
+  .iconbtn{border:0;background:var(--tile);box-shadow:var(--inset);color:var(--tx-2);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:13px}
+  @media (pointer:coarse){.iconbtn{width:44px;height:44px}}
+  .rangepair{display:flex;gap:8px;align-items:center}
+  .qtools{display:inline-flex;gap:6px;margin-left:auto}
+  @media (max-width:560px){
+    .qcard .controls{gap:8px}
+    .qcard select,.qcard input.optsinp{flex:1 1 100%;width:100%}
+    .rangepair{flex:1 1 100%}
+    .rangepair input.num{flex:1;width:auto}
+    .qtools{flex:1 1 100%;justify-content:flex-end;margin-left:0}
+  }
   .iconbtn:hover{color:var(--tx);background:var(--btn-hover)}
   .iconbtn.del:hover{color:var(--red)}
   .qadd{margin-top:14px;display:flex;gap:10px;padding:0 22px}
@@ -525,11 +537,15 @@ window.SR_JUDGE_ENABLED = true;</script>
   function runScan(opts){
     var logBox=document.getElementById(opts.logId);
     var results=document.getElementById(opts.resultsId);
+    var btn=opts.btn;
+    if(btn && btn.disabled) return;
     logBox.style.display="block"; logBox.innerHTML=""; results.style.display="none";
     if(!adminKey()){
       logBox.appendChild(el("div",null,"The scan needs the admin key. Paste it in Settings first."));
       return;
     }
+    if(btn){ btn.disabled=true; btn.setAttribute("aria-busy","true"); }
+    function release(){ if(btn){ btn.disabled=false; btn.removeAttribute("aria-busy"); } }
     var started=Date.now(), alive=true;
     var line=el("div",null,"Reading the site\u2026 0s");
     logBox.appendChild(line);
@@ -542,14 +558,14 @@ window.SR_JUDGE_ENABLED = true;</script>
       headers:{"Content-Type":"application/json","X-SR-Admin-Key":adminKey()},
       body:JSON.stringify(opts.body)
     }).then(function(r){ return r.json(); }).then(function(d){
-      alive=false; clearInterval(tick);
+      alive=false; clearInterval(tick); release();
       if(d.error || !d.gaps){ logBox.appendChild(el("div",null,"Scan failed: "+(d.error||d.detail||"unknown"))); return; }
       line.textContent="Read "+(d.pages_read||[]).length+" pages in "+Math.round((Date.now()-started)/1000)+"s.";
       logBox.appendChild(el("div","ok",d.gaps.length+" proof gap"+(d.gaps.length===1?"":"s")+" found, each with a drafted survey."));
       renderGapResults(results, d.gaps);
       results.style.display="block";
     }).catch(function(){
-      alive=false; clearInterval(tick);
+      alive=false; clearInterval(tick); release();
       logBox.appendChild(el("div",null,"Scan failed. The agent may be busy; try again in a minute."));
     });
   }
@@ -589,12 +605,12 @@ window.SR_JUDGE_ENABLED = true;</script>
   }
 
   document.getElementById("scanBtn").addEventListener("click",function(){
-    runScan({logId:"scanLog", resultsId:"scanResults",
+    runScan({logId:"scanLog", resultsId:"scanResults", btn:this,
       body:{url:document.getElementById("scan-url").value.trim(), company_name:"Lean Labs",
             target_stat:document.getElementById("scan-stat").value.trim()}});
   });
   document.getElementById("gapsBtn").addEventListener("click",function(){
-    runScan({logId:"gapsLog", resultsId:"gapsResults",
+    runScan({logId:"gapsLog", resultsId:"gapsResults", btn:this,
       body:{url:document.getElementById("gaps-url").value.trim(), company_name:"Lean Labs"}});
   });
 
@@ -680,7 +696,8 @@ window.SR_JUDGE_ENABLED = true;</script>
         var mx=document.createElement("input"); mx.className="num"; mx.value=q.max; mx.setAttribute("aria-label","Maximum");
         mn.addEventListener("input",function(){ var v=parseInt(mn.value,10); q.min=isNaN(v)?0:v; renderPreviewSoon(); });
         mx.addEventListener("input",function(){ var v=parseInt(mx.value,10); q.max=isNaN(v)?100000:v; renderPreviewSoon(); });
-        ctl.appendChild(mn); ctl.appendChild(mx);
+        var pair=el("div","rangepair"); pair.appendChild(mn); pair.appendChild(mx);
+        ctl.appendChild(pair);
       }
       var up=el("button","iconbtn","↑"); up.title="Move up"; up.disabled=qi===0;
       up.addEventListener("click",function(){ s.questions.splice(qi,1); s.questions.splice(qi-1,0,q); renderEditor(); renderPreview(); });
@@ -688,7 +705,8 @@ window.SR_JUDGE_ENABLED = true;</script>
       dn.addEventListener("click",function(){ s.questions.splice(qi,1); s.questions.splice(qi+1,0,q); renderEditor(); renderPreview(); });
       var del=el("button","iconbtn del","×"); del.title="Delete question";
       del.addEventListener("click",function(){ s.questions.splice(qi,1); renderEditor(); renderPreview(); });
-      ctl.appendChild(up); ctl.appendChild(dn); ctl.appendChild(del);
+      var tools=el("div","qtools"); tools.appendChild(up); tools.appendChild(dn); tools.appendChild(del);
+      ctl.appendChild(tools);
       card.appendChild(ctl);
       qwrap.appendChild(card);
     });
