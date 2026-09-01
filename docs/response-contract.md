@@ -30,6 +30,11 @@ The backend does not model the data, compute averages, own a migration path, or 
     "hubspot_contact_id": string | null
     "hubspot_portal_id":  string | null
   }
+
+  "respondent": {                    // Kevin 8/31: per-survey toggle
+    "name":  string | null           // null when the survey did not require it
+    "email": string | null
+  }
   "counted":     boolean   // true only when status is identified and not quarantined
   "quarantined": boolean
 
@@ -58,6 +63,11 @@ The backend does not model the data, compute averages, own a migration path, or 
     "publishable": boolean   // derived: permission is approved AND text present
   }
 
+  "review": {                        // Kevin 8/31: completion hands off to a review ask
+    "asked":   boolean               // false when the survey has the toggle off
+    "outcome": "clicked" | "dismissed" | "not_asked"
+  }
+
   "hubspot": {
     "status":     "written" | "skipped" | "failed" | "not_applicable"
     "written_at": ISO8601 | null
@@ -66,8 +76,9 @@ The backend does not model the data, compute averages, own a migration path, or 
 
   "meta": {
     "ip_hash":     string    // sha256(ip + salt). the raw IP is never stored
+    "country":     string | null   // ISO 3166-1 alpha-2, resolved from the IP at receipt, best effort
     "user_agent":  string | null
-    "received_at": ISO8601
+    "received_at": ISO8601   // server clock. this is Kevin's "date and time of submission"
   }
 }
 ```
@@ -91,6 +102,20 @@ These are not suggestions. Each one exists because the chat already behaves this
 **7. Join key.** `response_id` is written back to the HubSpot contact as `sr_response_id`, so a dashboard row can link to the contact and back.
 
 **8. Uniqueness is `(survey_id, client_response_id)`.** The chat has a Restart button, so one person can complete twice. Duplicates collapse at the backend, not in your dashboard.
+
+## Changed 2026-09-01, from Kevin's 8/31 review
+
+Three additions: `respondent` (name and email, captured only when the survey's
+`require_contact` setting is on), `review` (his new ending asks for a review on
+completion, and the outcome is recorded), and `meta.country` (resolved
+server-side from the request IP, best effort, null when resolution fails).
+
+**Privacy position on the IP, decided rather than defaulted:** Kevin asked to
+capture the IP address. A respondent's IP is personal data and these are a
+client's customers, so the raw IP is never stored and never shown. What is
+stored is a salted hash (duplicate detection still works) plus the derived
+country. If a raw IP ever needs to be visible, that is a product decision
+needing a retention window and a line in the client's privacy policy first.
 
 ## Yours to decide, and not blocking
 
