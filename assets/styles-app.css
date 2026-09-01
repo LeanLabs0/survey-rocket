@@ -75,3 +75,42 @@ body.rs{background:radial-gradient(90% 55% at 50% 0%,#151515 0%,var(--page) 72%)
 .rs-brand .sender{font-size:12.5px;color:var(--tx-3);font-family:var(--font-body);font-weight:400}
 .rs-shell .bub{animation:srBubIn .22s ease-out}
 @keyframes srBubIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- onboarding ---------- */
+
+/* first-run task panel: verb-led ways in, gone once a real survey exists */
+.firstrun{padding:20px 22px;margin-bottom:18px}
+.fr-head h3{font-size:var(--fs-h3);margin-bottom:2px}
+.fr-head p{margin:0 0 14px;font-size:var(--fs-sm);color:var(--tx-2)}
+.fr-tasks{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.fr-task{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--btn);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:14px 16px;cursor:pointer;color:var(--tx-2);text-decoration:none}
+.fr-task:hover{background:var(--btn-hover)}
+.fr-task b{font-family:var(--font-heading);font-weight:600;color:var(--tx);font-size:14px}
+.fr-task span{font-size:12.5px;line-height:1.45}
+.fr-foot{display:flex;gap:12px;align-items:center;margin-top:14px}
+.fr-hide{border:0;background:transparent;color:var(--tx-3);font-size:12.5px;cursor:pointer;padding:8px 0}
+.fr-hide:hover{color:var(--tx-2)}
+
+/* one dismissible tip per view, first visit only */
+.viewtip{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--card);box-shadow:var(--inset);border-left:3px solid var(--blue);border-radius:var(--r-md);padding:10px 14px;margin:-6px 0 16px;font-size:13px;color:var(--tx-2)}
+
+/* help menu */
+.helpwrap{position:relative}
+.helpmenu{position:absolute;left:10px;bottom:calc(100% + 6px);z-index:70;background:var(--card);box-shadow:var(--elev-modal);border-radius:var(--r-md);padding:6px;min-width:210px;display:none}
+.helpmenu.open{display:block}
+.helpmenu button{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--tx-2);font-size:13px;padding:10px 12px;border-radius:var(--r-sm);cursor:pointer}
+.helpmenu button:hover{background:var(--btn);color:var(--tx)}
+.helpmenu .foot{padding:8px 12px;font-size:11.5px;color:var(--tx-3);border-top:1px solid var(--line);margin-top:4px}
+@media (max-width:800px){ .helpmenu{left:auto;right:0;bottom:auto;top:calc(100% + 6px)} }
+
+/* the tour popover, in this design system: card surface, inset ring, no
+   arrow (the spotlight already points), tabular progress */
+.sr-tour.driver-popover{background:var(--card);box-shadow:var(--elev-modal);border-radius:var(--r-lg);color:var(--tx-2);font-family:var(--font-body);padding:18px 20px}
+.sr-tour .driver-popover-title{font-family:var(--font-heading);font-weight:600;color:var(--tx);font-size:15px}
+.sr-tour .driver-popover-description{font-size:13.5px;line-height:1.55;color:var(--tx-2)}
+.sr-tour .driver-popover-arrow{display:none}
+.sr-tour .driver-popover-progress-text{font-variant-numeric:tabular-nums;font-size:12px;color:var(--tx-3)}
+.sr-tour .driver-popover-footer button{text-shadow:none;font-family:var(--font-body)}
+.sr-tour .driver-popover-next-btn{background:var(--tx);color:var(--page);border:0;border-radius:var(--r-md);padding:8px 14px}
+.sr-tour .driver-popover-prev-btn{background:transparent;box-shadow:var(--inset);color:var(--tx);border:0;border-radius:var(--r-md);padding:8px 14px}
+.sr-tour .driver-popover-close-btn{color:var(--tx-3)}

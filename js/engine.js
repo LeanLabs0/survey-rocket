@@ -43,6 +43,14 @@
   var QUOTE_PERM = "Mind if we use that as a quote on our website?";
   var QUOTE_ATTR = "Thanks. What is your name, your role, and how long you have worked with us?";
 
+  var COUNT_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  function introLine(n, quote) {
+    var count = n < COUNT_WORDS.length ? COUNT_WORDS[n] : String(n);
+    count = count.charAt(0).toUpperCase() + count.slice(1);
+    return "Hi, thanks for making time. " + count + " quick question" + (n === 1 ? "" : "s")
+      + (quote ? ", plus one optional question at the end" : "") + ". Most answers are one tap.";
+  }
+
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -109,7 +117,7 @@
       this._bot("This survey has no questions yet.");
       return;
     }
-    this._bot(this.o.intro || ("Hi. Thanks for making time. " + this.o.script.length + " quick questions" + (this.quotePending ? ", plus an optional quote at the end" : "") + ". Most answers are one tap."), function () { self._ask(); });
+    this._bot(this.o.intro || introLine(this.o.script.length, this.quotePending), function () { self._ask(); });
   };
 
   SurveyChat.prototype._bot = function (text, cb) {
@@ -212,7 +220,7 @@
     var noOpts = (q.type === "choice" || q.type === "multi") && !(q.options && q.options.length);
     this._bot(q.q || "(empty question)", function () {
       if (noOpts) {
-        self._bot("This question has no answer options configured yet. Type your answer instead.", function () {
+        self._bot("Type your answer for this one.", function () {
           self.phase = "text"; self._curId = q.id; self._input(true, "Type your answer…");
         });
       } else if (q.type === "choice") {
@@ -291,10 +299,10 @@
         self.probes[qid] = probes + 1;
         self._input(true, "Type a number…");
         if (probing) { self._nag(v.reply); return; }
-        if (p.vague) { self._nag("I need a number for this one. A rough count works. 100? 300? 500?"); }
+        if (p.vague) { self._nag("I need a number for this one. A rough count is fine, like 100 or 500."); }
         else if (p.decimal) { self._nag("Whole numbers work best here. What is the closest whole number?"); }
         else if (p.ok) { self._nag("That number looks off, it should be between " + mn + " and " + mx.toLocaleString("en-US") + ". Try again?"); }
-        else { self._nag("I did not catch a number in that. Digits work best, 100? 300? 500?"); }
+        else { self._nag("I did not catch a number there. Digits work best, like 100 or 500."); }
       });
     } else if (this.phase === "text") {
       var id = this._curId || (q && q.id);
@@ -368,5 +376,6 @@
 
   global.SurveyChat = SurveyChat;
   global.SurveyChat.parseNumber = parseNumber;
+  global.SurveyChat.introLine = introLine;
   global.SurveyChat.isNegative = isNegative;
 })(window);

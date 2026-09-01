@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles-shared.css">
 <link rel="stylesheet" href="assets/styles-app.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/driver.js/1.8.0/driver.min.css">
 <style>
   .app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
   .side{border-right:1px solid var(--line)}
@@ -211,6 +212,14 @@
   <button class="navitem" data-r="#/scan">Scan my site</button>
   <button class="navitem" data-r="#/results">Results</button>
   <button class="navitem" data-r="#/settings">Settings</button>
+  <div class="helpwrap">
+    <button class="navitem" id="helpBtn" aria-haspopup="menu" aria-expanded="false">? Help</button>
+    <div class="helpmenu" id="helpMenu" role="menu">
+      <button id="helpTour" role="menuitem">Take the tour</button>
+      <button id="helpTips" role="menuitem">Show the tip for this view</button>
+      <div class="foot">Questions? Ask your Lean Labs team.</div>
+    </div>
+  </div>
   <div class="acctline"><b>Lean Labs</b>Pilot account</div>
 </div></aside>
 <main id="main">
@@ -230,7 +239,8 @@
 <!-- SURVEYS -->
 <section class="view" id="v-home">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Account</div><h1>Surveys</h1><p>Every survey in the account, its status, and one button. Edits and responses are saved in this browser for the test phase.</p></div>
+    <div class="pagehead"><div class="eyebrow">Account</div><h1>Surveys</h1><p>Every survey in the account, with its answers a click away. Create, edit, and share from here.</p></div>
+    <div id="firstrunMount"></div>
     <div class="canvas">
       <div class="app-top">
         <div class="acct">Lean Labs <small>Survey Rocket test account</small></div>
@@ -245,7 +255,7 @@
 <!-- EDITOR -->
 <section class="view" id="v-editor">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Survey setup</div><h1>Editor</h1><p>Write the exact questions you want asked. The bot asks these and nothing else. The preview on the right updates as you type, and Save keeps it in this browser.</p></div>
+    <div class="pagehead"><div class="eyebrow">Survey setup</div><h1>Editor</h1><p>Write the exact questions you want asked. The chat asks these and nothing else. The preview updates as you type, and Save publishes your link.</p></div>
     <div class="ed-grid">
       <div class="canvas">
         <div class="ed-head">
@@ -345,6 +355,7 @@
    pulls the number out of a sentence, and reads sentiment with negation. If it is
    slow or down the chat falls back to the local rules and nobody sees an error. */
 window.SR_JUDGE_ENABLED = true;</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/driver.js/1.8.0/driver.js.iife.min.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/store.js"></script>
 <script src="js/hubspot.js"></script>
@@ -408,10 +419,11 @@ window.SR_JUDGE_ENABLED = true;</script>
       document.getElementById("v-"+VIEW_EL[v]).classList.toggle("active",v===name);
     });
     document.querySelectorAll(".navitem").forEach(function(b){ b.classList.toggle("on",b.dataset.r===NAV_HASH[name]); });
-    if(name==="surveys") renderShelf();
+    if(name==="surveys"){ renderShelf(); renderFirstrun(); }
     if(name==="editor"){ renderEditor(); renderPreview(); }
     if(name==="results") renderResults();
     if(name==="settings") renderSettings();
+    maybeTip(name);
     lastHash=h;
     window.scrollTo(0,0);
   }
@@ -853,7 +865,7 @@ window.SR_JUDGE_ENABLED = true;</script>
   function renderPreview(){
     var s=cur(); if(!s) return;
     var log=document.getElementById("pv-log"); log.innerHTML="";
-    log.appendChild(el("div","bub bot","Hi. Thanks for making time. "+s.questions.length+" quick questions. Most answers are one tap."));
+    log.appendChild(el("div","bub bot",SurveyChat.introLine(s.questions.length)));
     s.questions.forEach(function(q){
       log.appendChild(el("div","bub bot",q.q||"(empty question)"));
       if(q.type==="choice"||q.type==="multi"){
@@ -1126,6 +1138,181 @@ window.SR_JUDGE_ENABLED = true;</script>
       dashSel=null;
       route();
     }
+  });
+
+
+  /* ---------- onboarding: panel, tips, tour ---------- */
+  var ONB_KEY="sr:onboard:v1";
+  function loadOnb(){
+    try{
+      var o=JSON.parse(localStorage.getItem(ONB_KEY));
+      if(o && o.v===1) return o;
+    }catch(e){}
+    return {v:1, tourDone:false, dismissedAt:null, views:{}};
+  }
+  function saveOnb(){ try{ localStorage.setItem(ONB_KEY, JSON.stringify(onb)); }catch(e){} }
+  var onb=loadOnb();
+  var SEED_IDS=["client-outcomes","project-onboarding"];
+  function hasRealSurvey(){
+    return SRStore.surveys().some(function(sv){ return SEED_IDS.indexOf(sv.id)===-1; });
+  }
+
+  /* L0: the first-run panel. Verb-led ways in; hides once a real survey
+     exists or the user closes it. Never shown together with the view tip. */
+  function renderFirstrun(){
+    var mount=document.getElementById("firstrunMount");
+    if(!mount) return;
+    mount.innerHTML="";
+    if(hasRealSurvey() || onb.dismissedAt) return;
+    var box=el("div","canvas firstrun");
+    var head=el("div","fr-head");
+    head.appendChild(el("h3",null,"Start here"));
+    head.appendChild(el("p",null,"Pick one. Each takes a few minutes."));
+    box.appendChild(head);
+    var tasks=el("div","fr-tasks");
+    var t1=el("button","fr-task");
+    t1.appendChild(el("b",null,"Write a survey"));
+    t1.appendChild(el("span",null,"Type your questions and share a link."));
+    t1.addEventListener("click",openChooser);
+    tasks.appendChild(t1);
+    var t2=el("button","fr-task");
+    t2.appendChild(el("b",null,"Scan your site for proof gaps"));
+    t2.appendChild(el("span",null,"The scan drafts a survey from the claims on your pages."));
+    t2.addEventListener("click",function(){ location.hash="#/scan"; });
+    tasks.appendChild(t2);
+    var t3=document.createElement("a");
+    t3.className="fr-task"; t3.href="survey.html?id=client-outcomes"; t3.target="_blank"; t3.rel="noopener";
+    t3.appendChild(el("b",null,"Try the sample survey"));
+    t3.appendChild(el("span",null,"Answer it yourself and watch Results move."));
+    tasks.appendChild(t3);
+    box.appendChild(tasks);
+    var foot=el("div","fr-foot");
+    var tour=el("button","btn ghost small","Take the tour");
+    tour.addEventListener("click",startTour);
+    foot.appendChild(tour);
+    var hide=el("button","fr-hide","Hide this");
+    hide.addEventListener("click",function(){
+      onb.dismissedAt=new Date().toISOString(); saveOnb(); renderFirstrun(); maybeTip("surveys");
+    });
+    foot.appendChild(hide);
+    box.appendChild(foot);
+    mount.appendChild(box);
+  }
+
+  /* L4: one dismissible tip per view, first visit only, never two at once */
+  var TIPS={
+    surveys:"Sample surveys are marked in their cards. Your real ones sit beside them.",
+    editor:"Save keeps your edits and publishes your link, so the link always serves the newest version.",
+    results:"Answers arrive here the moment someone finishes, from any device.",
+    scan:"The scan reads your live pages, so a run takes about a minute."
+  };
+  function maybeTip(view, force){
+    document.querySelectorAll(".viewtip").forEach(function(n){ n.remove(); });
+    if(!TIPS[view]) return;
+    if(view==="surveys" && !(hasRealSurvey() || onb.dismissedAt)) return;
+    var st=onb.views[view]||{};
+    if(st.tipDismissed && !force) return;
+    var host=document.querySelector("#v-"+VIEW_EL[view]+" .pagehead");
+    if(!host) return;
+    var tip=el("div","viewtip");
+    tip.setAttribute("role","status");
+    tip.appendChild(el("span",null,TIPS[view]));
+    var ok=el("button","btn ghost small","Got it");
+    ok.addEventListener("click",function(){
+      onb.views[view]=onb.views[view]||{};
+      onb.views[view].tipDismissed=true; saveOnb(); tip.remove();
+    });
+    tip.appendChild(ok);
+    host.insertAdjacentElement("afterend",tip);
+  }
+
+  /* L2: the one optional tour. Five steps, user-started, never automatic. */
+  var TOUR=[
+    {route:"#/surveys", elId:"newSurveyBtn", title:"Start a survey",
+     body:"Write your own from scratch, or let a site scan draft one for you.", side:"bottom"},
+    {route:"#/editor/client-outcomes", elId:"qwrap", title:"Write the questions",
+     body:"The chat asks exactly what you type here, nothing else. The preview updates as you type.", side:"right"},
+    {route:"#/editor/client-outcomes", elSel:"#v-editor .ed-foot", title:"Share it",
+     body:"Save publishes your link. Copy it and send it; answers come back on their own.", side:"top"},
+    {route:"#/results", elSel:"#v-results .pagehead", title:"Watch the results",
+     body:"Every answer lands here as it arrives, from any device.", side:"bottom"},
+    {route:"#/settings", elId:"card-admin", title:"Connect your admin key",
+     body:"Lean Labs sends you this key. Paste it once to see live results and run site scans.", side:"left"}
+  ];
+  var drv=null;
+  function tourSteps(){
+    var first=SRStore.surveys()[0];
+    return TOUR.map(function(t){
+      var route=t.route;
+      if(route.indexOf("#/editor/")===0) route=first?"#/editor/"+encodeURIComponent(first.id):null;
+      return {route:route, sel:t.elId?"#"+t.elId:t.elSel,
+              popover:{title:t.title, description:t.body, side:t.side}};
+    }).filter(function(t){ return t.route; });
+  }
+  var drvIndex=0;
+  function goTour(i, steps){
+    if(i<0 || i>=steps.length){ if(drv) drv.destroy(); return; }
+    if(location.hash!==steps[i].route) location.hash=steps[i].route;
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      drvIndex=i;
+      drv.drive(i);
+    }); });
+  }
+  function startTour(){
+    if(!(window.driver && window.driver.js)) return;
+    var steps=tourSteps();
+    if(!steps.length) return;
+    if(drv) drv.destroy();
+    drv=window.driver.js.driver({
+      popoverClass:"sr-tour",
+      showProgress:true,
+      progressText:"{{current}} of {{total}}",
+      overlayColor:"#0D0D0D",
+      overlayOpacity:0.6,
+      stageRadius:8,
+      stagePadding:6,
+      allowClose:true,
+      showButtons:["next","previous","close"],
+      nextBtnText:"Next",
+      prevBtnText:"Back",
+      doneBtnText:"Done",
+      steps:steps.map(function(t){ return {element:t.sel, popover:t.popover}; }),
+      onNextClick:function(){
+        if(drvIndex>=steps.length-1){ drv.destroy(); return; }
+        goTour(drvIndex+1, steps);
+      },
+      onPrevClick:function(){ goTour(drvIndex-1, steps); },
+      onDestroyed:function(){ onb.tourDone=true; saveOnb(); refreshHelpLabel(); }
+    });
+    goTour(0, steps);
+  }
+
+  /* L3: the Help menu */
+  var helpBtn=document.getElementById("helpBtn"), helpMenu=document.getElementById("helpMenu");
+  function refreshHelpLabel(){
+    document.getElementById("helpTour").textContent=onb.tourDone?"Replay the tour":"Take the tour";
+  }
+  refreshHelpLabel();
+  function closeHelp(){ helpMenu.classList.remove("open"); helpBtn.setAttribute("aria-expanded","false"); }
+  helpBtn.addEventListener("click",function(e){
+    e.stopPropagation();
+    var open=helpMenu.classList.toggle("open");
+    helpBtn.setAttribute("aria-expanded",String(open));
+  });
+  document.addEventListener("click",function(e){
+    if(helpMenu.classList.contains("open") && !helpMenu.contains(e.target)) closeHelp();
+  });
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape" && helpMenu.classList.contains("open")) closeHelp();
+  });
+  document.getElementById("helpTour").addEventListener("click",function(){ closeHelp(); startTour(); });
+  document.getElementById("helpTips").addEventListener("click",function(){
+    closeHelp();
+    var seg=(location.hash||"#/surveys").slice(2).split("/");
+    var view=VIEW_EL[seg[0]]?seg[0]:"surveys";
+    if(onb.views[view]) onb.views[view].tipDismissed=false;
+    saveOnb();
+    maybeTip(view, true);
   });
 
   route();
