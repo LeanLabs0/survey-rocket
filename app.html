@@ -1224,36 +1224,31 @@ window.SR_JUDGE_ENABLED = true;</script>
     panel.appendChild(canvas);
   }
 
-  /* ---------- settings ---------- */  /* ---------- dashboard: every survey as a row, the numbers to publish a click away ---------- */
-  function surveyStats(sid, srows){
-    var shape=shapeFor(sid, srows);
+  /* ---------- settings ---------- */  /* ---------- dashboard: every survey as a row, from the public aggregates, no key ---------- */
+  function statsFromAgg(name, agg, local){
+    var qs=agg.questions||{}, order=local?local.questions.map(function(q){ return q.id; }):Object.keys(qs);
     var ready=0, total=0, pubs=[];
-    shape.questions.forEach(function(q){
+    order.forEach(function(qid){
+      var q=qs[qid]; var lq=local?local.questions.filter(function(x){ return x.id===qid; })[0]:null;
       total++;
-      if(q.nps){
+      if(!q) return;
+      var qtext=(lq&&lq.q)||q.question||qid;
+      var n=q.answers||0;
+      if(q.nps && q.choices){
         var prom=0,det=0,tot=0;
-        srows.forEach(function(r){ var v=parseInt(r.answers[q.id],10); if(isNaN(v)) return; tot++; if(v>=9)prom++; else if(v<7)det++; });
+        Object.keys(q.choices).forEach(function(k){ var v=parseInt(k,10), c=q.choices[k]; if(isNaN(v)) return; tot+=c; if(v>=9)prom+=c; else if(v<7)det+=c; });
         if(tot>=3){ ready++; var nps=Math.round((prom-det)/tot*100);
-          pubs.push({big:"NPS "+nps, sub:"Net Promoter Score, "+plural(tot,"answer"),
-            sentence:"Net Promoter Score of "+nps+" ("+shape.name+", "+plural(tot,"answer")+")"}); }
+          pubs.push({big:"NPS "+nps, sub:"Net Promoter Score, "+plural(tot,"answer"), sentence:"Net Promoter Score of "+nps+" ("+name+", "+plural(tot,"answer")+")"}); }
       } else if(q.type==="number"){
-        var vals=srows.map(function(r){ return r.answers[q.id]; }).filter(function(v){ return typeof v==="number"; });
-        if(vals.length>=3){ ready++; var avg=Math.round(vals.reduce(function(a,b){ return a+b; },0)/vals.length);
-          pubs.push({big:avg.toLocaleString("en-US"), sub:"Average, "+q.q,
-            sentence:"Average of "+avg.toLocaleString("en-US")+" for \u201C"+q.q+"\u201D ("+shape.name+", "+plural(vals.length,"answer")+")"}); }
-      } else if(q.type==="choice"){
-        var counts={}, n=0;
-        srows.forEach(function(r){ var v=r.answers[q.id]; if(v==null) return; counts[v]=(counts[v]||0)+1; n++; });
-        var top=null; Object.keys(counts).forEach(function(k){ if(top===null||counts[k]>counts[top]) top=k; });
-        if(n>=3 && top!==null){ ready++; var pct=Math.round(counts[top]/n*100);
-          pubs.push({big:pct+"%", sub:"picked \u201C"+top+"\u201D, "+q.q,
-            sentence:pct+"% picked \u201C"+top+"\u201D when asked \u201C"+q.q+"\u201D ("+shape.name+", "+plural(n,"answer")+")"}); }
-      } else {
-        var texts=srows.filter(function(r){ return typeof r.answers[q.id]==="string" && r.answers[q.id].trim(); }).length;
-        if(texts>=3) ready++;
-      }
+        if(n>=3 && q.average!==null && q.average!==undefined){ ready++; var avg=Math.round(q.average);
+          pubs.push({big:avg.toLocaleString("en-US"), sub:"Average, "+qtext, sentence:"Average of "+avg.toLocaleString("en-US")+" for \u201C"+qtext+"\u201D ("+name+", "+plural(n,"answer")+")"}); }
+      } else if(q.type==="choice" && q.choices){
+        var top=null, sum=0; Object.keys(q.choices).forEach(function(k){ sum+=q.choices[k]; if(top===null||q.choices[k]>q.choices[top]) top=k; });
+        if(sum>=3 && top!==null){ ready++; var pct=Math.round(q.choices[top]/sum*100);
+          pubs.push({big:pct+"%", sub:"picked \u201C"+top+"\u201D, "+qtext, sentence:pct+"% picked \u201C"+top+"\u201D when asked \u201C"+qtext+"\u201D ("+name+", "+plural(sum,"answer")+")"}); }
+      } else if(n>=3){ ready++; }
     });
-    return {shape:shape, ready:ready, total:total, pubs:pubs};
+    return {ready:ready, total:total, pubs:pubs};
   }
 
   function meter(ready, total){
@@ -1273,84 +1268,67 @@ window.SR_JUDGE_ENABLED = true;</script>
 
   function renderDashboard(){
     var panel=document.getElementById("dashboardPanel"); panel.innerHTML="";
+    var surveys=SRStore.surveys();
+    if(!surveys.length){
+      panel.appendChild(el("div","emptystate","No surveys yet. Head to Surveys and create your first one."));
+      return;
+    }
     panel.appendChild(el("div","emptystate","Loading\u2026"));
-    fetchServer().then(function(st){
+    Promise.all(surveys.map(function(sv){ return SRHubSpot.results(sv.id); })).then(function(aggs){
       panel.innerHTML="";
-      if(!adminKey() || st.authorized===false){
-        var c=el("div","canvas"); c.style.padding="22px";
-        var p=el("p",null,"The dashboard needs your admin key.");
-        p.style.cssText="margin:0 0 12px;font-size:13.5px;color:var(--tx-2)";
-        c.appendChild(p); renderConnectGate(c, renderDashboard); panel.appendChild(c); return;
-      }
-      if(st.rows===null){ panel.appendChild(el("div","emptystate","Could not load the dashboard. Check your connection and try again.")); return; }
-      var rows=st.rows.map(adaptRecord).sort(function(a,b){ return a.at<b.at?1:-1; });
-      var weekAgo=new Date(Date.now()-7*864e5).toISOString().slice(0,16).replace("T"," ");
-      var bySurvey={};
-      rows.forEach(function(r){ var sid=r.rec.survey_id||"shared"; (bySurvey[sid]=bySurvey[sid]||[]).push(r); });
-      var ids=SRStore.surveys().map(function(x){ return x.id; });
-      Object.keys(bySurvey).forEach(function(sid){ if(ids.indexOf(sid)===-1) ids.push(sid); });
-      var asked=0, clicked=0;
-      rows.forEach(function(r){ var rv=r.rec.review||{}; if(rv.asked){ asked++; if(rv.outcome==="clicked") clicked++; } });
-
       var wrap=el("div","canvas quiet");
+      var total=0, week=0, asked=0, clicked=0, liveCount=0;
+      var items=surveys.map(function(sv,i){
+        var agg=aggs[i]||{responses:0, questions:{}};
+        total+=agg.responses||0; week+=agg.this_week||0; asked+=agg.review_asked||0; clicked+=agg.review_clicked||0;
+        if(agg.responses) liveCount++;
+        return {sv:sv, agg:agg, stats:statsFromAgg(sv.name, agg, sv), reachable:!!aggs[i]};
+      });
       var tiles=el("div","tiles");
       function tile(icon,label,num,src){
         var t=el("div","tile");
         var l=el("div","lbl"); l.appendChild(ic(icon)); l.appendChild(document.createTextNode(" "+label)); t.appendChild(l);
         t.appendChild(el("div","num",num)); t.appendChild(el("div","src",src)); return t;
       }
-      tiles.appendChild(tile("inbox","Answers",String(rows.length),"Across "+plural(Object.keys(bySurvey).length,"survey")));
-      tiles.appendChild(tile("calendar","This week",String(rows.filter(function(r){ return r.at>=weekAgo; }).length),"Answers in the last seven days"));
+      tiles.appendChild(tile("inbox","Answers",String(total),"Across "+plural(surveys.length,"survey")));
+      tiles.appendChild(tile("calendar","This week",String(week),"Answers in the last seven days"));
       tiles.appendChild(tile("star","Review clicks",String(clicked),asked?("Of "+plural(asked,"review ask")):"No review asks yet"));
       wrap.appendChild(tiles);
 
-      if(!ids.length){
-        wrap.appendChild(el("div","emptystate","No surveys yet. Head to Surveys and create your first one."));
-        panel.appendChild(wrap); return;
-      }
-
-      /* the rows */
       var host=el("div","srvwrap");
       var headRow=el("div","srvhead");
       headRow.appendChild(el("span","srvtitle","Your surveys"));
-      var liveCount=ids.filter(function(sid){ return (bySurvey[sid]||[]).length>0; }).length;
-      headRow.appendChild(el("span","srvcount",liveCount+" live \u00B7 "+(ids.length-liveCount)+" waiting or draft"));
+      headRow.appendChild(el("span","srvcount",liveCount+" live \u00B7 "+(surveys.length-liveCount)+" waiting or draft"));
       host.appendChild(headRow);
       var cols=el("div","srvcols");
       ["No","Survey","Answers","Latest","Publish-ready","Status"].forEach(function(h,i){ cols.appendChild(el("span","c"+(i+1),h)); });
       host.appendChild(cols);
-      var list=el("div","srvlist");
-      host.appendChild(list);
-      var overlay=el("div","srvoverlay");
-      host.appendChild(overlay);
+      var list=el("div","srvlist"); host.appendChild(list);
+      var overlay=el("div","srvoverlay"); host.appendChild(overlay);
 
-      ids.forEach(function(sid, idx){
-        var srows=bySurvey[sid]||[];
-        var stats=surveyStats(sid, srows);
-        var kind=srows.length?"live":"waiting";
+      items.forEach(function(it, idx){
+        var sv=it.sv, agg=it.agg, stats=it.stats;
+        var kind=agg.responses?"live":"waiting";
         var row=el("div","srvrow "+kind);
         row.style.animationDelay=(idx*70)+"ms";
         row.setAttribute("role","button"); row.tabIndex=0;
         row.appendChild(el("span","c1 srvnum",(idx<9?"0":"")+(idx+1)));
         var name=el("span","c2 srvname");
         var chip=el("span","srvchip"); chip.appendChild(ic("file")); name.appendChild(chip);
-        var nm=el("span",null); nm.appendChild(el("b",null,stats.shape.name));
-        var local=SRStore.getSurvey(sid);
-        nm.appendChild(el("small",null,local?(local.cadence+" \u00B7 "+plural(local.questions.length,"question")):"Answered from a shared link"));
-        name.appendChild(nm);
-        row.appendChild(name);
-        row.appendChild(el("span","c3 mono",String(srows.length)));
-        row.appendChild(el("span","c4",srows.length?srows[0].at.slice(0,10):"\u2014"));
+        var nm=el("span",null); nm.appendChild(el("b",null,sv.name));
+        nm.appendChild(el("small",null,sv.cadence+" \u00B7 "+plural(sv.questions.length,"question")));
+        name.appendChild(nm); row.appendChild(name);
+        row.appendChild(el("span","c3 mono",String(agg.responses||0)));
+        row.appendChild(el("span","c4",agg.latest_at||"\u2014"));
         var mc=el("span","c5"); mc.appendChild(meter(stats.ready, stats.total)); row.appendChild(mc);
         var sc=el("span","c6"); sc.appendChild(statusBadge(kind)); row.appendChild(sc);
         row.appendChild(el("i","srvglow"));
-        function open(){ openSurveyOverlay(overlay, sid, idx, srows, stats, kind); }
+        function open(){ openSurveyOverlay(overlay, sv, idx, agg, stats, row.classList.contains("draft")?"draft":kind); }
         row.addEventListener("click",open);
         row.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
         list.appendChild(row);
-        /* draft or waiting: ask the server whether the link is published */
-        if(!srows.length){
-          SRHubSpot.fetchSurvey(sid).then(function(def){
+        if(!agg.responses){
+          SRHubSpot.fetchSurvey(sv.id).then(function(def){
             if(!def){ row.classList.remove("waiting"); row.classList.add("draft"); sc.innerHTML=""; sc.appendChild(statusBadge("draft")); }
           });
         }
@@ -1360,80 +1338,76 @@ window.SR_JUDGE_ENABLED = true;</script>
     });
   }
 
-  /* The overlay: what the row opens. Header with the survey and its actions,
-     then that survey's publishable numbers and latest answers. */
-  function openSurveyOverlay(overlay, sid, idx, srows, stats, kind){
+  /* The overlay: what the row opens. The survey and its actions, its numbers
+     from the public aggregate, and the latest answers only if this browser
+     holds the admin key (names are row-level data, never public). */
+  function openSurveyOverlay(overlay, sv, idx, agg, stats, kind){
     overlay.innerHTML="";
     overlay.classList.add("open");
-    var local=SRStore.getSurvey(sid);
     var head=el("div","ovhead");
     var left=el("div","ovleft");
     left.appendChild(el("span","srvnum",(idx<9?"0":"")+(idx+1)));
     var chip=el("span","srvchip lg"); chip.appendChild(ic("file","ic-lg")); left.appendChild(chip);
     var t=el("div");
-    t.appendChild(el("h3",null,stats.shape.name));
+    t.appendChild(el("h3",null,sv.name));
     var sub=el("div","ovsub"); sub.appendChild(statusBadge(kind));
-    sub.appendChild(el("span",null,local?(local.cadence+" \u00B7 "+plural(local.questions.length,"question")):"Answered from a shared link"));
-    t.appendChild(sub);
-    left.appendChild(t);
-    head.appendChild(left);
+    sub.appendChild(el("span",null,sv.cadence+" \u00B7 "+plural(sv.questions.length,"question")));
+    t.appendChild(sub); left.appendChild(t); head.appendChild(left);
     var acts=el("div","ovacts");
-    if(local){
-      var cp=ibtn("btn ghost small","link","Copy link");
-      cp.addEventListener("click",function(){ navigator.clipboard.writeText(surveyUrl(local)).then(function(){ cp.lastChild.textContent="Copied"; setTimeout(function(){ cp.lastChild.textContent="Copy link"; },2000); }); });
-      acts.appendChild(cp);
-      var ed=ibtn("btn ghost small","pencil","Edit");
-      ed.addEventListener("click",function(){ location.hash="#/editor/"+encodeURIComponent(sid); });
-      acts.appendChild(ed);
-    }
+    var cp=ibtn("btn ghost small","link","Copy link");
+    cp.addEventListener("click",function(){ navigator.clipboard.writeText(surveyUrl(sv)).then(function(){ cp.lastChild.textContent="Copied"; setTimeout(function(){ cp.lastChild.textContent="Copy link"; },2000); }); });
+    acts.appendChild(cp);
+    var ed=ibtn("btn ghost small","pencil","Edit");
+    ed.addEventListener("click",function(){ location.hash="#/editor/"+encodeURIComponent(sv.id); });
+    acts.appendChild(ed);
     var rs=ibtn("btn ghost small","chart","Results");
-    rs.addEventListener("click",function(){ location.hash="#/results/"+encodeURIComponent(sid); });
+    rs.addEventListener("click",function(){ location.hash="#/results/"+encodeURIComponent(sv.id); });
     acts.appendChild(rs);
     var close=ibtn("iconbtn ovclose","x"); close.title="Close"; close.setAttribute("aria-label","Close");
-    close.addEventListener("click",function(){ overlay.classList.remove("open"); overlay.innerHTML=""; });
-    acts.appendChild(close);
-    head.appendChild(acts);
+    function shut(){ overlay.classList.remove("open"); overlay.innerHTML=""; document.removeEventListener("keydown",esc); }
+    function esc(e){ if(e.key==="Escape") shut(); }
+    close.addEventListener("click",shut);
+    acts.appendChild(close); head.appendChild(acts);
     overlay.appendChild(head);
 
     var body=el("div","ovbody");
-    var weekAgo=new Date(Date.now()-7*864e5).toISOString().slice(0,16).replace("T"," ");
-    var asked=0, clicked=0;
-    srows.forEach(function(r){ var rv=r.rec.review||{}; if(rv.asked){ asked++; if(rv.outcome==="clicked") clicked++; } });
     var mini=el("div","ovtiles");
     function mt(label,val){ var d=el("div","ovtile"); d.appendChild(el("label",null,label)); d.appendChild(el("div","v",val)); return d; }
-    mini.appendChild(mt("Answers",String(srows.length)));
-    mini.appendChild(mt("This week",String(srows.filter(function(r){ return r.at>=weekAgo; }).length)));
-    mini.appendChild(mt("Review clicks",asked?(clicked+" of "+asked):"\u2014"));
+    mini.appendChild(mt("Answers",String(agg.responses||0)));
+    mini.appendChild(mt("This week",String(agg.this_week||0)));
+    mini.appendChild(mt("Review clicks",agg.review_asked?((agg.review_clicked||0)+" of "+agg.review_asked):"\u2014"));
     var pr=el("div","ovtile"); pr.appendChild(el("label",null,"Publish-ready")); pr.appendChild(meter(stats.ready, stats.total)); mini.appendChild(pr);
     body.appendChild(mini);
-
-    var ph=el("div","ovlabel","Numbers you can publish");
-    body.appendChild(ph);
+    body.appendChild(el("div","ovlabel","Numbers you can publish"));
     if(stats.pubs.length){
       var grid=el("div","pubgrid");
-      stats.pubs.forEach(function(pb){ grid.appendChild(pubCard(pb.big, pb.sub, stats.shape.name, pb.sentence)); });
+      stats.pubs.forEach(function(pb){ grid.appendChild(pubCard(pb.big, pb.sub, sv.name, pb.sentence)); });
       body.appendChild(grid);
     } else {
-      body.appendChild(el("div","ovempty",srows.length?"Three answers to a question is enough to start. Keep sharing the link.":"No answers yet. Copy the link and send it to one customer."));
-    }
-
-    if(srows.length){
-      body.appendChild(el("div","ovlabel","Latest answers"));
-      var ul=el("div","ovlog");
-      srows.slice(0,5).forEach(function(r){
-        var rp=r.rec.respondent||{}, rv=r.rec.review||{};
-        var line=el("div","ovline");
-        line.appendChild(el("span","when",r.at));
-        line.appendChild(el("span",null,rp.name||"Anonymous"));
-        line.appendChild(el("span","dim",rv.asked?(REVIEW_LABEL[rv.outcome]||"Not asked"):"Not asked"));
-        ul.appendChild(line);
-      });
-      body.appendChild(ul);
+      body.appendChild(el("div","ovempty",agg.responses?"Three answers to a question is enough to start. Keep sharing the link.":"No answers yet. Copy the link and send it to one customer."));
     }
     overlay.appendChild(body);
     close.focus();
-    function esc(e){ if(e.key==="Escape"){ overlay.classList.remove("open"); overlay.innerHTML=""; document.removeEventListener("keydown",esc); } }
     document.addEventListener("keydown",esc);
+    if(adminKey() && agg.responses){
+      fetchServer().then(function(st){
+        if(!st.rows || !overlay.classList.contains("open")) return;
+        var rows=st.rows.filter(function(r){ return (r.survey_id||"shared")===sv.id; }).map(adaptRecord)
+          .sort(function(a,b){ return a.at<b.at?1:-1; }).slice(0,5);
+        if(!rows.length) return;
+        body.appendChild(el("div","ovlabel","Latest answers"));
+        var ul=el("div","ovlog");
+        rows.forEach(function(r){
+          var rp=r.rec.respondent||{}, rv=r.rec.review||{};
+          var line=el("div","ovline");
+          line.appendChild(el("span","when",r.at));
+          line.appendChild(el("span",null,rp.name||"Anonymous"));
+          line.appendChild(el("span","dim",rv.asked?(REVIEW_LABEL[rv.outcome]||"Not asked"):"Not asked"));
+          ul.appendChild(line);
+        });
+        body.appendChild(ul);
+      });
+    }
   }
 
   function pubCard(big, sub, survey, sentence){
