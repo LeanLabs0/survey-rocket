@@ -173,7 +173,7 @@
   .krow .v.pend{color:var(--alert);font-weight:400}
   .setnote{padding:0 22px 20px;font-size:12.5px;color:var(--tx-3)}
 
-  /* connect gate: the admin key moment, rendered inside whatever needs it */
+  /* connection status card */
   .gatebox{max-width:480px}
   .gatebox h4{font-size:14px;margin-bottom:6px}
   .gatebox p{margin:0 0 12px;font-size:13px;color:var(--tx-2);line-height:1.5}
@@ -270,7 +270,7 @@
       <input id="shareUrl" readonly aria-label="Survey link">
       <button class="btn primary" id="shareCopy"><svg class="ic"><use href="#i-copy"/></svg>Copy</button>
     </div>
-    <div class="sharewarn" id="shareWarn" style="display:none"><svg class="ic"><use href="#i-key"/></svg><span>Saved in this browser only. Connect your admin key in Settings, then save again to publish this link.</span></div>
+    <div class="sharewarn" id="shareWarn" style="display:none"><svg class="ic"><use href="#i-key"/></svg><span>Saved in this browser only. Open the app from your private link (ask your Lean Labs team), then save again to publish this link.</span></div>
     <div class="modal-foot">
       <a class="btn ghost" id="sharePreview" target="_blank" rel="noopener"><svg class="ic"><use href="#i-eye"/></svg>Preview</a>
       <button class="btn ghost" id="shareClose">Done</button>
@@ -350,13 +350,12 @@
 
 <section class="view" id="v-settings">
   <div class="wrap">
-    <div class="pagehead"><h1>Settings</h1><p>Paste your admin key here once. Lean Labs handles the rest during the pilot.</p></div>
+    <div class="pagehead"><h1>Settings</h1><p>Lean Labs handles the setup during the pilot. Nothing here needs your attention to run a survey.</p></div>
     <div class="canvas">
       <div class="setgrid">
-        <div class="setcard" id="card-admin">
+        <div class="setcard" id="card-connection">
           <h4>Connection</h4>
           <div id="settingsGate"></div>
-          <div class="krow"><span class="k">What it is</span><span class="v">Lean Labs gives you this key during the pilot. It turns on live results and site scans. Lost it? Ask your Lean Labs team.</span></div>
         </div>
         <div class="setcard">
           <h4>Data</h4>
@@ -412,6 +411,16 @@ window.SR_JUDGE_ENABLED = true;</script>
 <script>
 (function(){
   "use strict";
+  /* The private link. Lean Labs sends app.html?key=... once; the browser is
+     remembered and the key never appears on screen or asks to be pasted. */
+  try{
+    var qp=new URLSearchParams(location.search);
+    var pk=qp.get("key");
+    if(pk){
+      localStorage.setItem("sr:adminkey", pk.trim());
+      history.replaceState(null, "", location.pathname+(location.hash||"#/dashboard"));
+    }
+  }catch(e){}
   SRStore.init();
   var currentId = SRStore.surveys()[0] ? SRStore.surveys()[0].id : null;
   var TYPES=[["choice","Multiple choice"],["multi","Pick several"],["nps","Rating 0 to 10"],["number","Number"],["text","Open text"]];
@@ -498,64 +507,33 @@ window.SR_JUDGE_ENABLED = true;</script>
       .catch(function(){ return {rows:null, authorized:null, at:0}; });
   }
 
-  /* One connect moment, rendered inside whatever view needs the key. Saves on
-     click, tests immediately, and tells a bad key apart from a dead network
-     instead of blaming one for the other. */
-  function renderConnectGate(container, onConnected){
-    container.innerHTML="";
-    var box=el("div","gatebox");
-    box.appendChild(el("h4",null,"Connect your admin key"));
-    box.appendChild(el("p",null,"Lean Labs gives you this key during the pilot. It turns on live results and site scans, and it stays in this browser."));
-    var row=el("div","gaterow");
-    var inp=document.createElement("input"); inp.type="password"; inp.placeholder="Paste your admin key"; inp.className="gateinp";
-    inp.setAttribute("aria-label","Admin key");
-    var btn=ibtn("btn primary","key","Connect");
-    var status=el("div","gatestatus");
-    function attempt(){
-      var key=inp.value.trim();
-      if(!key){ status.textContent="Paste the key first."; return; }
-      try{ localStorage.setItem("sr:adminkey", key); }catch(e){}
-      btn.disabled=true; status.textContent="Checking\u2026";
-      fetchServer(true).then(function(st){
-        btn.disabled=false;
-        if(st.authorized===true){ status.textContent="Connected."; if(onConnected) onConnected(); }
-        else if(st.authorized===false){ status.textContent="That key does not look right. Check for missing characters and paste it again."; }
-        else { status.textContent="Could not reach the server. Check your connection and try again."; }
-      });
-    }
-    btn.addEventListener("click",attempt);
-    inp.addEventListener("keydown",function(e){ if(e.key==="Enter") attempt(); });
-    row.appendChild(inp); row.appendChild(btn);
-    box.appendChild(row); box.appendChild(status);
-    container.appendChild(box);
-  }
-
   function renderSettings(){
     var mount=document.getElementById("settingsGate");
+    mount.innerHTML="";
+    var row=el("div","krow");
+    row.appendChild(el("span","k","Status"));
+    row.appendChild(el("span","v",adminKey()?"Connected on this browser":"Not connected on this browser"));
+    mount.appendChild(row);
+    var row2=el("div","krow");
+    row2.appendChild(el("span","k","How it works"));
+    row2.appendChild(el("span","v",adminKey()
+      ? "You opened the app from your private link, so this browser sees every answer and can run scans."
+      : "Open the app from the private link Lean Labs sent you. That browser then sees every answer and can run scans."));
+    mount.appendChild(row2);
     if(adminKey()){
-      mount.innerHTML="";
-      var row=el("div","krow");
-      row.appendChild(el("span","k","Status"));
-      row.appendChild(el("span","v","Connected"));
-      mount.appendChild(row);
-      var row2=el("div","krow");
-      row2.appendChild(el("span","k","Admin key"));
+      var row3=el("div","krow");
+      row3.appendChild(el("span","k","Shared computer?"));
       var vv=el("span","v");
-      var clr=el("button","btn ghost small","Change key");
+      var clr=el("button","btn ghost small","Forget this browser");
       clr.addEventListener("click",function(){
         try{ localStorage.removeItem("sr:adminkey"); }catch(e){}
         srv={rows:null,authorized:null,at:0};
         renderSettings();
       });
-      vv.appendChild(clr); row2.appendChild(vv);
-      mount.appendChild(row2);
-    } else {
-      renderConnectGate(mount, renderSettings);
+      vv.appendChild(clr); row3.appendChild(vv);
+      mount.appendChild(row3);
     }
   }
-
-  window.addEventListener("hashchange",route);
-  document.querySelectorAll(".navitem").forEach(function(b){ b.addEventListener("click",function(){ location.hash=b.dataset.r; }); });
 
   /* ---------- surveys shelf ---------- */
   function renderShelf(){
@@ -657,9 +635,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     if(btn && btn.disabled) return;
     logBox.style.display="block"; logBox.innerHTML=""; results.style.display="none";
     if(!adminKey()){
-      logBox.style.display="none";
-      var gate=document.getElementById("scanGate");
-      renderConnectGate(gate, function(){ gate.innerHTML=""; });
+      logBox.appendChild(el("div",null,"Scans run when you open the app from your private link. Ask your Lean Labs team for it."));
       return;
     }
     if(btn){ btn.disabled=true; btn.setAttribute("aria-busy","true"); }
@@ -927,7 +903,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     document.getElementById("shareTitle").lastChild.textContent=published?"Saved and live":"Saved in this browser";
     document.getElementById("shareSub").textContent=published
       ? "Send this link to your customers. It always serves the newest version you save."
-      : "Your edits are kept here. The link goes live once you connect your admin key and save again.";
+      : "Your edits are kept here. The link goes live once you open the app from your private link and save again.";
     document.getElementById("shareWarn").style.display=published?"none":"flex";
     shareModal.classList.add("open");
     document.getElementById("shareCopy").focus();
@@ -1058,15 +1034,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     panel.appendChild(el("div","emptystate","Loading\u2026"));
     fetchServer().then(function(st){
       tabs.innerHTML=""; panel.innerHTML="";
-      if(!adminKey() || st.authorized===false){
-        var c=el("div","canvas"); c.style.padding="22px";
-        var p=el("p",null,"Live results need your admin key.");
-        p.style.cssText="margin:0 0 12px;font-size:13.5px;color:var(--tx-2)";
-        c.appendChild(p);
-        renderConnectGate(c, renderResults);
-        panel.appendChild(c);
-        return;
-      }
+      if(!adminKey() || st.authorized===false){ renderResultsPublic(tabs, panel); return; }
       if(st.rows===null){
         panel.appendChild(el("div","emptystate","Could not load results. Check your connection and try again."));
         return;
@@ -1095,6 +1063,63 @@ window.SR_JUDGE_ENABLED = true;</script>
       sel.addEventListener("change",function(){ dashSel=sel.value; location.hash="#/results/"+encodeURIComponent(dashSel); });
       tabs.appendChild(lab); tabs.appendChild(sel);
       renderResultPanel(panel, dashSel, bySurvey[dashSel]||[]);
+    });
+  }
+
+  /* Results from the public aggregate: what anyone with the app sees when
+     the browser is not on the private link. Numbers only, by design. */
+  function renderResultsPublic(tabs, panel){
+    var surveys=SRStore.surveys();
+    if(!surveys.length){ panel.appendChild(el("div","emptystate","No surveys yet. Head to Surveys and create your first one.")); return; }
+    if(!dashSel || !surveys.some(function(x){ return x.id===dashSel; })) dashSel=surveys[0].id;
+    var lab=el("label","picklabel","Survey"); lab.htmlFor="surveyPick";
+    var sel=document.createElement("select"); sel.id="surveyPick"; sel.className="pickselect";
+    surveys.forEach(function(sv){
+      var o=document.createElement("option"); o.value=sv.id; o.textContent=sv.name; if(sv.id===dashSel) o.selected=true; sel.appendChild(o);
+    });
+    sel.addEventListener("change",function(){ dashSel=sel.value; location.hash="#/results/"+encodeURIComponent(dashSel); });
+    tabs.appendChild(lab); tabs.appendChild(sel);
+    var sv=SRStore.getSurvey(dashSel);
+    panel.appendChild(el("div","emptystate","Loading\u2026"));
+    SRHubSpot.results(sv.id).then(function(agg){
+      panel.innerHTML="";
+      var canvas=el("div","canvas quiet");
+      if(!agg || !agg.responses){
+        canvas.appendChild(el("div","emptystate","No answers yet for this survey. Copy its link in the editor and send it to one customer."));
+        panel.appendChild(canvas); return;
+      }
+      var qs=agg.questions||{};
+      var tiles=el("div","tiles");
+      var t1=el("div","tile"); t1.appendChild(el("div","lbl","Answers")); t1.appendChild(el("div","num",String(agg.responses))); t1.appendChild(el("div","src","Everyone who finished the survey")); tiles.appendChild(t1);
+      sv.questions.forEach(function(q){
+        var a=qs[q.id]; if(!a) return;
+        if(q.nps && a.choices){
+          var prom=0,det=0,tot=0;
+          Object.keys(a.choices).forEach(function(k){ var v=parseInt(k,10), c=a.choices[k]; if(isNaN(v)) return; tot+=c; if(v>=9)prom+=c; else if(v<7)det+=c; });
+          if(tot){ var t2=el("div","tile"); t2.appendChild(el("div","lbl","Net Promoter Score")); t2.appendChild(el("div","num",String(Math.round((prom-det)/tot*100)))); t2.appendChild(el("div","src","% promoters minus % detractors, "+plural(tot,"answer"))); tiles.appendChild(t2); }
+        } else if(q.type==="number" && a.average!==null && a.average!==undefined){
+          var t3=el("div","tile"); t3.appendChild(el("div","lbl",q.q)); t3.title=q.q; t3.appendChild(el("div","num",Math.round(a.average).toLocaleString("en-US"))); t3.appendChild(el("div","src","Average across "+plural(a.answers||0,"answer"))); tiles.appendChild(t3);
+        }
+      });
+      canvas.appendChild(tiles);
+      var charts=el("div","charts");
+      sv.questions.forEach(function(q){
+        var a=qs[q.id]; if(!a || q.type!=="choice" || q.nps || !a.choices) return;
+        var counts=a.choices, answered=0; (q.options||[]).forEach(function(o){ answered+=counts[o]||0; });
+        if(!answered) return;
+        var chart=el("div","chart"); chart.appendChild(el("h4",null,q.q)); chart.appendChild(el("div","sub",plural(answered,"answer")));
+        var maxC=Math.max.apply(null,(q.options||[]).map(function(o){ return counts[o]||0; }))||1;
+        (q.options||[]).forEach(function(o){
+          var row=el("div","hbar"); row.appendChild(el("span","cat",o));
+          var track=el("span","track"); var c=counts[o]||0;
+          if(c>0){ var fill=el("i","fill"); fill.style.width=Math.max(4,Math.round(c/maxC*100))+"%"; track.appendChild(fill); }
+          row.appendChild(track); row.appendChild(el("span","val",String(c))); chart.appendChild(row);
+        });
+        charts.appendChild(chart);
+      });
+      if(charts.children.length) canvas.appendChild(charts);
+      canvas.appendChild(el("div","setnote","Names, emails and written answers show when you open the app from your private link. Ask your Lean Labs team for it."));
+      panel.appendChild(canvas);
     });
   }
 
@@ -1536,9 +1561,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     {route:"#/editor/client-outcomes", elSel:"#v-editor .ed-foot", title:"Share it",
      body:"Save publishes your link. Copy it and send it; answers come back on their own.", side:"top"},
     {route:"#/results", elSel:"#v-results .pagehead", title:"Watch the results",
-     body:"Every answer lands here as it arrives, from any device.", side:"bottom"},
-    {route:"#/settings", elId:"card-admin", title:"Connect your admin key",
-     body:"Lean Labs sends you this key. Paste it once to see live results and run site scans.", side:"left"}
+     body:"Every answer lands here as it arrives, from any device.", side:"bottom"}
   ];
   var drv=null;
   function tourSteps(){
