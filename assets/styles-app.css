@@ -196,3 +196,39 @@ body.rs{background:radial-gradient(90% 55% at 50% 0%,#151515 0%,var(--page) 72%)
   .typewrap{width:100%}
   .typewrap select{flex:1}
 }
+
+/* ---------- icons ----------
+   Inline sprite, stroke icons, currentColor. No download, no library. */
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
+.ic-lg{width:20px;height:20px}
+.ic.ok{color:var(--green)}
+.btn .ic{margin-right:2px}
+.btn.small .ic{width:14px;height:14px}
+.navitem .ic{width:17px;height:17px;color:var(--tx-3)}
+.navitem:hover .ic,.navitem.on .ic{color:inherit}
+.iconbtn .ic{width:15px;height:15px}
+.optx .ic{width:11px;height:11px;stroke-width:2.5}
+.choice .ic-lg{margin-bottom:10px;color:var(--tx-2)}
+.fr-task .ic-lg{color:var(--tx-2);margin-bottom:4px}
+.tile .lbl .ic{width:14px;height:14px;color:var(--tx-3);margin-right:2px}
+.modal h3 .ic-lg{margin-right:8px}
+
+/* the share popup */
+.modal-sm{max-width:520px}
+.sharerow{display:flex;gap:8px;margin-top:6px}
+.sharerow input{flex:1;min-width:0;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:10px 12px;color:var(--tx);font-size:13.5px;font-family:ui-monospace,Consolas,monospace}
+.sharewarn{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px 14px;border-radius:var(--r-md);background:var(--btn);font-size:13px;color:var(--tx-2);line-height:1.5}
+.sharewarn .ic{color:var(--alert);margin-top:2px}
+.modal-foot{gap:8px}
+
+/* dashboard: the publishable numbers */
+.pubgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--sp-3)}
+.pubcard{background:var(--card);border-radius:12px;padding:18px 18px 12px;display:flex;flex-direction:column;gap:6px}
+.pubnum{font-family:var(--font-heading);font-weight:600;font-size:30px;color:var(--tx);font-variant-numeric:tabular-nums;line-height:1.1}
+.pubsub{font-size:13px;color:var(--tx-2);line-height:1.45;flex:1}
+.pubfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;border-top:1px solid var(--line);padding-top:8px}
+.pubsrc{font-size:12px;color:var(--tx-3)}
+.btn.quiet{background:transparent;box-shadow:none;color:var(--tx-2);padding:6px 8px;min-height:32px}
+.btn.quiet:hover{background:var(--btn);color:var(--tx)}
+.pubwrap{margin-top:8px}
+.pubwrap .pagehead p{margin-top:2px}
