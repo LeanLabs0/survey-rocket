@@ -9,7 +9,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles-shared.css">
-<link rel="stylesheet" href="assets/styles-app.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/driver.js/1.8.0/driver.min.css">
 <style>
   .app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
@@ -59,7 +58,6 @@
   .qcard .qnum{flex:0 0 26px;color:var(--tx-3);font-weight:500;font-variant-numeric:tabular-nums;padding-top:8px}
   .qcard textarea{flex:1;min-width:0;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:9px 12px;color:var(--tx);font-size:14px;resize:vertical;min-height:44px;line-height:1.4;overflow-wrap:anywhere}
   .qcard .controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
-  .qcard select{background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 10px;color:var(--tx);font-size:13px}
   .qcard input.optsinp{flex:1;min-width:180px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 12px;color:var(--tx);font-size:13px}
   .qcard input.num{width:90px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-sm);padding:7px 10px;color:var(--tx);font-size:13px;font-variant-numeric:tabular-nums}
   .iconbtn{border:0;background:var(--tile);box-shadow:var(--inset);color:var(--tx-2);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:13px}
@@ -202,6 +200,7 @@
   .scan-note{font-size:12px;color:var(--tx-3);margin-top:6px}
   .scan-actions{margin-top:16px}
 </style>
+<link rel="stylesheet" href="assets/styles-app.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -255,22 +254,23 @@
 <!-- EDITOR -->
 <section class="view" id="v-editor">
   <div class="wrap">
-    <div class="pagehead"><h1>Editor</h1><p>Write the exact questions you want asked. The chat asks these and nothing else. The preview updates as you type, and Save publishes your link.</p></div>
+    <div class="pagehead"><h1>Editor</h1><p>Write the questions. The chat asks these and nothing else, and the preview shows what a respondent sees.</p></div>
     <div class="ed-grid">
       <div class="canvas">
         <div class="ed-head">
+          <label class="edlabel" for="ed-name">Survey name</label>
           <input class="name" id="ed-name" aria-label="Survey name">
         </div>
         <div class="qwrap" id="qwrap"></div>
         <div class="qadd"><button class="btn ghost small" id="addQ">+ Add question</button></div>
         <div class="closerbox">
-          <div class="head"><b>Require name and email</b><button class="switch" id="togContact" role="switch" aria-label="Require name and email"><i></i></button></div>
-          <div class="head"><b>Show results on completion</b><button class="switch" id="togResults" role="switch" aria-label="Show results on completion"><i></i></button></div>
-          <div class="head"><b>Ask for a review</b><button class="switch" id="togReview" role="switch" aria-label="Ask for a review"><i></i></button></div>
+          <h4 class="boxtitle">Before and after the questions</h4>
+          <div class="head"><div><b>Require name and email</b><small>Asked before the first question, saved with the answers.</small></div><button class="switch" id="togContact" role="switch" aria-label="Require name and email"><i></i></button></div>
+          <div class="head"><div><b>Show results on completion</b><small>Respondents see the running averages when they finish.</small></div><button class="switch" id="togResults" role="switch" aria-label="Show results on completion"><i></i></button></div>
+          <div class="head"><div><b>Ask for a review</b><small>Shows your review link after the last question, with a maybe later option.</small></div><button class="switch" id="togReview" role="switch" aria-label="Ask for a review"><i></i></button></div>
           <div class="revrow" id="revRow" style="display:none">
             <input id="revUrl" type="url" placeholder="https:// link to your review page" aria-label="Review link">
           </div>
-          <p>Ask for a review shows your review link after the last question, with a maybe later option. Show results shares the running averages on completion.</p>
         </div>
         <div class="ed-foot">
           <button class="btn primary" id="saveBtn">Save</button>
@@ -282,7 +282,7 @@
       <div class="chat-frame">
         <div class="chat-head"><span class="av">SR</span><div><b>Live preview</b><small>what a respondent will see</small></div></div>
         <div class="chat-log" id="pv-log"></div>
-        <div class="pv-note">Preview renders your current questions. Open live survey to answer them for real.</div>
+        <div class="pv-note">What a respondent sees. Preview opens the real thing.</div>
       </div>
     </div>
   </div>
@@ -365,7 +365,8 @@ window.SR_JUDGE_ENABLED = true;</script>
   "use strict";
   SRStore.init();
   var currentId = SRStore.surveys()[0] ? SRStore.surveys()[0].id : null;
-  var TYPES=[["choice","Multiple choice"],["multi","Multiple select"],["number","Number"],["text","Open text"]];
+  var TYPES=[["choice","Multiple choice"],["multi","Pick several"],["nps","Rating 0 to 10"],["number","Number"],["text","Open text"]];
+  function typeOf(q){ return q.nps?"nps":q.type; }
 
   function el(tag,cls,text){ var e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e; }
   /* in-memory working copy for the editor; Save persists and publishes it.
@@ -723,25 +724,48 @@ window.SR_JUDGE_ENABLED = true;</script>
     var qwrap=document.getElementById("qwrap"); qwrap.innerHTML="";
     s.questions.forEach(function(q,qi){
       var card=el("div","qcard");
-      var top=el("div","qtop");
-      top.appendChild(el("span","qnum","Q"+(qi+1)));
+      var head=el("div","qhead");
+      head.appendChild(el("span","qnum","Question "+(qi+1)));
+      var tools=el("div","qtools");
+      var up=el("button","iconbtn","\u2191"); up.title="Move up"; up.setAttribute("aria-label","Move question "+(qi+1)+" up"); up.disabled=qi===0;
+      up.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); s.questions.splice(qi-1,0,q); renderEditor(); renderPreview(); });
+      var dn=el("button","iconbtn","\u2193"); dn.title="Move down"; dn.setAttribute("aria-label","Move question "+(qi+1)+" down"); dn.disabled=qi===s.questions.length-1;
+      dn.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); s.questions.splice(qi+1,0,q); renderEditor(); renderPreview(); });
+      var del=el("button","iconbtn del","\u00D7"); del.title="Delete question"; del.setAttribute("aria-label","Delete question "+(qi+1));
+      del.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); renderEditor(); renderPreview(); });
+      tools.appendChild(up); tools.appendChild(dn); tools.appendChild(del);
+      head.appendChild(tools);
+      card.appendChild(head);
       var ta=document.createElement("textarea"); ta.value=q.q; ta.rows=2; ta.setAttribute("aria-label","Question "+(qi+1)+" text");
+      ta.placeholder="Type the question";
       ta.addEventListener("input",function(){ q.q=ta.value; renderPreviewSoon(); });
-      top.appendChild(ta);
-      card.appendChild(top);
+      card.appendChild(ta);
       var ctl=el("div","controls");
-      var sel=document.createElement("select"); sel.setAttribute("aria-label","Question "+(qi+1)+" type");
-      TYPES.forEach(function(t){ var o=document.createElement("option"); o.value=t[0]; o.textContent=t[1]; if(q.type===t[0])o.selected=true; sel.appendChild(o); });
+      var typeWrap=el("label","typewrap");
+      typeWrap.appendChild(el("span","ctllabel","Answer type"));
+      var sel=document.createElement("select"); sel.setAttribute("aria-label","Question "+(qi+1)+" answer type");
+      var tv=typeOf(q);
+      TYPES.forEach(function(t){ var o=document.createElement("option"); o.value=t[0]; o.textContent=t[1]; if(tv===t[0])o.selected=true; sel.appendChild(o); });
       sel.addEventListener("change",function(){
         markDirty();
-        q.type=sel.value;
-        if(q.type==="text") q.optional=true;
-        if((q.type==="choice"||q.type==="multi") && !q.options) q.options=["Option A","Option B"];
-        if(q.type==="number"){ q.min=(typeof q.min==="number")?q.min:0; q.max=(typeof q.max==="number")?q.max:100000; }
+        var v=sel.value;
+        if(v==="nps"){
+          q.type="choice"; q.nps=true;
+          q.options=["0","1","2","3","4","5","6","7","8","9","10"];
+        } else {
+          if(q.nps){ q.nps=false; q.options=["Option A","Option B"]; }
+          q.type=v;
+          if(q.type==="text") q.optional=true;
+          if((q.type==="choice"||q.type==="multi") && !q.options) q.options=["Option A","Option B"];
+          if(q.type==="number"){ q.min=(typeof q.min==="number")?q.min:0; q.max=(typeof q.max==="number")?q.max:100000; }
+        }
         renderEditor(); renderPreview();
       });
-      ctl.appendChild(sel);
-      if(q.type==="choice"||q.type==="multi"){
+      typeWrap.appendChild(sel);
+      ctl.appendChild(typeWrap);
+      if(q.nps){
+        ctl.appendChild(el("span","ctlnote","Respondents pick a number from 0 to 10."));
+      } else if(q.type==="choice"||q.type==="multi"){
         var opts=el("div","optchips");
         var renderOpts=function(){
           opts.innerHTML="";
@@ -754,7 +778,7 @@ window.SR_JUDGE_ENABLED = true;</script>
             opts.appendChild(chip);
           });
           var add=document.createElement("input"); add.className="optadd";
-          add.placeholder="Add an option, press Enter"; add.setAttribute("aria-label","Add an option to question "+(qi+1));
+          add.placeholder="+ Add an option"; add.setAttribute("aria-label","Add an option to question "+(qi+1));
           add.addEventListener("keydown",function(e){
             if(e.key==="Enter" && add.value.trim()){
               (q.options=q.options||[]).push(add.value.trim());
@@ -772,17 +796,11 @@ window.SR_JUDGE_ENABLED = true;</script>
         var mx=document.createElement("input"); mx.className="num"; mx.value=q.max; mx.setAttribute("aria-label","Maximum");
         mn.addEventListener("input",function(){ var v=parseInt(mn.value,10); q.min=isNaN(v)?0:v; renderPreviewSoon(); });
         mx.addEventListener("input",function(){ var v=parseInt(mx.value,10); q.max=isNaN(v)?100000:v; renderPreviewSoon(); });
-        var pair=el("div","rangepair"); pair.appendChild(mn); pair.appendChild(mx);
+        var pair=el("div","rangepair");
+        pair.appendChild(el("span","ctllabel","Between")); pair.appendChild(mn);
+        pair.appendChild(el("span","ctllabel","and")); pair.appendChild(mx);
         ctl.appendChild(pair);
       }
-      var up=el("button","iconbtn","↑"); up.title="Move up"; up.disabled=qi===0;
-      up.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); s.questions.splice(qi-1,0,q); renderEditor(); renderPreview(); });
-      var dn=el("button","iconbtn","↓"); dn.title="Move down"; dn.disabled=qi===s.questions.length-1;
-      dn.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); s.questions.splice(qi+1,0,q); renderEditor(); renderPreview(); });
-      var del=el("button","iconbtn del","×"); del.title="Delete question";
-      del.addEventListener("click",function(){ markDirty(); s.questions.splice(qi,1); renderEditor(); renderPreview(); });
-      var tools=el("div","qtools"); tools.appendChild(up); tools.appendChild(dn); tools.appendChild(del);
-      ctl.appendChild(tools);
       card.appendChild(ctl);
       qwrap.appendChild(card);
     });

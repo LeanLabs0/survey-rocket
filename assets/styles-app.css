@@ -145,3 +145,54 @@ body.rs{background:radial-gradient(90% 55% at 50% 0%,#151515 0%,var(--page) 72%)
 
 /* help, without a bare glyph */
 .helpq{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;box-shadow:var(--inset);font-size:11px;font-weight:600;margin-right:2px}
+
+/* ---------- the editor, quiet ----------
+   The editor canvas loses its ring; question cards are quiet fills; the
+   question reads as text until you focus it; tools live in the card
+   header; the answer type is a labeled dropdown that looks like one. */
+.ed-grid>.canvas{background:transparent;box-shadow:none;border-radius:0;overflow:visible}
+.ed-head{padding:0 0 14px;border-bottom:0;flex-direction:column;align-items:stretch;gap:6px}
+.edlabel{font-size:var(--fs-xs);color:var(--tx-3);text-transform:uppercase;letter-spacing:.06em}
+.ed-head input.name{background:var(--card);box-shadow:none;font-size:17px;padding:12px 16px;border-radius:12px}
+.ed-head input.name:focus-visible{outline:2px solid var(--green);outline-offset:0}
+.qwrap{padding:0}
+.qcard{background:var(--card);box-shadow:none;border-radius:12px;padding:14px 18px 16px;margin-top:12px}
+.qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.qcard .qnum{flex:none;padding:0;font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--tx-3)}
+.qtools{margin-left:0;gap:2px}
+.qtools .iconbtn{width:30px;height:30px;background:transparent;box-shadow:none;color:var(--tx-3);font-size:14px}
+.qtools .iconbtn:hover{background:var(--btn);color:var(--tx)}
+.qtools .iconbtn:disabled{opacity:.3;cursor:default;background:transparent}
+.qcard textarea{width:100%;background:transparent;box-shadow:none;border-radius:var(--r-sm);padding:6px 0;font-size:15.5px;color:var(--tx);line-height:1.45;min-height:0;resize:none;field-sizing:content}
+.qcard textarea:focus-visible{outline:0;box-shadow:var(--inset);background:var(--page);padding:8px 12px}
+.qcard .controls{margin-top:10px;gap:10px 16px;align-items:center}
+.typewrap{display:inline-flex;align-items:center;gap:8px}
+.ctllabel{font-size:var(--fs-sm);color:var(--tx-2);white-space:nowrap}
+.ctlnote{font-size:var(--fs-sm);color:var(--tx-3)}
+.qcard select{background:var(--btn) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23949494' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:8px 32px 8px 12px;color:var(--tx);font-size:13.5px;min-height:36px;cursor:pointer}
+.rangepair{gap:8px}
+.qcard input.num{width:96px;min-height:36px;background:var(--btn)}
+.optchips{margin-top:8px;gap:6px}
+.optchip{background:var(--btn);box-shadow:none}
+.optadd{background:transparent;box-shadow:none;padding:8px 6px;color:var(--tx-2);min-width:130px}
+.optadd::placeholder{color:var(--tx-2)}
+.optadd:focus-visible{outline:0;box-shadow:var(--inset);background:var(--page);padding:8px 12px}
+.qadd{padding:0;margin-top:14px}
+.closerbox{margin:18px 0 20px;max-width:none;background:var(--card);box-shadow:none;border-radius:12px;padding:6px 18px 14px}
+.boxtitle{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--tx-3);font-family:var(--font-body);font-weight:500;padding:10px 0 2px}
+.closerbox .head{gap:16px;min-height:56px;padding:8px 0}
+.closerbox .head small{display:block;font-size:12.5px;color:var(--tx-3);margin-top:2px;line-height:1.4}
+.closerbox .head b{font-size:14.5px}
+.revrow{margin:4px 0 8px}
+.revrow input{background:var(--btn);box-shadow:none;border-radius:var(--r-md)}
+.revrow input:focus-visible{outline:2px solid var(--green);outline-offset:0}
+.ed-foot{padding:0}
+.ed-grid .chat-frame{box-shadow:none;background:var(--card)}
+.ed-grid .chat-head{background:transparent}
+.ed-grid .chat-log{background:var(--card)}
+.ed-grid .chat-input{display:none}
+@media (max-width:560px){
+  .qcard .controls{gap:8px}
+  .typewrap{width:100%}
+  .typewrap select{flex:1}
+}
