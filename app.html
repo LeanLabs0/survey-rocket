@@ -209,11 +209,11 @@
 <aside class="side"><div class="side-inner">
   <div class="wordmark"><span class="rocket">SR</span>Survey Rocket</div>
   <button class="navitem" data-r="#/surveys">Surveys</button>
-  <button class="navitem" data-r="#/scan">Scan my site</button>
+  <button class="navitem" data-r="#/scan">Scan a page</button>
   <button class="navitem" data-r="#/results">Results</button>
   <button class="navitem" data-r="#/settings">Settings</button>
   <div class="helpwrap">
-    <button class="navitem" id="helpBtn" aria-haspopup="menu" aria-expanded="false">? Help</button>
+    <button class="navitem" id="helpBtn" aria-haspopup="menu" aria-expanded="false"><span class="helpq">?</span>Help</button>
     <div class="helpmenu" id="helpMenu" role="menu">
       <button id="helpTour" role="menuitem">Take the tour</button>
       <button id="helpTips" role="menuitem">Show the tip for this view</button>
@@ -230,7 +230,7 @@
     <p class="sub">Two ways to start. Both end in the editor.</p>
     <div class="choices" style="grid-template-columns:1fr 1fr">
       <button class="choice" id="chooseManual"><b>Write it myself</b><p>Start from a blank survey and type your exact questions.</p></button>
-      <button class="choice" id="chooseScan"><b>Scan my site</b><p>We read your pages and draft a survey for each claim with no proof behind it. Name a stat if you already have one in mind.</p><span class="chip">Takes about a minute</span></button>
+      <button class="choice" id="chooseScan"><b>Scan a page</b><p>We read one page of your site and draft a survey for each claim on it with no proof behind it. Name a stat if you already have one in mind.</p><span class="chip">Takes about a minute</span></button>
     </div>
     <div class="modal-foot"><button class="btn ghost" id="chooserClose">Cancel</button></div>
   </div>
@@ -239,7 +239,7 @@
 <!-- SURVEYS -->
 <section class="view" id="v-home">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Account</div><h1>Surveys</h1><p>Every survey in the account, with its answers a click away. Create, edit, and share from here.</p></div>
+    <div class="pagehead"><h1>Surveys</h1><p>Every survey in the account, with its answers a click away. Create, edit, and share from here.</p></div>
     <div id="firstrunMount"></div>
     <div class="canvas">
       <div class="app-top">
@@ -255,7 +255,7 @@
 <!-- EDITOR -->
 <section class="view" id="v-editor">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Survey setup</div><h1>Editor</h1><p>Write the exact questions you want asked. The chat asks these and nothing else. The preview updates as you type, and Save publishes your link.</p></div>
+    <div class="pagehead"><h1>Editor</h1><p>Write the exact questions you want asked. The chat asks these and nothing else. The preview updates as you type, and Save publishes your link.</p></div>
     <div class="ed-grid">
       <div class="canvas">
         <div class="ed-head">
@@ -291,15 +291,15 @@
 <!-- DASHBOARD -->
 <section class="view" id="v-results">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Account</div><h1>Results</h1><p>Live results for every survey, newest answers first. Answers arrive here the moment someone finishes.</p></div>
-    <div class="dashtabs" id="dashtabs"></div>
+    <div class="pagehead"><h1>Results</h1><p>Live results for every survey, newest answers first. Answers arrive here the moment someone finishes.</p></div>
+    <div class="pick" id="dashtabs"></div>
     <div id="dashpanel"></div>
   </div>
 </section>
 
 <section class="view" id="v-settings">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">Account</div><h1>Settings</h1><p>Paste your admin key here once. Lean Labs handles the rest during the pilot.</p></div>
+    <div class="pagehead"><h1>Settings</h1><p>Paste your admin key here once. Lean Labs handles the rest during the pilot.</p></div>
     <div class="canvas">
       <div class="setgrid">
         <div class="setcard" id="card-admin">
@@ -322,18 +322,19 @@
 <!-- ONE STAT SCAN -->
 <section class="view" id="v-scan">
   <div class="wrap">
-    <div class="pagehead"><div class="eyebrow">New survey</div><h1>Scan your site</h1><p>The scan reads your pages and drafts a survey for each claim with no proof behind it. Name a stat if you already know the one you want. Drafts land in the editor, and nothing goes live without your approval.</p></div>
+    <div class="pagehead"><h1>Scan a page</h1><p>The scan reads one page and drafts a survey for each claim on it with no proof behind it. Name a stat if you already know the one you want. Drafts land in the editor, and nothing goes live without your approval.</p></div>
     <div class="scan-grid">
       <div class="scan-card">
-        <h3>Point the scan at your site</h3>
-        <label for="scan-url">Your website</label>
-        <input id="scan-url" placeholder="https://www.yourcompany.com" autocomplete="url">
+        <h3>Point the scan at a page</h3>
+        <label for="scan-url">The page to scan</label>
+        <input id="scan-url" placeholder="https://www.yourcompany.com/customers" autocomplete="url">
+        <div class="scan-note">We read this one page. Point it at a page that makes claims, like your homepage or a case study.</div>
         <label for="scan-company">Company name</label>
         <input id="scan-company" placeholder="Your company">
         <label for="scan-stat">The stat you want to publish (optional)</label>
         <input id="scan-stat" placeholder="__% of customers see results in the first 90 days">
         <div class="scan-note">Write it with a blank number. Your customers&rsquo; answers fill in the real one.</div>
-        <div class="scan-actions"><button class="btn primary" id="scanBtn">Scan the site</button></div>
+        <div class="scan-actions"><button class="btn primary" id="scanBtn">Scan this page</button></div>
         <div class="scan-log" id="scanLog"></div>
         <div id="scanGate"></div>
       </div>
@@ -610,7 +611,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     logBox.appendChild(line);
     var tick=setInterval(function(){
       if(!alive) return clearInterval(tick);
-      line.textContent="Reading your pages and checking each claim\u2026 "+Math.round((Date.now()-started)/1000)+"s. Most scans take about a minute.";
+      line.textContent="Reading the page and checking each claim\u2026 "+Math.round((Date.now()-started)/1000)+"s. Most scans take under a minute.";
     },1000);
     fetch(SR_API+"/scan",{
       method:"POST",
@@ -623,7 +624,7 @@ window.SR_JUDGE_ENABLED = true;</script>
         logBox.appendChild(el("div",null,"The scan could not finish. Wait a minute and try again, or tell your Lean Labs team if it keeps failing."));
         return;
       }
-      line.textContent="Read "+(d.pages_read||[]).length+" pages in "+Math.round((Date.now()-started)/1000)+"s.";
+      line.textContent="Read the page in "+Math.round((Date.now()-started)/1000)+"s.";
       logBox.appendChild(el("div","ok",d.gaps.length===1?"1 proof gap found, with a drafted survey.":d.gaps.length+" proof gaps found, each with a drafted survey."));
       renderGapResults(results, d.gaps);
       results.style.display="block";
@@ -684,7 +685,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     var url=scanUrlInp.value.trim();
     if(!url){ flashSaved("Type your website address first.",true); return; }
     if(!/^https?:\/\//i.test(url)){ url="https://"+url; scanUrlInp.value=url; }
-    var body={url:url, company_name:scanCoInp.value.trim()||"the company"};
+    var body={url:url, company_name:scanCoInp.value.trim()||"the company", single_page:true};
     var stat=document.getElementById("scan-stat").value.trim();
     if(stat) body.target_stat=stat;
     runScan({logId:"scanLog", resultsId:"scanResults", btn:this, body:body});
@@ -990,12 +991,17 @@ window.SR_JUDGE_ENABLED = true;</script>
         return;
       }
       if(!dashSel || ids.indexOf(dashSel)===-1) dashSel=ids[0];
+      var lab=el("label","picklabel","Survey"); lab.htmlFor="surveyPick";
+      var sel=document.createElement("select"); sel.id="surveyPick"; sel.className="pickselect";
       ids.forEach(function(sid){
         var rows=bySurvey[sid]||[];
-        var t=el("button","dashtab"+(sid===dashSel?" on":""),shapeFor(sid,rows).name);
-        t.addEventListener("click",function(){ dashSel=sid; renderResults(); });
-        tabs.appendChild(t);
+        var o=document.createElement("option"); o.value=sid;
+        o.textContent=shapeFor(sid,rows).name+"  \u00B7  "+plural(rows.length,"answer");
+        if(sid===dashSel) o.selected=true;
+        sel.appendChild(o);
       });
+      sel.addEventListener("change",function(){ dashSel=sel.value; location.hash="#/results/"+encodeURIComponent(dashSel); });
+      tabs.appendChild(lab); tabs.appendChild(sel);
       renderResultPanel(panel, dashSel, bySurvey[dashSel]||[]);
     });
   }
@@ -1003,11 +1009,7 @@ window.SR_JUDGE_ENABLED = true;</script>
   function renderResultPanel(panel, sid, rows){
     rows=rows.slice().sort(function(a,b){ return a.at<b.at?1:-1; });
     var shape=shapeFor(sid, rows);
-    var canvas=el("div","canvas");
-    var top=el("div","dash-top");
-    top.appendChild(el("h3",null,shape.name));
-    top.appendChild(el("span","chip",plural(rows.length,"answer")));
-    canvas.appendChild(top);
+    var canvas=el("div","canvas quiet");
 
     if(!rows.length){
       canvas.appendChild(el("div","emptystate","No answers yet for this survey. Copy its share link in the editor and send it to one customer."));
@@ -1163,7 +1165,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     var mount=document.getElementById("firstrunMount");
     if(!mount) return;
     mount.innerHTML="";
-    if(hasRealSurvey() || onb.dismissedAt) return;
+    if(onb.dismissedAt) return;
     var box=el("div","canvas firstrun");
     var head=el("div","fr-head");
     head.appendChild(el("h3",null,"Start here"));
@@ -1176,8 +1178,8 @@ window.SR_JUDGE_ENABLED = true;</script>
     t1.addEventListener("click",openChooser);
     tasks.appendChild(t1);
     var t2=el("button","fr-task");
-    t2.appendChild(el("b",null,"Scan your site for proof gaps"));
-    t2.appendChild(el("span",null,"The scan drafts a survey from the claims on your pages."));
+    t2.appendChild(el("b",null,"Scan a page for proof gaps"));
+    t2.appendChild(el("span",null,"Point it at a page that makes claims. The scan drafts a survey from them."));
     t2.addEventListener("click",function(){ location.hash="#/scan"; });
     tasks.appendChild(t2);
     var t3=document.createElement("a");
@@ -1204,12 +1206,12 @@ window.SR_JUDGE_ENABLED = true;</script>
     surveys:"Sample surveys are marked in their cards. Your real ones sit beside them.",
     editor:"Save keeps your edits and publishes your link, so the link always serves the newest version.",
     results:"Answers arrive here the moment someone finishes, from any device.",
-    scan:"The scan reads your live pages, so a run takes about a minute."
+    scan:"The scan reads the page live, so a run takes under a minute."
   };
   function maybeTip(view, force){
     document.querySelectorAll(".viewtip").forEach(function(n){ n.remove(); });
     if(!TIPS[view]) return;
-    if(view==="surveys" && !(hasRealSurvey() || onb.dismissedAt)) return;
+    if(view==="surveys" && !onb.dismissedAt) return;
     var st=onb.views[view]||{};
     if(st.tipDismissed && !force) return;
     var host=document.querySelector("#v-"+VIEW_EL[view]+" .pagehead");

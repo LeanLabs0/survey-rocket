@@ -114,3 +114,34 @@ body.rs{background:radial-gradient(90% 55% at 50% 0%,#151515 0%,var(--page) 72%)
 .sr-tour .driver-popover-next-btn{background:var(--tx);color:var(--page);border:0;border-radius:var(--r-md);padding:8px 14px}
 .sr-tour .driver-popover-prev-btn{background:transparent;box-shadow:var(--inset);color:var(--tx);border:0;border-radius:var(--r-md);padding:8px 14px}
 .sr-tour .driver-popover-close-btn{color:var(--tx-3)}
+
+/* ---------- quiet chrome ----------
+   One border per group. Results content sits on the page; cards are quiet
+   fills, not rings inside rings inside rings. */
+.canvas.quiet{background:transparent;box-shadow:none;border-radius:0;overflow:visible}
+.canvas.quiet .tiles,.canvas.quiet .charts{padding:0;margin-bottom:var(--sp-4)}
+.canvas.quiet .tiles{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-3)}
+.canvas.quiet .charts{gap:var(--sp-3)}
+.canvas.quiet .tile,.canvas.quiet .chart,.canvas.quiet .txtcard{background:var(--card);box-shadow:none;border-radius:12px;padding:18px 18px 16px}
+.canvas.quiet .tile .lbl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.canvas.quiet .rawwrap{padding:0}
+.canvas.quiet .rawwrap .pagehead h3{font-size:var(--fs-h3)}
+.canvas.quiet table.raw{background:var(--card);border-radius:12px;overflow:hidden}
+.canvas.quiet table.raw th{padding:12px 14px}
+.canvas.quiet table.raw td{padding:11px 14px}
+.canvas.quiet .emptystate{background:var(--card);border-radius:12px}
+.canvas.quiet .gatebox{background:var(--card);border-radius:12px;padding:18px}
+
+/* the survey picker */
+.pick{display:flex;align-items:center;gap:10px;margin:0 0 18px}
+.picklabel{font-size:var(--fs-sm);color:var(--tx-2)}
+.pickselect{appearance:none;-webkit-appearance:none;background:var(--card) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23949494' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:10px 34px 10px 14px;color:var(--tx);font-size:14px;font-weight:500;min-width:260px;max-width:100%;cursor:pointer}
+
+/* view tips: a line, not a banner */
+.viewtip{background:transparent;box-shadow:none;border-left:0;border-radius:0;padding:0;margin:-8px 0 18px;font-size:12.5px;color:var(--tx-3);justify-content:flex-start;gap:10px}
+.viewtip .btn{min-height:0;padding:2px 0;font-size:12.5px;box-shadow:none;color:var(--tx-2);text-decoration:underline;text-underline-offset:3px}
+.viewtip .btn:hover{background:transparent;color:var(--tx)}
+@media (pointer:coarse){ .viewtip .btn{min-height:44px} }
+
+/* help, without a bare glyph */
+.helpq{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;box-shadow:var(--inset);font-size:11px;font-weight:600;margin-right:2px}
