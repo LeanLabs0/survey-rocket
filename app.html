@@ -1323,6 +1323,24 @@ window.SR_JUDGE_ENABLED = true;</script>
       tiles.appendChild(tile("star","Review clicks",String(clicked),asked?("Of "+plural(asked,"review ask")):"No review asks yet"));
       wrap.appendChild(tiles);
 
+      /* Verified stats: every number the surveys can back, in one place,
+         each linked to the answers behind it. */
+      var vs=el("section","verified");
+      var vh=el("div","pagehead"); vh.style.cssText="padding:0;margin:6px 0 10px";
+      var vt=el("h3",null); vt.appendChild(ic("check","ok")); vt.appendChild(document.createTextNode(" Verified stats"));
+      vh.appendChild(vt);
+      vh.appendChild(el("p",null,"Every number here comes from real answers, at least three per question. The survey under each one is the proof; click it to see the answers."));
+      vs.appendChild(vh);
+      var vgrid=el("div","pubgrid");
+      items.forEach(function(it){
+        it.stats.pubs.forEach(function(pb){ vgrid.appendChild(pubCard(pb.big, pb.sub, it.sv.name, pb.sentence, it.sv.id)); });
+      });
+      if(!vgrid.children.length){
+        vgrid.appendChild(el("div","ovempty","No verified stats yet. A question needs three answers before its number counts. Share a survey link to get there."));
+      }
+      vs.appendChild(vgrid);
+      wrap.appendChild(vs);
+
       var host=el("div","srvwrap");
       var headRow=el("div","srvhead");
       headRow.appendChild(el("span","srvtitle","Your surveys"));
@@ -1409,7 +1427,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     body.appendChild(el("div","ovlabel","Numbers you can publish"));
     if(stats.pubs.length){
       var grid=el("div","pubgrid");
-      stats.pubs.forEach(function(pb){ grid.appendChild(pubCard(pb.big, pb.sub, sv.name, pb.sentence)); });
+      stats.pubs.forEach(function(pb){ grid.appendChild(pubCard(pb.big, pb.sub, sv.name, pb.sentence, sv.id)); });
       body.appendChild(grid);
     } else {
       body.appendChild(el("div","ovempty",agg.responses?"Three answers to a question is enough to start. Keep sharing the link.":"No answers yet. Copy the link and send it to one customer."));
@@ -1438,12 +1456,19 @@ window.SR_JUDGE_ENABLED = true;</script>
     }
   }
 
-  function pubCard(big, sub, survey, sentence){
+  function pubCard(big, sub, survey, sentence, surveyId){
     var c=el("div","pubcard");
     c.appendChild(el("div","pubnum",big));
     c.appendChild(el("div","pubsub",sub));
     var foot=el("div","pubfoot");
-    foot.appendChild(el("span","pubsrc",survey));
+    if(surveyId){
+      var a=document.createElement("a"); a.className="pubsrc pubsrc-link"; a.href="#/results/"+encodeURIComponent(surveyId);
+      a.title="See the answers behind this number";
+      a.appendChild(ic("chart")); a.appendChild(document.createTextNode(survey));
+      foot.appendChild(a);
+    } else {
+      foot.appendChild(el("span","pubsrc",survey));
+    }
     var cp=ibtn("btn quiet small","copy","Copy");
     cp.addEventListener("click",function(){
       navigator.clipboard.writeText(sentence).then(function(){

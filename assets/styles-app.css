@@ -301,3 +301,12 @@ body.rs{background:radial-gradient(90% 55% at 50% 0%,#151515 0%,var(--page) 72%)
   .srvrow .c3,.srvrow .c4{display:none}
   .ovhead{flex-wrap:wrap}
 }
+
+/* verified stats */
+.verified{margin:4px 0 18px}
+.verified .pagehead h3{display:flex;align-items:center;gap:6px;font-size:var(--fs-h3)}
+.verified .pagehead h3 .ic{color:var(--green)}
+.verified .pagehead p{margin-top:2px}
+.pubsrc-link{display:inline-flex;align-items:center;gap:5px;color:var(--tx-2);text-decoration:none;font-size:12px;border-bottom:1px solid transparent}
+.pubsrc-link .ic{width:13px;height:13px}
+.pubsrc-link:hover{color:var(--tx);border-bottom-color:var(--tx-3)}
