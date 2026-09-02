@@ -329,8 +329,6 @@
         <label for="scan-url">The page to scan</label>
         <input id="scan-url" placeholder="https://www.yourcompany.com/customers" autocomplete="url">
         <div class="scan-note">We read this one page. Point it at a page that makes claims, like your homepage or a case study.</div>
-        <label for="scan-company">Company name</label>
-        <input id="scan-company" placeholder="Your company">
         <label for="scan-stat">The stat you want to publish (optional)</label>
         <input id="scan-stat" placeholder="__% of customers see results in the first 90 days">
         <div class="scan-note">Write it with a blank number. Your customers&rsquo; answers fill in the real one.</div>
@@ -669,24 +667,14 @@ window.SR_JUDGE_ENABLED = true;</script>
     });
   }
 
-  var scanUrlInp=document.getElementById("scan-url"), scanCoInp=document.getElementById("scan-company");
-  try{ scanUrlInp.value=localStorage.getItem("sr:scanurl")||""; scanCoInp.value=localStorage.getItem("sr:scanco")||""; }catch(e){}
-  scanUrlInp.addEventListener("blur",function(){
-    try{ localStorage.setItem("sr:scanurl",scanUrlInp.value.trim()); }catch(e){}
-    if(!scanCoInp.value.trim() && scanUrlInp.value.trim()){
-      try{
-        var host=new URL(scanUrlInp.value.trim()).hostname.replace(/^www\./,"").split(".")[0];
-        scanCoInp.value=host.split(/[-_]/).map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1); }).join(" ");
-        try{ localStorage.setItem("sr:scanco",scanCoInp.value); }catch(e2){}
-      }catch(e){}
-    }
-  });
-  scanCoInp.addEventListener("blur",function(){ try{ localStorage.setItem("sr:scanco",scanCoInp.value.trim()); }catch(e){} });
+  var scanUrlInp=document.getElementById("scan-url");
+  try{ scanUrlInp.value=localStorage.getItem("sr:scanurl")||""; }catch(e){}
+  scanUrlInp.addEventListener("blur",function(){ try{ localStorage.setItem("sr:scanurl",scanUrlInp.value.trim()); }catch(e){} });
   document.getElementById("scanBtn").addEventListener("click",function(){
     var url=scanUrlInp.value.trim();
     if(!url){ flashSaved("Type your website address first.",true); return; }
     if(!/^https?:\/\//i.test(url)){ url="https://"+url; scanUrlInp.value=url; }
-    var body={url:url, company_name:scanCoInp.value.trim()||"the company", single_page:true};
+    var body={url:url, single_page:true};
     var stat=document.getElementById("scan-stat").value.trim();
     if(stat) body.target_stat=stat;
     runScan({logId:"scanLog", resultsId:"scanResults", btn:this, body:body});
