@@ -535,6 +535,9 @@ window.SR_JUDGE_ENABLED = true;</script>
     }
   }
 
+  window.addEventListener("hashchange",route);
+  document.querySelectorAll(".navitem").forEach(function(b){ if(b.dataset.r) b.addEventListener("click",function(){ location.hash=b.dataset.r; }); });
+
   /* ---------- surveys shelf ---------- */
   function renderShelf(){
     var shelf=document.getElementById("shelf"); shelf.innerHTML="";
