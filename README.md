@@ -9,7 +9,7 @@ Live: https://leanlabs0.github.io/survey-rocket/
 | Page | What it is |
 |---|---|
 | `index.html` | Public site: landing + a sandboxed live demo (you play a Lean Labs client, nothing stored) |
-| `app.html` | The client app: Surveys, the question editor with live chat preview, one Scan-my-site screen backed by the real gap-scan agent, server-backed Results (analytics + every answer), Settings with the admin key connect gate, and opt-in onboarding (first-run panel, five-step tour, per-view tips) |
+| `app.html` | The client app: Surveys, the question editor with live chat preview, one Scan-my-site screen (no key), server-backed Results (named answers when the browser has the admin key), Settings, and opt-in onboarding (first-run panel, five-step tour, per-view tips) |
 | `survey.html` | The respondent page. `?id=<survey>` fetches the published definition from the server, so one link serves the newest save on any device; legacy `#p=` links keep decoding forever |
 
 ## What is real
@@ -17,7 +17,7 @@ Live: https://leanlabs0.github.io/survey-rocket/
 - **The chat engine** (`js/engine.js`): tap answers, judged free text (a live server-side agent extracts the number a human would hear), a two-probe budget so nobody gets nagged forever, one deduped hint bubble per question.
 - **The response spine**: every completed survey posts to the factor8 shared store (`POST /public/survey-rocket/responses`), with a localStorage outbox retry. Results reads the same store back through the admin key. Respondent-facing aggregates come from the public results endpoint.
 - **Publishing**: Save in the editor persists locally and `PUT`s the definition to factor8, which is what `survey.html?id=` serves.
-- **The scans**: one screen, optional target stat, calling the real designer agent on factor8 (admin key required). Drafts land in the editor as editable Drafts, never live.
+- **The scans**: one screen, optional target stat, calling the real designer agent on factor8 (no admin key). Drafts land in the editor as editable Drafts, never live. Named Results and server publish still need the admin key.
 
 ## Still pending
 
@@ -38,9 +38,10 @@ docs/                      question schema, response contract, backend spec, bui
 
 ## Running the Lean Labs pilot
 
-1. Open `app.html`, paste the admin key in Settings (Lean Labs issues it).
-2. Review the seeded "Client outcomes" survey in the Editor, hit Save to publish it.
-3. Copy link, send it to a teammate, have them answer on their device.
-4. Watch Results move as answers land.
+1. Open the public `app.html` — Scan a page works with no key.
+2. To publish a survey link and see named Results, open the private link Lean Labs issues.
+3. Review the seeded "Client outcomes" survey in the Editor, hit Save to publish it.
+4. Copy link, send it to a teammate, have them answer on their device.
+5. Watch Results move as answers land.
 
 A Lean Labs product.

@@ -384,7 +384,6 @@
         <div class="scan-note">Write it with a blank number. Your customers&rsquo; answers fill in the real one.</div>
         <div class="scan-actions"><button class="btn primary" id="scanBtn"><svg class="ic"><use href="#i-search"/></svg>Scan this page</button></div>
         <div class="scan-log" id="scanLog"></div>
-        <div id="scanGate"></div>
       </div>
       <div class="scan-card" id="scanResults" style="display:none"></div>
     </div>
@@ -517,8 +516,8 @@ window.SR_JUDGE_ENABLED = true;</script>
     var row2=el("div","krow");
     row2.appendChild(el("span","k","How it works"));
     row2.appendChild(el("span","v",adminKey()
-      ? "You opened the app from your private link, so this browser sees every answer and can run scans."
-      : "Open the app from the private link Lean Labs sent you. That browser then sees every answer and can run scans."));
+      ? "You opened the app from your private link, so this browser sees named answers and can publish to the server. Scan works either way."
+      : "Scan works from this public app with no key. Named Results and publishing the survey link still need the private link Lean Labs sent you."));
     mount.appendChild(row2);
     if(adminKey()){
       var row3=el("div","krow");
@@ -637,10 +636,6 @@ window.SR_JUDGE_ENABLED = true;</script>
     var btn=opts.btn;
     if(btn && btn.disabled) return;
     logBox.style.display="block"; logBox.innerHTML=""; results.style.display="none";
-    if(!adminKey()){
-      logBox.appendChild(el("div",null,"Scans run when you open the app from your private link. Ask your Lean Labs team for it."));
-      return;
-    }
     if(btn){ btn.disabled=true; btn.setAttribute("aria-busy","true"); }
     function release(){ if(btn){ btn.disabled=false; btn.removeAttribute("aria-busy"); } }
     var started=Date.now(), alive=true;
@@ -652,7 +647,7 @@ window.SR_JUDGE_ENABLED = true;</script>
     },1000);
     fetch(SR_API+"/scan",{
       method:"POST",
-      headers:{"Content-Type":"application/json","X-SR-Admin-Key":adminKey()},
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify(opts.body)
     }).then(function(r){ return r.json(); }).then(function(d){
       alive=false; clearInterval(tick); release();
