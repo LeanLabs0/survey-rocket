@@ -37,13 +37,17 @@ Older planning docs (`completion-backend-spec.md`, `agents-spec.md`, `v1-build-p
 | `GET /surveys/{survey_id}` | respondent page on load | none, rate limited | the published definition |
 | `PUT /surveys/{survey_id}` | app editor on Save | admin key | publishes the definition (this is what makes one link always serve the newest save) |
 | `GET /responses` | app Results | admin key | every record, newest first. Wrong key gets an empty 200, not an error |
-| `POST /scan` | app scan screen | admin key | the designer agent, reads one page, drafts surveys |
+| `POST /scan` | app scan screen | none, rate limited | the designer agent, reads one page, drafts surveys |
 
-The admin key is `FACTOR8_SR_ADMIN_KEY` on Fly, its own secret, deliberately not the factor8 master key. `FACTOR8_SR_IP_SALT` salts the IP hash.
+The admin key is `FACTOR8_SR_ADMIN_KEY` on Fly, its own secret, deliberately not the factor8 master key. `FACTOR8_SR_IP_SALT` salts the IP hash. Scan no longer sends or requires that key (pair with the factor8 scan-only ungating PR). Named Results and server publish still do.
 
 ## The auth model, so you do not reinvent it
 
-There is no login. The client never sees a key. Lean Labs sends them a private link once: `app.html?key=<admin key>`. The app stores the key in that browser's localStorage, scrubs it from the URL, and never shows or asks for it again. Without the link, the app still works: Dashboard and Results show the public aggregates, and one line says where the names live. Ralph has the current key; ask him for the link, do not put the key in ClickUp or a shared doc.
+There is no login. Open the public app at https://leanlabs0.github.io/survey-rocket/app.html — no `?key=` needed to Scan. Drafts land in the editor in this browser.
+
+Named Results (names, emails, written answers) and publishing a survey so `survey.html?id=` serves it still need the private link: `app.html?key=<admin key>`. The app stores the key in that browser's localStorage, scrubs it from the URL, and never shows it. Without the link, Dashboard and Results show public aggregates only. Ralph has the current key if you need named Results or a live publish; do not put the key in ClickUp or a shared doc.
+
+HubSpot private-app setup (a different secret, for write-back) is unchanged and still not started; see below.
 
 ## What is done and verified
 
@@ -51,8 +55,8 @@ There is no login. The client never sees a key. Lean Labs sends them a private l
 - Editor: questions, five answer types (Multiple choice, Pick several, Rating 0 to 10, Number, Open text), option chips, per-survey toggles (require name and email, show results, ask for a review with a link), Save publishes and pops the share link.
 - Respondent page: start card, chat, results on completion, review ask with a maybe-later, everything posted to the store with an outbox retry.
 - Dashboard: account tiles, Verified stats (every publishable number across surveys, each linked to its survey), survey rows with a publish-readiness meter and status, click for an overlay with actions and numbers.
-- Results: per-survey analytics plus every answer (names, emails, country, review outcome) on the private link.
-- Scan: one page, real agent, drafts land in the editor.
+- Results: per-survey analytics for everyone; every named answer (names, emails, country, review outcome) on the private link.
+- Scan: one page, real agent, no key. Drafts land in the editor.
 - Onboarding: first-run panel, optional four-step tour, help replay, one tip per view.
 - Contrast AA, reduced-motion safe, measured acceptance suites (mobile 13 checks, live 21 checks) all green.
 
