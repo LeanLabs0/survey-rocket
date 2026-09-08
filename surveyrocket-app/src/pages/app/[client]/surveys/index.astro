@@ -1,0 +1,35 @@
+---
+import Base from "../../../../layouts/Base.astro";
+import AppShell from "../../../../components/AppShell.astro";
+import SurveysList from "../../../../components/SurveysList";
+import ViewTip from "../../../../components/ViewTip";
+import { requireClientAccess, surveysForClient } from "../../../../lib/access";
+import { siteUrl } from "../../../../lib/supabase";
+
+const slug = Astro.params.client!;
+const access = await requireClientAccess(Astro.locals.user, Astro.locals.isSuperadmin, slug);
+if (!access.ok) {
+  if (access.status === 401) return Astro.redirect("/login");
+  return Astro.redirect("/app");
+}
+const list = await surveysForClient(access.client.id);
+---
+<Base title="Surveys · Survey Rocket">
+  <AppShell slug={slug} clientName={access.client.name} current="surveys" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email}>
+    <div class="wrap">
+      <div class="pagehead">
+        <h1>Surveys</h1>
+        <p>Every survey in the account, with its answers a click away. Create, edit, and share from here.</p>
+      </div>
+      <ViewTip client:load />
+      <SurveysList
+        client:load
+        clientSlug={slug}
+        clientName={access.client.name}
+        clientNote={slug === "lean-labs" ? "Survey Rocket test account" : "Client portal"}
+        siteUrl={siteUrl()}
+        surveys={list}
+      />
+    </div>
+  </AppShell>
+</Base>

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/hubspot-retry",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

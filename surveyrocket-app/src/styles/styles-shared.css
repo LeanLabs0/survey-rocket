@@ -1,0 +1,292 @@
+/* Survey Rocket tokens.
+   Foundation: Lean Labs Style Guide
+   https://www.figma.com/design/igfBOT1bygyzlO903MUAcj/Lean-Labs-Style-Guide
+   — Colour / type / radius: page 2368:52 (Typography 4179:8581, Radius 6342:758)
+   — Buttons & inputs: UI Elements 5352:56404
+   Survey Rocket landing (12952:8445) overrides a few of those on #view-landing:
+   display italic, pill buttons, landing shadows. See styles-landing.css. */
+
+:root{
+  /* Colour */
+  --ll-white:#ffffff;
+  --ll-black:#000000;
+  --ll-page:#0d0d0d;
+  --ll-card:#141414;
+  --ll-btn:#1c1c1c;
+  --ll-btn-hover:#1b1b1b;
+  --ll-neutral:#212121;
+  --ll-border:#2b2b2b;
+  --ll-text:#ffffff;
+  --ll-text-2:#949494;
+  --ll-text-disabled:#757575;
+  --ll-icon:#b0b0b0;
+  --ll-fg:#1b1b1b;
+  --ll-bg-light:#f0f0f0;
+  --ll-white-5:rgba(255,255,255,.05);
+  --ll-white-50:rgba(255,255,255,.5);
+  --ll-white-60:rgba(255,255,255,.6);
+
+  /* Type — Plus Jakarta Sans throughout. Tracking -4 in Figma is -0.04em. */
+  --ll-font:'Plus Jakarta Sans',-apple-system,'Segoe UI',system-ui,sans-serif;
+  --ll-h1:56px; --ll-h2:42px; --ll-h3:36px; --ll-h4:28px; --ll-h5:24px; --ll-h6:20px;
+  --ll-text-lg:20px; --ll-text-md:18px; --ll-text-rg:16px; --ll-text-sm:14px; --ll-text-xs:12px;
+  --ll-ls-display:-0.04em;
+  --ll-lh-display:1.2;
+  --ll-lh-h4:1.3;
+  --ll-lh-h5:1.4;
+  --ll-lh-body:1.5;
+
+  /* Radius */
+  --ll-r-sm:4px;
+  --ll-r-md:8px;
+  --ll-r-lg:16px;
+  --ll-stroke:1px;
+
+  /* Buttons — default / medium unless a size class says otherwise */
+  --ll-btn-radius:8px;
+  --ll-btn-weight:600;
+  --ll-btn-h:50px;
+  --ll-btn-px:24px;
+  --ll-btn-fs:14px;
+  --ll-btn-shadow-light:
+    0 0 0 1px rgba(17,17,17,.06),
+    0 1px 1px rgba(151,71,255,.03),
+    0 2px 4px rgba(13,13,13,.08);
+  --ll-btn-shadow-inner:inset 0 -1px 0 rgba(0,0,0,.05);
+  --ll-btn-shadow-dark:inset 0 1px 0 rgba(255,255,255,.12);
+  --ll-btn-text-disabled:#3d3d3d;
+
+  /* Product extras (not in the style guide) */
+  --alert:#fde68a; --green:#00d492; --red:#e5484d; --yellow:#ffa600; --blue:#93c5fd;
+  --nfi:#24456b; --tx-3:#8e8e8e;
+
+  /* Back-compat aliases used across app / demo / survey */
+  --page:var(--ll-page); --card:var(--ll-card); --btn:var(--ll-btn);
+  --btn-hover:#2a2a2a; --tile:var(--ll-neutral);
+  --tx:var(--ll-text); --tx-2:var(--ll-text-2); --tx-dis:var(--ll-text-disabled);
+  --icon:var(--ll-icon); --line:var(--ll-border);
+  --inset:inset 0 0 0 var(--ll-stroke) var(--ll-border);
+  --r-sm:var(--ll-r-sm); --r-md:var(--ll-r-md); --r-lg:var(--ll-r-lg);
+  --font-heading:var(--ll-font);
+  --font-body:var(--ll-font);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--tx-2);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after{transition:none!important;animation:none!important} }
+h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;color:var(--tx);margin:0;letter-spacing:var(--ll-ls-display)}
+button,input,select,textarea{font-family:var(--font-body)}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+html[data-theme="light"]{
+  --ll-page:#f4f4f5;
+  --ll-card:#ffffff;
+  --ll-btn:#f4f4f5;
+  --ll-btn-hover:#ececee;
+  --ll-neutral:#e7e7ea;
+  --ll-border:#e4e4e7;
+  --ll-text:#111111;
+  --ll-text-2:#52525b;
+  --ll-text-disabled:#a1a1aa;
+  --ll-icon:#71717a;
+  --tx-3:#71717a;
+  --page:var(--ll-page);
+  --card:var(--ll-card);
+  --btn:var(--ll-btn);
+  --btn-hover:var(--ll-btn-hover);
+  --tile:var(--ll-neutral);
+  --tx:var(--ll-text);
+  --tx-2:var(--ll-text-2);
+  --tx-dis:var(--ll-text-disabled);
+  --icon:var(--ll-icon);
+  --line:var(--ll-border);
+  --inset:inset 0 0 0 var(--ll-stroke) var(--ll-border);
+}
+html[data-theme="light"] body{background:var(--page);color:var(--tx-2)}
+html[data-theme="light"] .navitem.on{background:#111;color:#fff}
+html[data-theme="light"] .wordmark,
+html[data-theme="light"] .login-wordmark{
+  background:#0d0d0d;
+  border-radius:8px;
+  padding:8px 10px;
+}
+.chat-head .powered{display:block;height:18px;width:auto;margin-top:8px}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:var(--ll-btn-h);padding:0 var(--ll-btn-px);border:0;
+  border-radius:var(--ll-btn-radius);font-size:var(--ll-btn-fs);
+  font-weight:var(--ll-btn-weight);letter-spacing:-0.02em;
+  cursor:pointer;text-decoration:none;min-height:var(--ll-btn-h);
+}
+.btn.primary{
+  background:var(--ll-white);color:var(--ll-page);
+  box-shadow:var(--ll-btn-shadow-light), var(--ll-btn-shadow-inner);
+}
+.btn.primary:hover{background:#e6e6e6}
+.btn.ghost{
+  background:transparent;color:var(--tx);
+  box-shadow:var(--inset), var(--ll-btn-shadow-dark);
+}
+.btn.ghost:hover{background:var(--btn)}
+.btn.large{--ll-btn-h:56px;--ll-btn-px:28px;--ll-btn-fs:16px}
+.btn.small{--ll-btn-h:36px;--ll-btn-px:12px;--ll-btn-fs:12px}
+.btn.danger{background:transparent;box-shadow:var(--inset);color:var(--tx-2)}
+.btn.danger:hover,.btn.danger:focus-visible{color:var(--red);background:var(--btn)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:500;box-shadow:var(--inset);color:var(--tx-2)}
+.chip.teal{color:var(--green)}
+.chip.gold{color:var(--alert)}
+.chip.navy{background:var(--tile);box-shadow:none;color:var(--icon)}
+.canvas{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--inset);overflow:hidden}
+
+/* chat */
+.chat-frame{border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:4px 8px 24px rgba(29,0,68,.08);overflow:hidden;background:var(--page);display:flex;flex-direction:column}
+.chat-head,.chat-input{flex:none}
+.chat-head{background:transparent;border-bottom:1px solid var(--line);color:var(--tx);padding:24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chat-head .av{display:none}
+.chat-head b{display:block;font-family:var(--font-heading);font-size:18px;font-weight:600;letter-spacing:0;line-height:1.2}
+.chat-head small{color:var(--ll-text-2);font-size:12px;display:block;font-weight:400;line-height:1.4;margin-top:2px}
+.chat-prog{margin-left:auto;font-size:10px;color:var(--ll-text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chat-log{padding:20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;scroll-behavior:smooth;flex:1 1 auto;min-height:0;background:var(--page)}
+.chat-row.bot{display:flex;gap:16px;align-items:flex-start;align-self:stretch;max-width:100%}
+.chat-row.me{display:flex;justify-content:flex-end;align-self:stretch}
+.chat-av{width:44px;height:44px;flex:none;border-radius:50%;background:var(--card) url("/assets/landing/icon-chat.svg") center/16px 16px no-repeat;border:1px solid var(--line)}
+.bub{max-width:100%;padding:24px;border-radius:16px;font-size:14px;line-height:1.5;overflow-wrap:break-word;background:var(--card);border:1px solid var(--line);box-shadow:4px 8px 6px rgba(29,0,68,.04);color:var(--tx)}
+.bub.bot{align-self:auto;display:flex;flex-direction:column;gap:12px;color:var(--tx);flex:1;min-width:0}
+.bub.me{align-self:auto;max-width:min(70%, 220px);min-height:50px;padding:6px 24px;border-radius:8px;background:#121212;color:var(--tx);font-weight:600;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.opts{display:flex;flex-wrap:wrap;gap:8px;max-width:100%}
+.opt{padding:6px 10px;min-height:32px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.1);box-shadow:none;font-size:14px;color:var(--tx);font-weight:400;cursor:pointer;transition:background .12s,border-color .12s}
+.opt:hover{background:rgba(255,255,255,.2);color:var(--tx)}
+.opt.on{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.25);color:var(--tx)}
+.opt.done-chip{background:rgba(53,211,153,.3);border:0;color:#35d399}
+.opt.ghosted{cursor:default}
+.opts.locked .opt{cursor:default;opacity:.55}
+.opts.locked .opt.picked{opacity:1;background:rgba(255,255,255,.2);box-shadow:none;color:var(--tx);border-color:rgba(255,255,255,.25)}
+.opts.nps .opt{width:33px;padding:7px 0;text-align:center;font-variant-numeric:tabular-nums}
+.typing{align-self:flex-start;display:flex;gap:4px;padding:18px 16px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--tx-dis);animation:sr-blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes sr-blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.chat-input{display:flex;gap:16px;align-items:center;padding:24px;border-top:1px solid var(--line);background:var(--page);flex-wrap:wrap}
+.chat-input input{flex:1 1 140px;min-width:0;height:53px;background:var(--page);border:1px solid var(--line);box-shadow:none;border-radius:8px;padding:16px;color:var(--tx);font-size:14px}
+.chat-input input::placeholder{color:#93949f}
+.chat-input input:disabled{opacity:.7}
+.chat-input input:focus,.chat-input input:focus-visible{outline:none;border-color:var(--ll-text-2)}
+.send{border:0;border-radius:10px;height:53px;padding:15px 25px;background:rgba(255,255,255,.03);color:var(--tx);font-weight:500;font-size:14px;letter-spacing:-0.02em;cursor:pointer}
+.send:disabled{background:rgba(255,255,255,.03);color:var(--tx);opacity:1;cursor:default}
+.send:not(:disabled){background:var(--ll-white);color:var(--ll-page)}
+.chat-restart{border:1px solid rgba(255,255,255,.15);border-radius:10px;height:53px;padding:15px 25px;background:transparent;color:var(--tx);font-weight:500;font-size:14px;letter-spacing:-0.02em;cursor:pointer}
+.chat-restart:hover{background:var(--btn)}
+
+/* Brand-guide form fields — Lean Labs 10204:300 */
+.flabel{display:block;font-size:12px;color:var(--ll-text-2);letter-spacing:.24px;line-height:17px;margin:0 0 8px;font-weight:400}
+.field{width:100%;height:48px;background:var(--ll-card);border:1px solid var(--ll-border);border-radius:8px;padding:12px 16px;color:var(--tx);font-size:12px;letter-spacing:.24px;box-shadow:none}
+.field::placeholder{color:var(--ll-text-2)}
+.field:focus,.field:focus-visible{outline:none;border-color:var(--ll-text-2)}
+.field:disabled{border-color:var(--ll-btn);color:var(--ll-text-disabled)}
+.field.is-error,.field[aria-invalid="true"]{border-color:#f44}
+textarea.field{height:auto;min-height:102px;resize:vertical;line-height:1.5}
+select.field{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23949494' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;cursor:pointer}
+
+/* bars + tiles (dashboards) */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;padding:20px 0}
+@media (max-width:920px){.tiles{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.tiles{grid-template-columns:1fr}}
+.tile{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px 15px 13px}
+.tile .lbl{font-size:12px;color:var(--tx-2);line-height:1.4;min-height:34px}
+.tile .num{font-family:var(--font-heading);font-size:29px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums;margin:5px 0 2px}
+.tile .src{font-size:11px;color:var(--tx-3)}
+.chart{background:var(--btn);box-shadow:var(--inset);border-radius:var(--r-md);padding:16px}
+.chart h4{font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--tx)}
+.chart .sub{font-size:11.5px;color:var(--tx-3);margin:2px 0 12px}
+.hbar{display:grid;grid-template-columns:140px 1fr 30px;gap:8px;align-items:center;margin:6px 0;font-size:12px}
+.hbar .cat{color:var(--tx-2);text-align:right;line-height:1.25}
+.hbar .track{display:block;height:13px;background:var(--tile);border-radius:var(--r-sm);overflow:hidden}
+.hbar .fill{display:block;height:100%;background:var(--green);border-radius:var(--r-sm) 3px 3px var(--r-sm);min-width:2px}
+.hbar .val{color:var(--tx-2);font-variant-numeric:tabular-nums;text-align:right;font-weight:500}
+
+footer.pagefoot{border-top:1px solid var(--line);margin-top:40px;padding:18px 20px;font-size:12.5px;color:var(--tx-2);display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+footer.pagefoot a{color:var(--tx-2);display:inline-flex;align-items:center;min-height:32px;padding:2px 0}
+
+/* Touch floor. 44px wherever a finger taps; mouse-dense controls may sit at
+   36px. The landing page carried this fix alone for a week while the actual
+   respondent page shipped 29px chips; it lives here now so every page gets it. */
+.opt,.send,.chat-input input,.chat-restart{min-height:32px}
+.send,.chat-input input,.chat-restart{min-height:53px}
+.btn{min-height:var(--ll-btn-h)}
+@media (pointer:coarse){
+  .opt{min-height:44px}
+  .send,.btn,.btn.small,.chat-input input,.chat-restart,.navitem,.dashtab,.showmore,select,.field{min-height:44px}
+  .btn{min-height:max(44px, var(--ll-btn-h))}
+  .send,.chat-input input,.chat-restart{min-height:53px}
+}
+.opts:focus{outline:none}
+
+/* System hints are not conversation. One per question, updated in place. */
+.bub.hint{border-left:3px solid var(--alert);color:var(--tx)}
+.bub.hint.pulse{animation:sr-hintpulse .4s}
+@keyframes sr-hintpulse{0%,100%{transform:translateX(0)}30%{transform:translateX(4px)}60%{transform:translateX(-3px)}}
+
+.sr-auth {
+  color-scheme: dark;
+}
+.sr-auth [data-slot="input"],
+.sr-auth [data-slot="input-group"] {
+  height: 44px;
+  background: var(--page) !important;
+  color: var(--tx) !important;
+  border-color: var(--line) !important;
+  box-shadow: var(--inset);
+  border-radius: var(--r-md);
+}
+.sr-auth [data-slot="input-group"] [data-slot="input"],
+.sr-auth [data-slot="input-group-control"] {
+  height: 42px;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+.sr-auth input:-webkit-autofill,
+.sr-auth input:-webkit-autofill:hover,
+.sr-auth input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--tx) !important;
+  caret-color: var(--tx);
+  box-shadow: var(--inset), inset 0 0 0 1000px var(--page) !important;
+  transition: background-color 99999s ease-out 0s;
+}
+.sr-auth [data-slot="toggle-group"] {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.sr-auth [data-slot="toggle-group-item"] {
+  background: transparent;
+  color: var(--tx-2);
+}
+.sr-auth [data-slot="toggle-group-item"][data-pressed],
+.sr-auth [data-slot="toggle-group-item"][aria-pressed="true"] {
+  background: var(--btn);
+  color: var(--tx);
+}
+.sr-auth-submit {
+  height: var(--ll-btn-h) !important;
+  min-height: var(--ll-btn-h);
+  background: var(--ll-white) !important;
+  color: var(--ll-page) !important;
+  box-shadow: var(--ll-btn-shadow-light), var(--ll-btn-shadow-inner);
+  border-radius: var(--ll-btn-radius) !important;
+  font-weight: var(--ll-btn-weight);
+}
+.sr-auth-submit:hover {
+  background: #e6e6e6 !important;
+}
+.sr-auth-ghost {
+  height: var(--ll-btn-h) !important;
+  min-height: var(--ll-btn-h);
+  background: transparent !important;
+  color: var(--tx) !important;
+  box-shadow: var(--inset), var(--ll-btn-shadow-dark);
+  border-color: var(--line) !important;
+}
+.sr-auth-ghost:hover {
+  background: var(--btn) !important;
+}

@@ -1,0 +1,26 @@
+---
+import Base from "../../../layouts/Base.astro";
+import AppShell from "../../../components/AppShell.astro";
+import Dashboard from "../../../components/Dashboard";
+import ViewTip from "../../../components/ViewTip";
+import { requireClientAccess } from "../../../lib/access";
+
+const slug = Astro.params.client!;
+const access = await requireClientAccess(Astro.locals.user, Astro.locals.isSuperadmin, slug);
+if (!access.ok) {
+  if (access.status === 401) return Astro.redirect("/login");
+  return Astro.redirect("/app");
+}
+---
+<Base title="Dashboard · Survey Rocket">
+  <AppShell slug={slug} clientName={access.client.name} current="dashboard" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email}>
+    <div class="wrap">
+      <div class="pagehead">
+        <h1>Dashboard</h1>
+        <p>Across every survey: what came in, and the numbers you can publish.</p>
+      </div>
+      <ViewTip client:load />
+      <Dashboard client:load clientSlug={slug} />
+    </div>
+  </AppShell>
+</Base>

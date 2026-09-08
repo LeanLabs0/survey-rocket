@@ -1,0 +1,76 @@
+---
+import Base from "../../layouts/Base.astro";
+import AdminShell from "../../components/AdminShell.astro";
+import { listClients, listUsersWithClients } from "../../lib/access";
+
+const users = await listUsersWithClients();
+const clients = await listClients();
+---
+<Base title="Users · Admin">
+  <AdminShell current="users" email={Astro.locals.user?.email}>
+    <div class="wrap">
+      <div class="pagehead">
+        <h1>Users</h1>
+        <p>Who can sign in, and which portals they belong to. New people get a password setup email — they never pick a password here.</p>
+      </div>
+      {clients.length > 0 ? (
+      <form id="invite" class="canvas" style="padding:22px;margin-bottom:22px;max-width:520px">
+        <h3>Invite a user</h3>
+        <label for="invite-email">Email</label>
+        <input id="invite-email" name="email" type="email" required placeholder="colleague@company.com" />
+        <label for="invite-client">Client portal</label>
+        <select id="invite-client" name="client" required>
+          {clients.map((c) => (
+            <option value={c.slug}>{c.name}</option>
+          ))}
+        </select>
+        <label for="invite-role">Role</label>
+        <select id="invite-role" name="role">
+          <option value="member">Member</option>
+          <option value="owner">Owner</option>
+        </select>
+        <button class="btn primary" type="submit" style="margin-top:16px">Send password setup email</button>
+        <p id="invite-msg" hidden style="margin-top:10px;font-size:14px"></p>
+      </form>
+      ) : (
+        <p class="emptystate" style="margin-bottom:22px">Create a client before inviting users.</p>
+      )}
+      <table class="raw">
+        <thead><tr><th>Email</th><th>Superadmin</th><th>Portals</th></tr></thead>
+        <tbody>
+          {users.map((u) => (
+            <tr>
+              <td>{u.email} {u.fullName ? `(${u.fullName})` : ""}</td>
+              <td>{u.isSuperadmin ? "yes" : ""}</td>
+              <td>{u.clients.map((c) => `${c.name} (${c.role})`).join(", ") || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </AdminShell>
+  <style>
+    label{display:block;font-size:12px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px}
+    input,select{width:100%;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:11px 14px;color:var(--tx)}
+  </style>
+  <script>
+    document.getElementById("invite")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target as HTMLFormElement);
+      const msg = document.getElementById("invite-msg")!;
+      const res = await fetch("/api/app/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client: fd.get("client"), email: fd.get("email"), role: fd.get("role") }),
+      });
+      const data = await res.json().catch(() => ({}));
+      msg.hidden = false;
+      if (!res.ok) {
+        msg.style.color = "var(--red)";
+        msg.textContent = data.error || "Could not invite that user.";
+        return;
+      }
+      location.reload();
+    });
+  </script>
+</Base>

@@ -1,0 +1,9 @@
+---
+import { firstClientFor } from "../../lib/access";
+
+if (!Astro.locals.user) return Astro.redirect("/login");
+if (Astro.locals.isSuperadmin) return Astro.redirect("/admin");
+const client = await firstClientFor(Astro.locals.user.id);
+if (!client) return Astro.redirect("/login?error=no-client");
+return Astro.redirect(`/app/${client.slug}/dashboard`);
+---

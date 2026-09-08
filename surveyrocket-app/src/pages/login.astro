@@ -1,0 +1,33 @@
+---
+import Base from "../layouts/Base.astro";
+import { AuthPage } from "../components/auth-page";
+import { parseOtpWaitSeconds, supabasePublishableKey, supabaseUrl } from "../lib/supabase";
+
+const sent = Astro.url.searchParams.get("sent");
+const reset = Astro.url.searchParams.get("reset");
+const rawError = Astro.url.searchParams.get("error");
+const errorMessages: Record<string, string> = {
+  "no-client": "This account isn't assigned to a workspace yet. Ask a Lean Labs admin to add you.",
+  email: "Enter your work email.",
+  "fetch failed": "Could not reach sign-in. Try again in a moment.",
+};
+const error = rawError ? errorMessages[rawError] || rawError : null;
+const waitParam = Number(Astro.url.searchParams.get("wait") || "") || parseOtpWaitSeconds(rawError || "") || 0;
+const next = Astro.url.searchParams.get("next") || "/app";
+const emailPrefill = Astro.url.searchParams.get("email") || "";
+const method = Astro.url.searchParams.get("method") === "magic" || sent || waitParam ? "magic" : "password";
+---
+<Base title="Sign in · Survey Rocket">
+  <AuthPage
+    client:load
+    next={next}
+    emailPrefill={emailPrefill}
+    initialMethod={method}
+    sent={Boolean(sent)}
+    reset={Boolean(reset)}
+    error={error}
+    waitParam={waitParam}
+    supabasePublicUrl={supabaseUrl()}
+    supabaseKey={supabasePublishableKey()}
+  />
+</Base>

@@ -1,0 +1,63 @@
+---
+import Base from "../../../layouts/Base.astro";
+import AppShell from "../../../components/AppShell.astro";
+import Settings from "../../../components/Settings";
+import { membershipFor, requireClientAccess } from "../../../lib/access";
+import { db } from "../../../lib/db";
+import { clientMembers, profiles } from "../../../lib/schema";
+import { eq } from "drizzle-orm";
+import { getConnection, publicConnection } from "../../../lib/hubspot/tokens";
+import { isHubSpotConfigured } from "../../../lib/hubspot/oauth";
+import { supabasePublishableKey, supabaseUrl } from "../../../lib/supabase";
+
+const slug = Astro.params.client!;
+const access = await requireClientAccess(Astro.locals.user, Astro.locals.isSuperadmin, slug);
+if (!access.ok) {
+  if (access.status === 401) return Astro.redirect("/login");
+  return Astro.redirect("/app");
+}
+const conn = publicConnection(await getConnection(access.client.id));
+const memberRows = await db
+  .select({ member: clientMembers, profile: profiles })
+  .from(clientMembers)
+  .innerJoin(profiles, eq(clientMembers.userId, profiles.id))
+  .where(eq(clientMembers.clientId, access.client.id));
+const me = Astro.locals.isSuperadmin ? { role: "owner" } : await membershipFor(Astro.locals.user!.id, access.client.id);
+const canInvite = Astro.locals.isSuperadmin || me?.role === "owner";
+const hs = Astro.url.searchParams.get("hs");
+const [profile] = await db.select().from(profiles).where(eq(profiles.id, Astro.locals.user!.id)).limit(1);
+---
+<Base title="Settings · Survey Rocket">
+  <AppShell slug={slug} clientName={access.client.name} current="settings" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email} theme={profile?.theme || Astro.locals.profile?.theme || "dark"}>
+    <div class="wrap">
+      <Settings
+        client:load
+        clientSlug={slug}
+        clientName={access.client.name}
+        logoUrl={access.client.logoUrl}
+        hubspot={conn}
+        hsConfigured={isHubSpotConfigured()}
+        hsFlash={hs === "connected" || hs === "error" ? hs : null}
+        members={memberRows.map((m) => ({
+          userId: m.member.userId,
+          email: m.profile.email,
+          fullName: m.profile.fullName,
+          role: m.member.role,
+        }))}
+        canInvite={canInvite}
+        isSuperadmin={Astro.locals.isSuperadmin}
+        profile={{
+          id: Astro.locals.user!.id,
+          email: profile?.email || Astro.locals.user?.email || "",
+          fullName: profile?.fullName || null,
+          avatarUrl: profile?.avatarUrl || null,
+          theme: profile?.theme || "dark",
+          locale: profile?.locale || "en",
+          notifyReviews: profile?.notifyReviews !== false,
+        }}
+        supabaseUrl={supabaseUrl()}
+        supabaseKey={supabasePublishableKey()}
+      />
+    </div>
+  </AppShell>
+</Base>

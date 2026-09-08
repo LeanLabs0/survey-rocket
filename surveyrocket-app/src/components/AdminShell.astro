@@ -1,0 +1,57 @@
+---
+interface Props {
+  current: string;
+  email?: string | null;
+}
+const { current, email } = Astro.props;
+const items = [
+  { href: "/admin", key: "dashboard", label: "Overview" },
+  { href: "/admin/clients", key: "clients", label: "Clients" },
+  { href: "/admin/users", key: "users", label: "Users" },
+];
+---
+<style>
+  .app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
+  .side{border-right:1px solid var(--line)}
+  .wordmark{display:block;padding:4px 8px 18px;text-decoration:none}
+  .wordmark img{display:block;width:100%;height:auto;max-width:196px}
+  .navitem{display:flex;align-items:center;gap:10px;border:0;background:transparent;color:var(--tx-2);font-size:14px;font-weight:500;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;text-align:left;width:100%;text-decoration:none}
+  .navitem:hover{background:var(--btn);color:var(--tx)}
+  .navitem.on{background:var(--tx);color:var(--page)}
+  .side-inner{display:flex;flex-direction:column;min-height:100vh;padding:18px 12px}
+  .side-inner .acctline{padding:12px 10px;font-size:12px;border-top:1px solid var(--line)}
+  .side-inner .acctline b{display:block;color:var(--tx-2);font-weight:500}
+  .side-inner .acctline a{color:var(--tx-3);font-size:12px;display:inline-block;margin-top:6px}
+  main{min-width:0}
+  .wrap{width:100%;max-width:1110px;margin:0 auto;padding:26px 20px 80px}
+  .pagehead{margin-bottom:18px}
+  .pagehead h1{font-size:23px;margin:.25em 0 .1em}
+  .pagehead p{margin:0;max-width:70ch}
+  .admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
+  @media (max-width:800px){
+    .app{grid-template-columns:1fr}
+    .side{position:sticky;top:0;z-index:40;border-right:0;border-bottom:1px solid var(--line);background:var(--page)}
+    .side-inner{min-height:0;flex-direction:row;flex-wrap:wrap;padding:10px 12px}
+    .wordmark{flex:1 1 100%;padding:0 2px 10px;max-width:180px}
+    .navitem{width:auto;flex:1 1 auto;justify-content:center;padding:10px 8px;border-radius:999px}
+    .side-inner .acctline{display:none}
+  }
+</style>
+<div class="app">
+  <aside class="side"><div class="side-inner">
+    <a class="wordmark" href="/admin">
+      <img src="/assets/landing/survey-rocket.svg" width="196" height="50" alt="Survey Rocket" />
+    </a>
+    {items.map((it) => (
+      <a class:list={["navitem", { on: current === it.key }]} href={it.href}>{it.label}</a>
+    ))}
+    <div class="acctline">
+      <b>Lean Labs admin</b>
+      <span>{email}</span>
+      <a href="/logout">Sign out</a>
+    </div>
+  </div></aside>
+  <main id="main">
+    <slot />
+  </main>
+</div>

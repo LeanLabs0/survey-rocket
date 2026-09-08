@@ -1,0 +1,74 @@
+---
+import Base from "../../layouts/Base.astro";
+import AdminShell from "../../components/AdminShell.astro";
+import { adminWorkspaceOverview } from "../../lib/access";
+
+const overview = await adminWorkspaceOverview();
+const { totals, clients } = overview;
+---
+<Base title="Admin · Survey Rocket">
+  <AdminShell current="dashboard" email={Astro.locals.user?.email}>
+    <div class="wrap">
+      <div class="pagehead">
+        <h1>Overview</h1>
+        <p>Clients, access, and activity across every portal. Open a portal only when you need to work inside it.</p>
+      </div>
+      <p class="admin-actions">
+        <a class="btn primary" href="/admin/clients/new">New client</a>
+        <a class="btn ghost" href="/admin/users">Invite a user</a>
+      </p>
+      <div class="tiles" style="padding:0 0 22px">
+        <div class="tile">
+          <div class="lbl">Clients</div>
+          <div class="num">{totals.clients}</div>
+          <div class="src">Portals you administer</div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Users</div>
+          <div class="num">{totals.users}</div>
+          <div class="src">{totals.portalUsers} in client portals</div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Surveys</div>
+          <div class="num">{totals.surveys}</div>
+          <div class="src">Across every client</div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Results</div>
+          <div class="num">{totals.responses}</div>
+          <div class="src">Completed responses</div>
+        </div>
+      </div>
+      <table class="raw">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Users</th>
+            <th>Surveys</th>
+            <th>Results</th>
+            <th>HubSpot</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {clients.length === 0 && (
+            <tr><td colspan="6">No clients yet. Create one to send the first password setup email.</td></tr>
+          )}
+          {clients.map((c) => (
+            <tr>
+              <td>{c.name}<div style="color:var(--tx-3);font-size:11px">{c.slug}</div></td>
+              <td>{c.users}</td>
+              <td>{c.surveys}</td>
+              <td>{c.responses}</td>
+              <td>{c.hubspot}</td>
+              <td>
+                <a href={`/admin/clients/${c.slug}`}>Manage</a>
+                · <a href={`/app/${c.slug}/dashboard`}>Open portal</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </AdminShell>
+</Base>

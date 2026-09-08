@@ -1,0 +1,50 @@
+---
+import Base from "../../../../../layouts/Base.astro";
+import AppShell from "../../../../../components/AppShell.astro";
+import Editor from "../../../../../components/Editor";
+import ViewTip from "../../../../../components/ViewTip";
+import { requireClientAccess } from "../../../../../lib/access";
+import { db } from "../../../../../lib/db";
+import { surveys } from "../../../../../lib/schema";
+import { and, eq } from "drizzle-orm";
+import { siteUrl } from "../../../../../lib/supabase";
+
+const slug = Astro.params.client!;
+const id = Astro.params.id!;
+const access = await requireClientAccess(Astro.locals.user, Astro.locals.isSuperadmin, slug);
+if (!access.ok) {
+  if (access.status === 401) return Astro.redirect("/login");
+  return Astro.redirect("/app");
+}
+const [sv] = await db.select().from(surveys).where(and(eq(surveys.id, id), eq(surveys.clientId, access.client.id))).limit(1);
+if (!sv) return Astro.redirect(`/app/${slug}/surveys`);
+---
+<Base title={`${sv.name} · Editor`}>
+  <AppShell slug={slug} clientName={access.client.name} current="surveys" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email}>
+    <script is:inline src="/js/engine.js"></script>
+    <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
+    <div class="wrap">
+      <div class="pagehead">
+        <h1>Editor</h1>
+        <p>Write the questions. The chat asks these and nothing else, and the preview shows what a respondent sees.</p>
+      </div>
+      <ViewTip client:load />
+      <Editor
+        client:load
+        clientSlug={slug}
+        siteUrl={siteUrl()}
+        surveyJson={JSON.stringify({
+          id: sv.id,
+          publicId: sv.publicId,
+          slug: sv.slug,
+          name: sv.name,
+          cadence: sv.cadence,
+          status: sv.status,
+          definition: sv.definition,
+          settings: sv.settings,
+          provenance: sv.provenance,
+        })}
+      />
+    </div>
+  </AppShell>
+</Base>

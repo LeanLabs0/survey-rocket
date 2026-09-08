@@ -1,0 +1,229 @@
+---
+import Base from "../../layouts/Base.astro";
+import { db } from "../../lib/db";
+import { clients, surveyPublications, surveys } from "../../lib/schema";
+import { desc, eq } from "drizzle-orm";
+
+const publicId = Astro.params.publicId!;
+const [sv] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
+if (!sv || sv.status === "Draft") {
+  // still render missing UI
+}
+const [client] = sv ? await db.select().from(clients).where(eq(clients.id, sv.clientId)).limit(1) : [null];
+const [pub] = sv
+  ? await db.select().from(surveyPublications).where(eq(surveyPublications.surveyId, sv.id)).orderBy(desc(surveyPublications.version)).limit(1)
+  : [null];
+const definition = pub?.definition || sv?.definition || null;
+const clientName = client?.name || "Survey Rocket";
+---
+<Base title={sv?.name || "Survey"}>
+  <style>
+    .rs-shell{max-width:736px;margin:34px auto 60px;padding:0 16px}
+    .rs-brand{display:none}
+    #rs-log{min-height:280px;max-height:min(60vh,calc(100dvh - 260px))}
+    .rs-note{text-align:center;font-size:12px;color:var(--tx-3);margin-top:14px;line-height:2}
+    .rs-missing{text-align:center;padding:60px 20px;color:var(--tx-2)}
+    .rs-gate{padding:24px 22px;display:flex;flex-direction:column;gap:12px}
+    .rs-gate h3{font-size:17px}
+    .rs-gate p{font-size:13.5px;color:var(--tx-2);margin:0}
+    .rs-gate .g-note{font-size:12px;color:var(--tx-3)}
+    #g-contact{display:flex;flex-direction:column;gap:10px}
+    .rs-gate input{max-width:none}
+    .rs-after{margin-top:18px;display:none;flex-direction:column;gap:14px}
+    .rs-results{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+    .rs-results h3{font-size:14px;margin:0 0 10px}
+    .rs-results .row{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--tx-2);padding:5px 0;border-bottom:1px solid var(--line)}
+    .rs-results .row:last-child{border-bottom:0}
+    .rs-results .row b{color:var(--tx);font-weight:600}
+    .rs-review{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 24px 24px;text-align:center}
+    .rs-review .brand{display:block;height:36px;width:auto;margin:0 auto 18px}
+    .rs-review h2{font-size:20px;letter-spacing:-.03em;margin:0 0 8px}
+    .rs-review p{font-size:14px;color:var(--tx-2);margin:0 0 20px;line-height:1.5}
+    .rs-review .btns{display:flex;flex-direction:column;gap:10px;align-items:stretch;max-width:320px;margin:0 auto}
+    .rs-review .btns .btn{width:100%}
+    .chat-head .powered{display:block;height:18px;width:auto;margin-top:8px;opacity:.9}
+  </style>
+  <div class="rs-shell">
+    <div class="chat-frame" id="frame">
+      <div class="chat-head">
+        <div>
+          <b id="rs-title">{sv?.name || "Survey"}</b>
+          <img class="powered" src="/assets/landing/survey-rocket.svg" width="140" height="35" alt="Survey Rocket" />
+        </div>
+        <span class="chat-prog" id="rs-prog"></span>
+      </div>
+      <div class="chat-log" id="rs-log" aria-live="polite"></div>
+      <div class="chat-input">
+        <input id="rs-inp" type="text" autocomplete="off" placeholder="Tap an option above" aria-label="Your answer" disabled>
+        <button class="send" id="rs-send" disabled>Send</button>
+        <button class="chat-restart" type="button" id="rs-restart">Restart</button>
+      </div>
+    </div>
+    <div class="rs-gate canvas" id="gate" style="display:none">
+      <h3 id="g-title">Ready when you are</h3>
+      <p id="g-meta"></p>
+      <div id="g-contact" style="display:none">
+        <p>First, your name and work email. They are saved with your answers so the team knows who said what.</p>
+        <label class="flabel" for="g-name">Your name</label>
+        <input id="g-name" class="field" type="text" autocomplete="name" placeholder="Your name">
+        <label class="flabel" for="g-email">Work email</label>
+        <input id="g-email" class="field" type="email" autocomplete="email" placeholder="you@company.com">
+      </div>
+      <p class="g-note">Your answers are recorded when you finish.</p>
+      <button class="btn primary" id="g-go">Start the survey</button>
+    </div>
+    <div class="rs-missing" id="missing" style={`display:${definition ? "none" : "block"}`}>
+      This survey link is not working.<br>
+      Ask whoever sent it for a fresh link.
+    </div>
+    <div class="rs-note" id="note">
+      <button class="btn ghost small" id="rs-copy" style="margin-left:4px;display:none">Copy my answers</button>
+    </div>
+    <div class="rs-after" id="after">
+      <div class="rs-results" id="afterResults" style="display:none">
+        <h3>How your answers compare</h3>
+        <div id="afterRows"></div>
+      </div>
+      <div class="rs-review" id="afterReview" style="display:none">
+        <img class="brand" src="/assets/landing/survey-rocket.svg" width="160" height="40" alt="Survey Rocket" />
+        <h2>Thanks for your answers</h2>
+        <p>Would you be open to leaving a public review? It helps others find the work.</p>
+        <div class="btns" id="reviewBtns"></div>
+      </div>
+    </div>
+  </div>
+  <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
+  <script is:inline src="/js/engine.js"></script>
+  <script is:inline src="/js/transport.js"></script>
+  <script is:inline define:vars={{ publicId, definition, clientName }}>
+    (function(){
+      if(!definition || !definition.questions || !definition.questions.length){
+        document.getElementById("frame").style.display="none";
+        document.getElementById("note").style.display="none";
+        document.getElementById("missing").style.display="block";
+        document.getElementById("gate").style.display="none";
+        return;
+      }
+      var survey = Object.assign({}, definition, { public_id: publicId, id: publicId });
+      var settings = survey.settings || {};
+      var lastAnswers=null, respondent={name:null,email:null};
+      var run={id:SRHubSpot.uuid(), startedAt:null};
+      function countWord(n){
+        var words=["zero","one","two","three","four","five","six","seven","eight","nine"];
+        return n<words.length?words[n]:String(n);
+      }
+      function cap(w){ return w.charAt(0).toUpperCase()+w.slice(1); }
+      function sendRecord(reviewAsked, reviewOutcome){
+        if(!lastAnswers) return;
+        SRHubSpot.send(SRHubSpot.buildPayload(survey, lastAnswers, {
+          clientResponseId:run.id, startedAt:run.startedAt,
+          name:respondent.name, email:respondent.email,
+          reviewAsked:reviewAsked, reviewOutcome:reviewOutcome
+        }));
+      }
+      function showEnding(){
+        document.getElementById("after").style.display="flex";
+        if(settings.show_results){
+          SRHubSpot.results(publicId).then(function(res){
+            if(!res || !res.responses) return;
+            var box=document.getElementById("afterRows");
+            box.innerHTML="";
+            var head=document.createElement("div");
+            head.className="row";
+            head.innerHTML="<span>Answers so far</span><b>"+res.responses+"</b>";
+            box.appendChild(head);
+            Object.keys(res.questions||{}).forEach(function(qid){
+              var q=res.questions[qid];
+              var val=null;
+              if(q.average!==null && q.average!==undefined) val=String(q.average);
+              else if(q.choices){
+                var top=null; Object.keys(q.choices).forEach(function(c){ if(!top||q.choices[c]>q.choices[top]) top=c; });
+                if(top) val=top;
+              }
+              if(val===null) return;
+              var row=document.createElement("div");
+              row.className="row";
+              var label=document.createElement("span"); label.textContent=q.question||qid;
+              var strong=document.createElement("b"); strong.textContent=val;
+              row.appendChild(label); row.appendChild(strong);
+              box.appendChild(row);
+            });
+            document.getElementById("afterResults").style.display="block";
+          });
+        }
+        var links=settings.review_links||{};
+        var platforms=Object.keys(links).filter(function(p){ return (links[p]||"").trim(); });
+        if(settings.review_ask && platforms.length){
+          var btns=document.getElementById("reviewBtns");
+          btns.innerHTML="";
+          platforms.forEach(function(p){
+            var url=links[p];
+            var a=document.createElement("a");
+            a.className="btn primary"; a.target="_blank"; a.rel="noopener";
+            a.href=url;
+            a.textContent=/google|g\.page|maps\.app\.goo/i.test(url) || p==="google" ? "Leave a Google review" : "Leave a review";
+            a.addEventListener("click",function(){ sendRecord(true,"clicked"); });
+            btns.appendChild(a);
+          });
+          var later=document.createElement("button");
+          later.className="btn ghost"; later.textContent="Maybe later";
+          later.addEventListener("click",function(){
+            document.getElementById("afterReview").style.display="none";
+            sendRecord(true,"dismissed");
+          });
+          btns.appendChild(later);
+          document.getElementById("afterReview").style.display="block";
+        }
+      }
+      var chat=new SurveyChat({
+        log:document.getElementById("rs-log"),
+        input:document.getElementById("rs-inp"),
+        sendBtn:document.getElementById("rs-send"),
+        progEl:document.getElementById("rs-prog"),
+        script:survey.questions,
+        outro: survey.outro || "That is everything. Thank you.",
+        onComplete:function(answers){
+          lastAnswers=answers;
+          sendRecord(false,"not_asked");
+          document.getElementById("rs-copy").style.display="inline-flex";
+          showEnding();
+        }
+      });
+      function startRun(){
+        run.id=SRHubSpot.uuid();
+        run.startedAt=new Date().toISOString();
+        document.getElementById("after").style.display="none";
+        document.getElementById("afterResults").style.display="none";
+        document.getElementById("afterReview").style.display="none";
+        chat.start();
+      }
+      document.getElementById("rs-restart").addEventListener("click",startRun);
+      var frame=document.getElementById("frame"), note=document.getElementById("note"), gate=document.getElementById("gate");
+      frame.style.display="none"; note.style.display="none";
+      gate.style.display="flex";
+      document.getElementById("g-title").textContent=survey.name||"Ready when you are";
+      var qn=survey.questions.length;
+      document.getElementById("g-meta").textContent=cap(countWord(qn))+" quick question"+(qn===1?"":"s")+" from "+clientName+". Most answers are one tap.";
+      if(settings.require_contact) document.getElementById("g-contact").style.display="flex";
+      document.getElementById("g-go").addEventListener("click",function(){
+        if(settings.require_contact){
+          var name=document.getElementById("g-name").value.trim();
+          var email=document.getElementById("g-email").value.trim();
+          if(!name || email.indexOf("@")<1) return;
+          respondent.name=name; respondent.email=email;
+        }
+        gate.style.display="none";
+        frame.style.display=""; note.style.display="";
+        startRun();
+      });
+      document.getElementById("rs-copy").addEventListener("click",function(){
+        if(!lastAnswers) return;
+        var text=JSON.stringify({survey:survey.name, answers:lastAnswers}, null, 2);
+        navigator.clipboard.writeText(text).then(function(){
+          document.getElementById("rs-copy").textContent="Copied";
+          setTimeout(function(){ document.getElementById("rs-copy").textContent="Copy my answers"; },2000);
+        });
+      });
+    })();
+  </script>
+</Base>
