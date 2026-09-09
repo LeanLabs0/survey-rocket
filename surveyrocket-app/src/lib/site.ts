@@ -11,13 +11,23 @@ function isMarketingAsset(pathname: string) {
     pathname.startsWith("/js/") ||
     pathname.startsWith("/assets/") ||
     pathname === "/favicon.ico" ||
+    pathname === "/favicon.svg" ||
     pathname === "/robots.txt"
   );
 }
 
+/** Vercel custom domains put the public host on x-forwarded-host, not url.hostname. */
+export function requestHost(request: Request, url: URL) {
+  const raw =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    url.hostname;
+  return raw.split(",")[0].trim().split(":")[0].toLowerCase();
+}
+
 /** Localhost and *.vercel.app keep serving everything. Production hosts split. */
-export function hostSplitRedirect(url: URL): string | null {
-  const host = url.hostname.toLowerCase();
+export function hostSplitRedirect(url: URL, request: Request): string | null {
+  const host = requestHost(request, url);
   if (MARKETING_HOSTS.has(host)) {
     if (!isMarketingAsset(url.pathname)) {
       return `${APP_ORIGIN}${url.pathname}${url.search}`;

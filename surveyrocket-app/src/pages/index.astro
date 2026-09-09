@@ -4,6 +4,7 @@ import "../styles/styles-landing.css";
 import { appOrigin } from "../lib/site";
 
 const demo = `${appOrigin()}/demo`;
+const login = `${appOrigin()}/login`;
 ---
 <!doctype html>
 <html lang="en">
@@ -12,6 +13,7 @@ const demo = `${appOrigin()}/demo`;
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Survey Rocket</title>
 <meta name="description" content="Turn customer surveys into stats you can publish. Survey Rocket asks your questions in a chat and turns results into numbers for your website.">
+<link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -245,7 +247,10 @@ const demo = `${appOrigin()}/demo`;
       <img src="/assets/landing/logo-mark.svg" width="48" height="55" alt="">
       <span><b>Survey</b> <i>Rocket</i></span>
     </a>
-    <a class="lp-btn solid" href={demo}>Try the live demo</a>
+    <div class="lp-nav-actions">
+      <a class="lp-btn glass" href={login}>Log in</a>
+      <a class="lp-btn solid" href={demo}>Try the live demo</a>
+    </div>
   </header>
 
   <section class="lp-hero" data-hero-builder>
@@ -503,6 +508,7 @@ const demo = `${appOrigin()}/demo`;
     </div>
     <div class="lp-foot-links">
       <span>&copy; 2026 Lean Labs</span>
+      <a href={login}>Log in</a>
       <a href={demo}>Live demo</a>
     </div>
   </footer>

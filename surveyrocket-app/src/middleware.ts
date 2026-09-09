@@ -8,7 +8,7 @@ const PROTECTED = [/^\/app(?:\/|$)/, /^\/admin(?:\/|$)/, /^\/api\/app(?:\/|$)/, 
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { cookies, url, locals, request } = context;
-  const split = hostSplitRedirect(url);
+  const split = hostSplitRedirect(url, request);
   if (split) return context.redirect(split, 308);
   locals.user = null;
   locals.profile = null;
