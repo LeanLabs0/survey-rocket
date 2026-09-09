@@ -7,6 +7,7 @@ export type AppShellData = {
   isSuperadmin?: boolean;
   email?: string | null;
   fullName?: string | null;
+  avatarUrl?: string | null;
 };
 
 const AppShellContext = createContext<AppShellData | null>(null);

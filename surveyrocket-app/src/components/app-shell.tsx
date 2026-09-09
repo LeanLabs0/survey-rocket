@@ -20,10 +20,11 @@ export function AppShell({
 	isSuperadmin,
 	email,
 	fullName,
+	avatarUrl,
 }: AppShellProps) {
 	return (
 		<AppShellContext.Provider
-			value={{ slug, clientName, current, isSuperadmin, email, fullName }}
+			value={{ slug, clientName, current, isSuperadmin, email, fullName, avatarUrl }}
 		>
 			<div className="overflow-hidden">
 				<TooltipProvider>

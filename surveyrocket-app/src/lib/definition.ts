@@ -76,11 +76,12 @@ export function validateDefinition(s: SurveyDefinition) {
   return null;
 }
 
-export function respondentDefinition(def: Record<string, unknown>, extras: { publicId: string; clientName: string; logoUrl: string | null }) {
+export function respondentDefinition(def: Record<string, unknown>, extras: { publicId: string; clientName: string; logoUrl: string | null; brand?: Record<string, unknown> }) {
   return {
     ...def,
     public_id: extras.publicId,
     client_name: extras.clientName,
     logo_url: extras.logoUrl,
+    brand: extras.brand || {},
   };
 }

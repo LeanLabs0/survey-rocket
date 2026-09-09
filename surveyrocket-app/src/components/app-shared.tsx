@@ -51,15 +51,21 @@ export function getAppNav({ slug, current, isSuperadmin }: AppShellData) {
           icon: <BarChart3Icon />,
           isActive: current === "results",
         },
-        {
-          title: "Settings",
-          path: `${base}/settings`,
-          icon: <SettingsIcon />,
-          isActive: current === "settings",
-        },
       ],
     },
   ];
+
+  const pageItems: SidebarNavItem[] =
+    current === "settings"
+      ? [
+          {
+            title: "Settings",
+            path: `${base}/settings`,
+            icon: <SettingsIcon />,
+            isActive: true,
+          },
+        ]
+      : [];
 
   const footerNavLinks: SidebarNavItem[] = isSuperadmin
     ? [
@@ -77,6 +83,7 @@ export function getAppNav({ slug, current, isSuperadmin }: AppShellData) {
         item.subItems?.length ? [item, ...item.subItems] : [item]
       )
     ),
+    ...pageItems,
     ...footerNavLinks,
   ];
 

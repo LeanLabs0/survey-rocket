@@ -1,28 +1,101 @@
-/* Survey Rocket shared styles. Lean Labs design system: near-black monochrome,
-   1px #2B2B2B inset borders, Plus Jakarta Sans SemiBold headings, Roboto body. */
+/* Survey Rocket tokens.
+   Foundation: Lean Labs Style Guide
+   https://www.figma.com/design/igfBOT1bygyzlO903MUAcj/Lean-Labs-Style-Guide
+   — Colour / type / radius: page 2368:52 (Typography 4179:8581, Radius 6342:758)
+   — Buttons & inputs: UI Elements 5352:56404
+   Survey Rocket landing (12952:8445) overrides a few of those on #view-landing:
+   display italic, pill buttons, landing shadows. See styles-landing.css. */
+
 :root{
-  --page:#0D0D0D; --card:#141414; --btn:#1C1C1C; --btn-hover:#2A2A2A; --tile:#212121;
-  --tx:#FFFFFF; --tx-2:#949494; --tx-dis:#757575; --icon:#B0B0B0; --line:#2B2B2B;
-  --alert:#FDE68A; --green:#00D492; --red:#E5484D; --yellow:#FFA600; --blue:#93C5FD;
-  --nfi:#24456B; --tx-3:#8E8E8E;
-  --inset:inset 0 0 0 1px var(--line);
-  --r-sm:4px; --r-md:8px; --r-lg:16px;
-  --font-heading:'Plus Jakarta Sans',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
-  --font-body:'Roboto',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
+  /* Colour */
+  --ll-white:#ffffff;
+  --ll-black:#000000;
+  --ll-page:#0d0d0d;
+  --ll-card:#141414;
+  --ll-btn:#1c1c1c;
+  --ll-btn-hover:#1b1b1b;
+  --ll-neutral:#212121;
+  --ll-border:#2b2b2b;
+  --ll-text:#ffffff;
+  --ll-text-2:#949494;
+  --ll-text-disabled:#757575;
+  --ll-icon:#b0b0b0;
+  --ll-fg:#1b1b1b;
+  --ll-bg-light:#f0f0f0;
+  --ll-white-5:rgba(255,255,255,.05);
+  --ll-white-50:rgba(255,255,255,.5);
+  --ll-white-60:rgba(255,255,255,.6);
+
+  /* Type — Plus Jakarta Sans throughout. Tracking -4 in Figma is -0.04em. */
+  --ll-font:'Plus Jakarta Sans',-apple-system,'Segoe UI',system-ui,sans-serif;
+  --ll-h1:56px; --ll-h2:42px; --ll-h3:36px; --ll-h4:28px; --ll-h5:24px; --ll-h6:20px;
+  --ll-text-lg:20px; --ll-text-md:18px; --ll-text-rg:16px; --ll-text-sm:14px; --ll-text-xs:12px;
+  --ll-ls-display:-0.04em;
+  --ll-lh-display:1.2;
+  --ll-lh-h4:1.3;
+  --ll-lh-h5:1.4;
+  --ll-lh-body:1.5;
+
+  /* Radius */
+  --ll-r-sm:4px;
+  --ll-r-md:8px;
+  --ll-r-lg:16px;
+  --ll-stroke:1px;
+
+  /* Buttons — default / medium unless a size class says otherwise */
+  --ll-btn-radius:8px;
+  --ll-btn-weight:600;
+  --ll-btn-h:50px;
+  --ll-btn-px:24px;
+  --ll-btn-fs:14px;
+  --ll-btn-shadow-light:
+    0 0 0 1px rgba(17,17,17,.06),
+    0 1px 1px rgba(151,71,255,.03),
+    0 2px 4px rgba(13,13,13,.08);
+  --ll-btn-shadow-inner:inset 0 -1px 0 rgba(0,0,0,.05);
+  --ll-btn-shadow-dark:inset 0 1px 0 rgba(255,255,255,.12);
+  --ll-btn-text-disabled:#3d3d3d;
+
+  /* Product extras (not in the style guide) */
+  --alert:#fde68a; --green:#00d492; --red:#e5484d; --yellow:#ffa600; --blue:#93c5fd;
+  --nfi:#24456b; --tx-3:#8e8e8e;
+
+  /* Back-compat aliases used across app / demo / survey */
+  --page:var(--ll-page); --card:var(--ll-card); --btn:var(--ll-btn);
+  --btn-hover:#2a2a2a; --tile:var(--ll-neutral);
+  --tx:var(--ll-text); --tx-2:var(--ll-text-2); --tx-dis:var(--ll-text-disabled);
+  --icon:var(--ll-icon); --line:var(--ll-border);
+  --inset:inset 0 0 0 var(--ll-stroke) var(--ll-border);
+  --r-sm:var(--ll-r-sm); --r-md:var(--ll-r-md); --r-lg:var(--ll-r-lg);
+  --font-heading:var(--ll-font);
+  --font-body:var(--ll-font);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--page);color:var(--tx-2);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 @media (prefers-reduced-motion: reduce){ *,*::before,*::after{transition:none!important;animation:none!important} }
-h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;color:var(--tx);margin:0}
+h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;color:var(--tx);margin:0;letter-spacing:var(--ll-ls-display)}
 button,input,select,textarea{font-family:var(--font-body)}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
 
-.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border:0;border-radius:var(--r-md);font-size:14px;font-weight:500;cursor:pointer;text-decoration:none}
-.btn.primary{background:var(--tx);color:var(--page)}
-.btn.primary:hover{background:#E6E6E6}
-.btn.ghost{background:transparent;box-shadow:var(--inset);color:var(--tx)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:var(--ll-btn-h);padding:0 var(--ll-btn-px);border:0;
+  border-radius:var(--ll-btn-radius);font-size:var(--ll-btn-fs);
+  font-weight:var(--ll-btn-weight);letter-spacing:-0.02em;
+  cursor:pointer;text-decoration:none;min-height:var(--ll-btn-h);
+}
+.btn.primary{
+  background:var(--ll-white);color:var(--ll-page);
+  box-shadow:var(--ll-btn-shadow-light), var(--ll-btn-shadow-inner);
+}
+.btn.primary:hover{background:#e6e6e6}
+.btn.ghost{
+  background:transparent;color:var(--tx);
+  box-shadow:var(--inset), var(--ll-btn-shadow-dark);
+}
 .btn.ghost:hover{background:var(--btn)}
-.btn.small{padding:7px 12px;font-size:13px}
+.btn.large{--ll-btn-h:56px;--ll-btn-px:28px;--ll-btn-fs:16px}
+.btn.small{--ll-btn-h:36px;--ll-btn-px:12px;--ll-btn-fs:12px}
 .btn.danger{background:transparent;box-shadow:var(--inset);color:var(--tx-2)}
 .btn.danger:hover,.btn.danger:focus-visible{color:var(--red);background:var(--btn)}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:500;box-shadow:var(--inset);color:var(--tx-2)}
@@ -86,9 +159,11 @@ footer.pagefoot a{color:var(--tx-2);display:inline-flex;align-items:center;min-h
 /* Touch floor. 44px wherever a finger taps; mouse-dense controls may sit at
    36px. The landing page carried this fix alone for a week while the actual
    respondent page shipped 29px chips; it lives here now so every page gets it. */
-.opt,.send,.btn,.chat-input input{min-height:40px}
+.opt,.send,.chat-input input{min-height:40px}
+.btn{min-height:var(--ll-btn-h)}
 @media (pointer:coarse){
   .opt,.send,.btn,.btn.small,.chat-input input,.navitem,.dashtab,.showmore,select{min-height:44px}
+  .btn{min-height:max(44px, var(--ll-btn-h))}
 }
 .opts:focus{outline:none}
 

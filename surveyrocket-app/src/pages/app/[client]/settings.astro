@@ -30,6 +30,10 @@ const [profile] = await db.select().from(profiles).where(eq(profiles.id, Astro.l
 <Base title="Settings · Survey Rocket">
   <AppShell slug={slug} clientName={access.client.name} current="settings" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email} theme={profile?.theme || Astro.locals.profile?.theme || "dark"}>
     <div class="wrap">
+      <div class="pagehead">
+        <h1>Settings</h1>
+        <p>Manage your personal account, this workspace, and HubSpot.</p>
+      </div>
       <Settings
         client:load
         clientSlug={slug}

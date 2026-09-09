@@ -304,7 +304,7 @@ function ChoiceBars({
 
 function GraphCard({ result }: { result: GraphResult }) {
   return (
-    <Card className="flex h-[26rem] w-[min(100%,28rem)] shrink-0 flex-col dark:bg-transparent">
+    <Card className="flex h-[26rem] w-[min(100%,28rem)] shrink-0 flex-col border border-foreground/10 ring-0 dark:bg-transparent">
       <CardHeader className="border-b">
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{result.kindLabel}</p>
         <CardTitle className="line-clamp-2 min-h-12 text-lg text-balance">{result.title}</CardTitle>
@@ -367,11 +367,69 @@ function ChartRow({ results }: { results: GraphResult[] }) {
     const el = scrollerRef.current;
     if (!el) return;
     update();
-    el.addEventListener("scroll", update, { passive: true });
     const ro = new ResizeObserver(update);
     ro.observe(el);
+
+    const drag = { pointerId: -1, startX: 0, startScroll: 0, moved: false };
+
+    function setDragging(on: boolean) {
+      el.dataset.dragging = on ? "true" : "false";
+    }
+
+    function onScroll() {
+      update();
+    }
+
+    function onWheel(e: WheelEvent) {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    }
+
+    function onPointerDown(e: globalThis.PointerEvent) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      drag.pointerId = e.pointerId;
+      drag.startX = e.clientX;
+      drag.startScroll = el.scrollLeft;
+      drag.moved = false;
+      el.setPointerCapture(e.pointerId);
+    }
+
+    function onPointerMove(e: globalThis.PointerEvent) {
+      if (drag.pointerId !== e.pointerId) return;
+      const dx = e.clientX - drag.startX;
+      if (!drag.moved && Math.abs(dx) < 4) return;
+      drag.moved = true;
+      setDragging(true);
+      el.scrollLeft = drag.startScroll - dx;
+    }
+
+    function onPointerUp(e: globalThis.PointerEvent) {
+      if (drag.pointerId !== e.pointerId) return;
+      drag.pointerId = -1;
+      setDragging(false);
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+    }
+
+    function onDragStart(e: DragEvent) {
+      e.preventDefault();
+    }
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("pointerdown", onPointerDown, true);
+    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointerup", onPointerUp);
+    el.addEventListener("pointercancel", onPointerUp);
+    el.addEventListener("dragstart", onDragStart);
     return () => {
-      el.removeEventListener("scroll", update);
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("pointerdown", onPointerDown, true);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", onPointerUp);
+      el.removeEventListener("pointercancel", onPointerUp);
+      el.removeEventListener("dragstart", onDragStart);
       ro.disconnect();
     };
   }, [results]);
@@ -391,7 +449,10 @@ function ChartRow({ results }: { results: GraphResult[] }) {
         <ChartArrow dir="prev" disabled={!canLeft} onClick={() => scroll(-1)} />
         <ChartArrow dir="next" disabled={!canRight} onClick={() => scroll(1)} />
       </div>
-      <div className="overflow-x-hidden" ref={scrollerRef}>
+      <div
+        className="cursor-grab overflow-x-auto overflow-y-hidden p-px select-none overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden data-[dragging=true]:cursor-grabbing"
+        ref={scrollerRef}
+      >
         <div className="flex items-stretch gap-4">
           {results.map((result) => (
             <GraphCard key={result.id} result={result} />
@@ -681,7 +742,7 @@ export default function Results({
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 pb-2">
-                <Table className="border-t">
+                <Table>
                   <TableCaption className="sr-only">
                     Count of written answers for each open-text question.
                   </TableCaption>

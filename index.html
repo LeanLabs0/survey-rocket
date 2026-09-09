@@ -3,12 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0;url=https://beta.surveyrocket.ai/">
+<script>location.replace("https://beta.surveyrocket.ai/"+(location.hash==="#/demo"?"demo":""));</script>
 <title>Survey Rocket</title>
 <meta name="description" content="Turn customer surveys into stats you can publish. Survey Rocket asks your questions in a chat, saves every answer to HubSpot, and turns results into numbers for your website.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles-shared.css">
+<link rel="stylesheet" href="assets/styles-landing.css">
 <style>
   body{font-size:16px}
   .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;height:60px;padding:0 24px;background:var(--page);border-bottom:1px solid var(--line)}
@@ -228,177 +231,274 @@
 
 </style>
 </head>
-<body>
-<a class="skip-link" href="#main">Skip to the demo</a>
+<body class="lp-on">
+<a class="skip-link" href="#/demo">Skip to the demo</a>
 
 <header class="topbar">
   <a class="wordmark" href="#/"><span class="rocket">SR</span>Survey Rocket</a>
   <nav class="topnav">
-    <a class="plain" href="#/#how">How it works</a>
     <a class="cta" href="#/demo">Try the live demo</a>
   </nav>
 </header>
 
 <section class="view active" id="view-landing">
-  <div class="wrap">
-    <div class="hero">
-      <h1>Turn customer surveys into stats you can publish</h1>
-      <p>Scan your pages for proof gaps, send a short survey from HubSpot, and let an AI chat turn customer answers into website citations.</p>
-      <div class="ctas">
-        <a class="btn primary" href="#/demo">See the live demo</a>
-        <a class="btn ghost" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
+  <header class="lp-nav">
+    <a class="lp-brand" href="#/">
+      <img src="assets/landing/logo-mark.svg" width="48" height="55" alt="">
+      <span><b>Survey</b> <i>Rocket</i></span>
+    </a>
+    <a class="lp-btn solid" href="#/demo">Try the live demo</a>
+  </header>
+
+  <section class="lp-hero">
+    <div class="lp-glow" aria-hidden="true"><img src="assets/landing/hero-glow.svg" width="1852" height="1852" alt=""></div>
+    <div class="lp-hero-inner">
+      <div>
+        <h1 class="lp-reveal" data-delay="0">Turn customer surveys into <span class="em">stats you can publish</span></h1>
+        <p class="lead lp-reveal" data-delay="520">Scan your pages for proof gaps, send a short survey from HubSpot, and let an AI chat turn customer answers into website citations.</p>
       </div>
-      <div class="note">No sign-up. The demo takes about two minutes.</div>
+      <div>
+        <div class="lp-ctas">
+          <a class="lp-btn solid lp-reveal" href="#/demo" data-delay="1040">Try the live demo</a>
+          <a class="lp-btn glass lp-reveal" href="https://www.lean-labs.com" target="_blank" rel="noopener" data-delay="1280">Talk with our team</a>
+        </div>
+        <p class="lp-note lp-reveal" data-delay="1680"><img src="assets/landing/icon-clock.svg" width="16" height="16" alt="">No sign-up. The demo takes about two minutes.</p>
+      </div>
+      <div class="lp-video lp-reveal fade" data-delay="2160" title="Video placeholder. The recorded walkthrough embeds here.">
+        <div class="lp-play"><img src="assets/landing/icon-play.svg" width="19" height="19" alt=""></div>
+      </div>
     </div>
+  </section>
 
-    <figure class="vid">
-      <div class="vid-frame" title="Video placeholder. The recorded walkthrough embeds here.">
-        <button class="play" aria-label="Video placeholder, not playable yet" tabindex="-1"></button>
-        <div class="third"><b>Kevin Barber</b><span>What Survey Rocket does, in about 90 seconds</span></div>
-        <span class="dur">1:30</span>
-      </div>
-      <figcaption class="cap">Video placeholder, the recorded walkthrough embeds here.</figcaption>
-    </figure>
-
-    <section class="lp">
-      <div class="lp-head mid">
-        <h2>Give AI authoritative results to cite</h2>
-        <p>Buyers ask ChatGPT and Gemini who to buy from, and assistants answer with evidence. A published stat gives them something to quote.</p>
-      </div>
-      <div class="twocol">
-        <div class="lpcard">
+  <section class="lp-cite">
+    <div class="lp-inner lp-cite-grid">
+      <h2>Give AI <span class="em">authoritative results</span> to cite</h2>
+      <p class="intro">Buyers ask ChatGPT and Gemini who to buy from, and assistants answer with evidence. A published stat gives them something to quote.</p>
+      <div class="lp-cite-cards">
+        <div class="lp-cite-card">
+          <img class="lp-cite-icon" src="assets/landing/icon-sparkle.svg" width="56" height="56" alt="">
           <h3>AI recommends companies with evidence</h3>
           <p>Ask an assistant who is best in your category and it reaches for numbers and cited results. Publish outcomes and it has something to repeat.</p>
         </div>
-        <div class="lpcard">
+        <div class="lp-cite-card">
+          <img class="lp-cite-icon" src="assets/landing/icon-number.svg" width="56" height="56" alt="">
           <h3>Prospects ask for numbers, too</h3>
           <p>On the sales call, someone asks what results your customers get. One anecdote is a weaker answer than an average across all of them.</p>
         </div>
       </div>
-      <div class="lp-head mid" style="margin:34px auto 0">
-        <p>Survey your customers and both audiences get the same answer, a number backed by your whole base.</p>
-      </div>
-      <div style="max-width:660px;margin:0 auto"><blockquote class="quote"><p>&ldquo;Survey Rocket&rsquo;s job is to get us to data points we can use for authority on a website when we can&rsquo;t use individual testimonials.&rdquo;</p><span class="who"><b>Kevin Barber</b> &middot; Head of AI Growth at Lean Labs</span></blockquote></div>
-    </section>
+      <p class="lp-cite-close">Survey your customers and both audiences get <span class="em">the same answer, a number backed by your whole base</span>.</p>
+    </div>
+  </section>
 
-    <section class="lp">
-      <div class="split">
-        <div>
+  <section class="lp-light">
+    <div class="lp-inner">
+      <div class="lp-gaps-top">
+        <div class="lp-gaps-copy">
           <h2>Find the proof gaps on your website</h2>
           <p>Point Survey Rocket at a page and it flags the claims with no evidence behind them. Each gap comes back with a drafted survey that fills it.</p>
           <p>Or type the stat you want, and the questions that produce it arrive as a draft for your review.</p>
-          <blockquote class="quote"><p>&ldquo;It starts with the data point we want to achieve, then the survey questions that would help us achieve it.&rdquo;</p><span class="who"><b>Kevin Barber</b> &middot; Head of AI Growth at Lean Labs</span></blockquote>
         </div>
-        <figure class="shot"><figcaption>Product screen &middot; gap scan</figcaption></figure>
+        <blockquote class="lp-quote">
+          <p>&ldquo;It starts with the data point we want to achieve, then the survey questions that would help us achieve it.&rdquo;</p>
+          <div class="lp-who">
+            <img src="assets/landing/kevin-avatar.png" width="48" height="48" alt="">
+            <div><b>Kevin Barber</b><span>Head of AI Growth, Lean Labs</span></div>
+          </div>
+        </blockquote>
       </div>
-    </section>
+      <div class="lp-shot ph">Product screen &middot; gap scan</div>
+    </div>
+  </section>
 
-    <section class="lp">
-      <div class="lp-head mid"><h2>Launch a survey in three steps</h2></div>
-      <div class="stepgrid">
-        <div class="stepcard"><span class="n">1</span><h3>Send the invite from HubSpot</h3><p>Enroll customers in a short email series. Reminders stop the moment someone answers.</p></div>
-        <div class="stepcard"><span class="n">2</span><h3>Ask the questions as a chat</h3><p>Questions arrive one at a time, and most answers are a single tap. It reads like a conversation and takes minutes.</p></div>
-        <div class="stepcard"><span class="n">3</span><h3>Publish the running averages</h3><p>Watch each response update your running average, then put the stat on your website.</p></div>
+  <section class="lp-steps">
+    <div class="lp-inner">
+      <h2>Launch a survey in <span class="em">three steps</span></h2>
+      <div class="lp-stepgrid">
+        <article class="lp-step lp-reveal" data-delay="0"><div class="n">01</div><div><h3>Send the invite from HubSpot</h3><p>Enroll customers in a short email series. Reminders stop the moment someone answers.</p></div></article>
+        <article class="lp-step lp-reveal" data-delay="180"><div class="n">02</div><div><h3>Ask the questions as a chat</h3><p>Questions arrive one at a time, and most answers are a single tap. It reads like a conversation and takes minutes.</p></div></article>
+        <article class="lp-step lp-reveal" data-delay="360"><div class="n">03</div><div><h3>Publish the running averages</h3><p>Watch each response update your running average, then put the stat on your website.</p></div></article>
       </div>
-    </section>
+    </div>
+  </section>
+  <div class="lp-fade" aria-hidden="true"></div>
 
-    <section class="lp">
-      <div class="split flip">
-        <div>
-          <h2>Turn your questions into a chat customers finish</h2>
-          <p>Write them in a plain editor and watch the preview build as you type. Your customers see exactly what you wrote.</p>
-          <ul class="ticks">
-            <li>Multiple choice, one tap</li>
-            <li>Multiple select for pick-all-that-apply</li>
-            <li>Numbers, checked before they count</li>
-            <li>Open text, always optional</li>
-          </ul>
-          <blockquote class="quote"><p>&ldquo;You launch a survey by asking questions. Here are the questions I want to get answers to.&rdquo;</p><span class="who"><b>Kevin Barber</b> &middot; Head of AI Growth at Lean Labs</span></blockquote>
+  <section class="lp-features" id="lp-features">
+    <div class="lp-feat-pin">
+      <div class="lp-feat-col">
+        <article class="lp-feat is-on" data-feat="0">
+          <div class="lp-feat-copy">
+            <div>
+              <h2>Turn your questions into a chat customers finish</h2>
+              <p class="body">Write them in a plain editor and watch the preview build as you type. Your customers see exactly what you wrote.</p>
+              <ul class="lp-ticks">
+                <li><img src="assets/landing/icon-check.svg" width="14" height="14" alt="">Multiple choice, one tap</li>
+                <li><img src="assets/landing/icon-check.svg" width="14" height="14" alt="">Multiple select for pick-all-that-apply</li>
+                <li><img src="assets/landing/icon-check.svg" width="14" height="14" alt="">Numbers, checked before they count</li>
+                <li><img src="assets/landing/icon-check.svg" width="14" height="14" alt="">Open text, always optional</li>
+              </ul>
+            </div>
+            <blockquote class="lp-quote dark">
+              <p>&ldquo;You launch a survey by asking questions. Here are the questions I want to get answers to.&rdquo;</p>
+              <div class="lp-who">
+                <img src="assets/landing/kevin-avatar.png" width="48" height="48" alt="">
+                <div><b>Kevin Barber</b><span>Head of AI Growth, Lean Labs</span></div>
+              </div>
+            </blockquote>
+          </div>
+          <img class="lp-feat-visual-m" src="assets/videos/LLImage.gif" alt="">
+        </article>
+
+        <article class="lp-feat" data-feat="1">
+          <div class="lp-feat-copy">
+            <div>
+              <h2>Help every customer land on a real number</h2>
+              <p class="body">When a customer types &ldquo;most of them&rdquo;, the chat asks again and tells them a rough count is fine. Easy to answer, and you still get the number.</p>
+            </div>
+            <blockquote class="lp-quote dark">
+              <p>&ldquo;If we ask what percentage and they say most, we make sure we get the number.&rdquo;</p>
+              <div class="lp-who">
+                <img src="assets/landing/kevin-avatar.png" width="48" height="48" alt="">
+                <div><b>Kevin Barber</b><span>Head of AI Growth, Lean Labs</span></div>
+              </div>
+            </blockquote>
+          </div>
+          <img class="lp-feat-visual-m" src="assets/videos/LLImage.gif" alt="">
+        </article>
+
+        <article class="lp-feat" data-feat="2">
+          <div class="lp-feat-copy">
+            <div>
+              <h2>Collect quotes with permission attached</h2>
+              <p class="body">Let the survey ask what they would tell a peer. A positive answer triggers a permission request to publish it, with name and role.</p>
+              <p class="body">A negative answer stays private feedback and never reaches your website.</p>
+            </div>
+            <blockquote class="lp-quote dark">
+              <p>&ldquo;If they type something favorable, we ask: can we attribute this as a quote on our webpage? And it&rsquo;s fine if not.&rdquo;</p>
+              <div class="lp-who">
+                <img src="assets/landing/kevin-avatar.png" width="48" height="48" alt="">
+                <div><b>Kevin Barber</b><span>Head of AI Growth, Lean Labs</span></div>
+              </div>
+            </blockquote>
+          </div>
+          <img class="lp-feat-visual-m" src="assets/videos/LLImage.gif" alt="">
+        </article>
+
+        <article class="lp-feat" data-feat="3">
+          <div class="lp-feat-copy">
+            <div>
+              <h2>See every response inside of HubSpot</h2>
+              <p class="body">Open the contact and the whole response is there. The completed flag ends the reminders, and your team never leaves the portal.</p>
+            </div>
+            <blockquote class="lp-quote dark">
+              <p>&ldquo;They filled out the survey, and we can see the result in HubSpot.&rdquo;</p>
+              <div class="lp-who">
+                <img src="assets/landing/kevin-avatar.png" width="48" height="48" alt="">
+                <div><b>Kevin Barber</b><span>Head of AI Growth, Lean Labs</span></div>
+              </div>
+            </blockquote>
+          </div>
+          <img class="lp-feat-visual-m" src="assets/videos/LLImage.gif" alt="">
+        </article>
+
+        <article class="lp-feat" data-feat="4">
+          <div class="lp-feat-copy">
+            <div>
+              <h2>Know which stats are ready for your website</h2>
+              <p class="body">Each survey gets its own dashboard where averages update as answers arrive.</p>
+              <p class="body">Every stat shows the response count behind it, so you can see which ones are solid enough to publish.</p>
+            </div>
+          </div>
+          <img class="lp-feat-visual-m" src="assets/videos/LLImage.gif" alt="">
+        </article>
+      </div>
+
+      <div class="lp-feat-stage">
+        <div class="lp-feat-stage-sticky">
+          <img src="assets/videos/LLImage.gif" alt="Survey Rocket chat">
         </div>
-        <figure class="shot"><figcaption>Product screen &middot; question editor</figcaption></figure>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="lp">
-      <div class="split">
-        <div>
-          <h2>Help every customer land on a real number</h2>
-          <p>When a customer types &ldquo;most of them&rdquo;, the chat asks again and tells them a rough count is fine. Easy to answer, and you still get the number.</p>
-          <blockquote class="quote"><p>&ldquo;If we ask what percentage and they say most, we make sure we get the number.&rdquo;</p><span class="who"><b>Kevin Barber</b> &middot; Head of AI Growth at Lean Labs</span></blockquote>
-        </div>
-        <figure class="shot"><figcaption>Product screen &middot; the chat</figcaption></figure>
-      </div>
-    </section>
-
-    <section class="lp">
-      <div class="split flip">
-        <div>
-          <h2>Collect quotes with permission attached</h2>
-          <p>Let the survey ask what they would tell a peer. A positive answer triggers a permission request to publish it, with name and role.</p>
-          <p>A negative answer stays private feedback and never reaches your website.</p>
-          <blockquote class="quote"><p>&ldquo;If they type something favorable, we ask: can we attribute this as a quote on our webpage? And it&rsquo;s fine if not.&rdquo;</p><span class="who"><b>Kevin Barber</b> &middot; Head of AI Growth at Lean Labs</span></blockquote>
-        </div>
-        <figure class="shot"><figcaption>Product screen &middot; quote ask</figcaption></figure>
-      </div>
-    </section>
-
-    <section class="lp">
-      <div class="split">
-        <div>
-          <h2>See every response inside of HubSpot</h2>
-          <p>Open the contact and the whole response is there. The completed flag ends the reminders, and your team never leaves the portal.</p>
-          <blockquote class="quote"><p>&ldquo;They filled out the survey, and we can see the result in HubSpot.&rdquo;</p><span class="who"><b>Kevin Barber</b> &middot; Head of AI Growth at Lean Labs</span></blockquote>
-        </div>
-        <figure class="shot"><figcaption>Product screen &middot; contact record</figcaption></figure>
-      </div>
-    </section>
-
-    <section class="lp">
-      <div class="split flip">
-        <div>
-          <h2>Know which stats are ready for your website</h2>
-          <p>Each survey gets its own dashboard where averages update as answers arrive.</p>
-          <p>Every stat shows the response count behind it, so you can see which ones are solid enough to publish.</p>
-        </div>
-        <figure class="shot"><figcaption>Product screen &middot; dashboard</figcaption></figure>
-      </div>
-    </section>
-
-    <section class="lp">
-      <div class="band">
+  <div class="lp-band-wrap">
+    <div class="lp-band">
+      <div class="lp-band-glow" aria-hidden="true"><img src="assets/landing/cta-glow.svg" width="667" height="667" alt=""></div>
+      <div>
         <h2>Try it before you talk to us</h2>
         <p>Play the customer in the sandbox demo. Answer a short survey and watch the dashboard move.</p>
-        <div class="ctas"><a class="btn primary" href="#/demo">Try the live demo</a></div>
-        <div class="note">No sign-up. The demo takes about two minutes.</div>
       </div>
-    </section>
-
-    <section class="lp">
-      <div class="lp-head mid"><h2>Frequently asked questions</h2></div>
-      <div class="faq">
-        <div class="qa"><h3>Is this another form builder?</h3><p>A form collects text you still have to read. Survey Rocket asks questions in a chat, checks answers as they arrive, and turns results into numbers you can publish.</p></div>
-        <div class="qa"><h3>Where do the answers live?</h3><p>On the contact record in your own HubSpot portal, and on a dashboard for each survey.</p></div>
-        <div class="qa"><h3>Can we write our own questions?</h3><p>Yes. The survey asks your questions word for word and never invents its own.</p></div>
-        <div class="qa"><h3>What happens to negative feedback?</h3><p>It stays private. The permission request only appears after a positive answer, so nothing critical reaches your website.</p></div>
-        <div class="qa"><h3>What does it need from our HubSpot?</h3><p>A private app connection Lean Labs sets up with you, plus a few contact properties. Your team keeps working in HubSpot as usual.</p></div>
-        <div class="qa"><h3>How fast can we launch?</h3><p>As fast as you can send us your questions and your customer list. Lean Labs handles the setup from there.</p></div>
+      <div class="lp-band-cta">
+        <a class="lp-btn solid" href="#/demo">Try the live demo</a>
+        <span class="hint">No sign-up. The demo takes about two minutes.</span>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <section class="lp">
-      <div class="band">
-        <h2>Start your first survey</h2>
-        <p>Bring the stat you wish your website could show, and we will set up the survey that backs it.</p>
-        <div class="ctas">
-          <a class="btn primary" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
-          <a class="btn ghost" href="#/demo">Try the live demo</a>
+  <section class="lp-faq" id="faq">
+    <div class="lp-inner">
+      <div class="lp-faq-head">
+        <p class="tag">FAQ</p>
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="lp-faq-list">
+        <div class="lp-qa open">
+          <button type="button" aria-expanded="true">Is this another form builder?<span class="lp-qa-icon" aria-hidden="true"></span></button>
+          <div class="ans"><div class="ans-inner"><p>A form collects text you still have to read. Survey Rocket asks questions in a chat, checks answers as they arrive, and turns results into numbers you can publish.</p></div></div>
+        </div>
+        <div class="lp-qa">
+          <button type="button" aria-expanded="false">Where do the answers live?<span class="lp-qa-icon" aria-hidden="true"></span></button>
+          <div class="ans"><div class="ans-inner"><p>On the contact record in your own HubSpot portal, and on a dashboard for each survey.</p></div></div>
+        </div>
+        <div class="lp-qa">
+          <button type="button" aria-expanded="false">Can we write our own questions?<span class="lp-qa-icon" aria-hidden="true"></span></button>
+          <div class="ans"><div class="ans-inner"><p>Yes. The survey asks your questions word for word and never invents its own.</p></div></div>
+        </div>
+        <div class="lp-qa">
+          <button type="button" aria-expanded="false">What happens to negative feedback?<span class="lp-qa-icon" aria-hidden="true"></span></button>
+          <div class="ans"><div class="ans-inner"><p>It stays private. The permission request only appears after a positive answer, so nothing critical reaches your website.</p></div></div>
+        </div>
+        <div class="lp-qa">
+          <button type="button" aria-expanded="false">What does it need from our HubSpot?<span class="lp-qa-icon" aria-hidden="true"></span></button>
+          <div class="ans"><div class="ans-inner"><p>A private app connection Lean Labs sets up with you, plus a few contact properties. Your team keeps working in HubSpot as usual.</p></div></div>
+        </div>
+        <div class="lp-qa">
+          <button type="button" aria-expanded="false">How fast can we launch?<span class="lp-qa-icon" aria-hidden="true"></span></button>
+          <div class="ans"><div class="ans-inner"><p>As fast as you can send us your questions and your customer list. Lean Labs handles the setup from there.</p></div></div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
+
+  <div class="lp-band-wrap">
+    <div class="lp-band">
+      <div class="lp-band-glow" aria-hidden="true"><img src="assets/landing/cta-glow.svg" width="667" height="667" alt=""></div>
+      <div>
+        <h2>Start your first survey</h2>
+        <p>Bring the stat you wish your website could show, and we will set up the survey that backs it.</p>
+      </div>
+      <div class="lp-band-cta" style="flex-direction:row;flex-wrap:wrap">
+        <a class="lp-btn solid" href="#/demo">See the live demo</a>
+        <a class="lp-btn glass" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
+      </div>
+    </div>
   </div>
-  <footer class="pagefoot">
-    <span>Survey Rocket, a <a href="https://www.lean-labs.com" target="_blank" rel="noopener">Lean Labs</a> product</span>
-    <span><a href="#/demo">Live demo</a></span>
+
+  <footer class="lp-foot">
+    <div class="lp-foot-brand">
+      <img class="ll" src="assets/landing/ll-logo.svg" width="89" height="30" alt="Lean Labs">
+      <span class="lp-tools">TOOLS</span>
+      <nav class="lp-foot-links" aria-label="Lean Labs tools">
+        <a href="https://sprocketrocket.co" target="_blank" rel="noopener">SprocketRocket</a>
+        <span>CopyRocket</span>
+        <span>DesignRocket</span>
+        <span>GrowthRocket</span>
+        <a href="https://reputationrocket.ai" target="_blank" rel="noopener">ReputationRocket</a>
+      </nav>
+    </div>
+    <div class="lp-foot-links">
+      <span>&copy; 2026 Lean Labs</span>
+      <a href="#/demo">Live demo</a>
+    </div>
   </footer>
 </section>
 
@@ -631,12 +731,12 @@ window.SR_JUDGE_ENABLED = true;</script>
   function route(){
     var h=location.hash||"#/";
     var demo=h==="#/demo";
-    if(["#/","#/demo","#/#how"].indexOf(h)===-1){ location.replace("#/"); h="#/"; }
+    if(["#/","#/demo"].indexOf(h)===-1){ location.replace("#/"); h="#/"; demo=false; }
     document.getElementById("view-landing").classList.toggle("active",!demo);
     document.getElementById("view-demo").classList.toggle("active",demo);
+    document.body.classList.toggle("lp-on", !demo);
     if(demo && !started){ started=true; renderSteps(); }
-    if(h==="#/#how"){ var el2=document.getElementById("how"); if(el2) el2.scrollIntoView(); }
-    else window.scrollTo(0,0);
+    window.scrollTo(0,0);
   }
   document.getElementById("beginBtn").addEventListener("click",function(){
     document.getElementById("welcome").style.display="none";
@@ -646,13 +746,151 @@ window.SR_JUDGE_ENABLED = true;</script>
     startDemo();
   });
 
-  window.addEventListener("hashchange",route);
-  document.querySelectorAll('a[href="#/#how"]').forEach(function(a){
-    a.addEventListener("click",function(){
-      var el2=document.getElementById("how"); if(el2) setTimeout(function(){ el2.scrollIntoView(); },0);
+  (function faqAccordion(){
+    var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function panel(q){ return q.querySelector(".ans"); }
+    function collapseQa(q){
+      var ans=panel(q);
+      if(q.classList.contains("open") && !reduce){
+        ans.style.height=ans.scrollHeight+"px";
+        void ans.offsetHeight;
+      }
+      q.classList.remove("open");
+      q.querySelector("button").setAttribute("aria-expanded","false");
+      ans.style.height="0px";
+    }
+    function expandQa(q){
+      var ans=panel(q);
+      q.classList.add("open");
+      q.querySelector("button").setAttribute("aria-expanded","true");
+      if(reduce){ ans.style.height="auto"; return; }
+      ans.style.height=ans.scrollHeight+"px";
+    }
+    document.querySelectorAll("#view-landing .lp-qa").forEach(function(q){
+      var ans=panel(q);
+      ans.addEventListener("transitionend", function(ev){
+        if(ev.propertyName!=="height") return;
+        if(q.classList.contains("open")) ans.style.height="auto";
+      });
+      if(!q.classList.contains("open")) ans.style.height="0px";
     });
-  });
+    document.querySelectorAll("#view-landing .lp-qa button").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var item=btn.parentElement;
+        var wasOpen=item.classList.contains("open");
+        document.querySelectorAll("#view-landing .lp-qa.open").forEach(function(q){
+          if(q!==item) collapseQa(q);
+        });
+        if(wasOpen) collapseQa(item);
+        else expandQa(item);
+      });
+    });
+  })();
+
+  window.addEventListener("hashchange",route);
   route();
+
+  (function landingMotion(){
+    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      document.querySelectorAll("#view-landing .lp-reveal").forEach(function(el){ el.classList.add("in"); });
+      return;
+    }
+
+    function playHero(){
+      document.querySelectorAll(".lp-hero .lp-reveal").forEach(function(el){
+        el.classList.remove("in");
+        el.style.transitionDelay = "0ms";
+        void el.offsetWidth;
+        el.style.transitionDelay = (el.getAttribute("data-delay") || "0") + "ms";
+        requestAnimationFrame(function(){ el.classList.add("in"); });
+      });
+    }
+
+    document.querySelectorAll("#view-landing h2").forEach(function(h){
+      if(h.closest(".lp-feat")) return;
+      if(!h.classList.contains("lp-reveal")) h.classList.add("lp-reveal");
+    });
+    document.querySelectorAll("#view-landing h3").forEach(function(h){
+      if(h.closest(".lp-chat") || h.closest(".lp-hero") || h.closest(".lp-step")) return;
+      if(!h.classList.contains("lp-reveal")) h.classList.add("lp-reveal");
+    });
+
+    function playStepCards(){
+      document.querySelectorAll("#view-landing .lp-step.lp-reveal").forEach(function(el){
+        el.style.transitionDelay = (el.getAttribute("data-delay") || "0") + "ms";
+        el.classList.add("in");
+      });
+    }
+
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting) return;
+        var el = entry.target;
+        el.classList.add("in");
+        io.unobserve(el);
+        if(el.closest(".lp-steps") && el.tagName === "H2"){
+          var done = false;
+          function startCards(ev){
+            if(done) return;
+            if(ev && ev.propertyName && ev.propertyName !== "opacity") return;
+            done = true;
+            el.removeEventListener("transitionend", startCards);
+            playStepCards();
+          }
+          el.addEventListener("transitionend", startCards);
+          window.setTimeout(startCards, 1500);
+        }
+      });
+    }, { threshold: 0.35, rootMargin: "0px 0px -8% 0px" });
+
+    document.querySelectorAll("#view-landing h2.lp-reveal, #view-landing h3.lp-reveal").forEach(function(el){
+      if(el.closest(".lp-hero")) return;
+      io.observe(el);
+    });
+
+    playHero();
+    var wasDemo = location.hash === "#/demo";
+    window.addEventListener("hashchange", function(){
+      var demo = location.hash === "#/demo";
+      if(wasDemo && !demo) playHero();
+      wasDemo = demo;
+    });
+
+    (function featurePin(){
+      var pin = document.querySelector("#view-landing .lp-feat-pin");
+      if(!pin) return;
+      var steps = pin.querySelectorAll(".lp-feat-col .lp-feat");
+      var mq = window.matchMedia("(max-width:980px)");
+      var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+      var last = -1;
+      function sync(){
+        if(mq.matches || reduce.matches){
+          steps.forEach(function(el){ el.classList.add("is-on"); });
+          last = 0;
+          return;
+        }
+        var mid = window.innerHeight * 0.5;
+        var best = 0, bestDist = Infinity;
+        steps.forEach(function(el, i){
+          var r = el.getBoundingClientRect();
+          var d = Math.abs((r.top + r.height / 2) - mid);
+          if(d < bestDist){ bestDist = d; best = i; }
+        });
+        if(best === last) return;
+        last = best;
+        steps.forEach(function(el, i){ el.classList.toggle("is-on", i === best); });
+      }
+      var ticking = false;
+      function onScroll(){
+        if(ticking) return;
+        ticking = true;
+        requestAnimationFrame(function(){ ticking = false; sync(); });
+      }
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      sync();
+    })();
+  })();
 })();
 </script>
 </body>

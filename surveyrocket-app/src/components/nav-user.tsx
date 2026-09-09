@@ -1,4 +1,5 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -15,11 +16,11 @@ import { SettingsIcon, LogOutIcon, ShieldIcon } from "lucide-react";
 
 function initials(name?: string | null, email?: string | null, fallback?: string) {
 	const source = (name || email || fallback || "?").trim();
-	const parts = source.split(/\s+/).filter(Boolean);
+	const parts = source.split(/[\s@.]+/).filter((part) => /^[a-z]/i.test(part));
 	if (parts.length >= 2) {
 		return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 	}
-	return source.charAt(0).toUpperCase();
+	return (parts[0]?.[0] || source.charAt(0)).toUpperCase();
 }
 
 export function NavUser() {
@@ -29,6 +30,20 @@ export function NavUser() {
 	const email = shell.email || "";
 	const displayName = shell.fullName?.trim() || email || workspace;
 	const roleLabel = shell.isSuperadmin ? `${displayName} (Admin)` : displayName;
+	const [avatarUrl, setAvatarUrl] = useState(shell.avatarUrl || null);
+
+	useEffect(() => {
+		setAvatarUrl(shell.avatarUrl || null);
+	}, [shell.avatarUrl]);
+
+	useEffect(() => {
+		function onAvatar(e: Event) {
+			const url = (e as CustomEvent<string | null>).detail;
+			if (typeof url === "string" || url === null) setAvatarUrl(url);
+		}
+		window.addEventListener("sr-avatar-changed", onAvatar);
+		return () => window.removeEventListener("sr-avatar-changed", onAvatar);
+	}, []);
 
 	return (
 		<DropdownMenu>
@@ -44,6 +59,7 @@ export function NavUser() {
 				}
 			>
 				<Avatar className="size-7">
+					{avatarUrl ? <AvatarImage alt="" src={avatarUrl} /> : null}
 					<AvatarFallback>
 						{initials(shell.fullName, email, workspace)}
 					</AvatarFallback>

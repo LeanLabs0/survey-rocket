@@ -22,10 +22,12 @@ export const GET: APIRoute = async ({ params }) => {
       public_id: sv.publicId,
       client_name: client?.name || "Survey Rocket",
       logo_url: client?.logoUrl || null,
+      brand: client?.brand || {},
       definition: respondentDefinition(definition, {
         publicId: sv.publicId,
         clientName: client?.name || "Survey Rocket",
         logoUrl: client?.logoUrl || null,
+        brand: client?.brand || {},
       }),
     }),
     { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },

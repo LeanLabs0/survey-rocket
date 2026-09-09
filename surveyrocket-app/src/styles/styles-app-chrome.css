@@ -192,9 +192,8 @@
   .scan-note{font-size:12px;color:var(--tx-3);margin-top:6px}
   .scan-actions{margin-top:16px}
 
-  .wrap form label{display:block;font-size:12px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px}
-  .wrap form input{width:100%;max-width:420px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:11px 14px;color:var(--tx);font-size:14px}
-  .wrap form button{margin-top:14px}
+  .wrap form:not(:has([data-slot])) label{display:block;font-size:12px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px}
+  .wrap form input:not([data-slot="input"]){width:100%;max-width:420px;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:11px 14px;color:var(--tx);font-size:14px}
   a.pubcard{text-decoration:none;color:inherit}
   button.srvrow{width:100%;border:0;text-align:left;font:inherit;color:inherit}
 

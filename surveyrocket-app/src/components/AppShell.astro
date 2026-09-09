@@ -9,10 +9,12 @@ interface Props {
   isSuperadmin?: boolean;
   email?: string | null;
   fullName?: string | null;
+  avatarUrl?: string | null;
   theme?: string;
 }
 const { slug, clientName, current, isSuperadmin, email } = Astro.props;
 const fullName = Astro.props.fullName ?? Astro.locals.profile?.fullName ?? null;
+const avatarUrl = Astro.props.avatarUrl ?? Astro.locals.profile?.avatarUrl ?? null;
 ---
 
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -48,6 +50,7 @@ const fullName = Astro.props.fullName ?? Astro.locals.profile?.fullName ?? null;
   isSuperadmin={isSuperadmin}
   email={email}
   fullName={fullName}
+  avatarUrl={avatarUrl}
 >
   {isSuperadmin && (
     <div class="impersonate">

@@ -1,8 +1,10 @@
 ---
 import Base from "../../layouts/Base.astro";
+import "../../styles/styles-survey-intro.css";
 import { db } from "../../lib/db";
 import { clients, surveyPublications, surveys } from "../../lib/schema";
 import { desc, eq } from "drizzle-orm";
+import { resolveSurveyBrand } from "../../lib/brand";
 
 const publicId = Astro.params.publicId!;
 const [sv] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
@@ -15,82 +17,137 @@ const [pub] = sv
   : [null];
 const definition = pub?.definition || sv?.definition || null;
 const clientName = client?.name || "Survey Rocket";
+const brand = resolveSurveyBrand(client?.brand, {
+  logoUrl: client?.logoUrl,
+  clientName,
+  surveyName: sv?.name || null,
+});
+const introText =
+  definition && typeof definition === "object" && "intro" in definition && typeof definition.intro === "string" && definition.intro.trim()
+    ? definition.intro.trim()
+    : "We'd love to capture what actually changed, so you and future clients can get a better experience with us.";
 ---
-<Base title={sv?.name || "Survey"}>
-  <style>
-    .rs-shell{max-width:736px;margin:34px auto 60px;padding:0 16px}
-    .rs-brand{display:none}
-    #rs-log{min-height:280px;max-height:min(60vh,calc(100dvh - 260px))}
-    .rs-note{text-align:center;font-size:12px;color:var(--tx-3);margin-top:14px;line-height:2}
-    .rs-missing{text-align:center;padding:60px 20px;color:var(--tx-2)}
-    .rs-gate{padding:24px 22px;display:flex;flex-direction:column;gap:12px}
-    .rs-gate h3{font-size:17px}
-    .rs-gate p{font-size:13.5px;color:var(--tx-2);margin:0}
-    .rs-gate .g-note{font-size:12px;color:var(--tx-3)}
-    #g-contact{display:flex;flex-direction:column;gap:10px}
-    .rs-gate input{max-width:none}
-    .rs-after{margin-top:18px;display:none;flex-direction:column;gap:14px}
-    .rs-results{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
-    .rs-results h3{font-size:14px;margin:0 0 10px}
-    .rs-results .row{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--tx-2);padding:5px 0;border-bottom:1px solid var(--line)}
-    .rs-results .row:last-child{border-bottom:0}
-    .rs-results .row b{color:var(--tx);font-weight:600}
-    .rs-review{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 24px 24px;text-align:center}
-    .rs-review .brand{display:block;height:36px;width:auto;margin:0 auto 18px}
-    .rs-review h2{font-size:20px;letter-spacing:-.03em;margin:0 0 8px}
-    .rs-review p{font-size:14px;color:var(--tx-2);margin:0 0 20px;line-height:1.5}
-    .rs-review .btns{display:flex;flex-direction:column;gap:10px;align-items:stretch;max-width:320px;margin:0 auto}
-    .rs-review .btns .btn{width:100%}
-    .chat-head .powered{display:block;height:18px;width:auto;margin-top:8px;opacity:.9}
-  </style>
-  <div class="rs-shell">
-    <div class="chat-frame" id="frame">
-      <div class="chat-head">
-        <div>
-          <b id="rs-title">{sv?.name || "Survey"}</b>
-          <img class="powered" src="/assets/landing/survey-rocket.svg" width="140" height="35" alt="Survey Rocket" />
+<Base title={sv?.name || "Survey"} bodyClass="rs-intro-page">
+  <Fragment slot="head">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <script is:inline>
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.classList.add("dark");
+    </script>
+  </Fragment>
+  <div class="rs-page" style={brand.cssVars} data-bot-avatar={brand.botAvatar}>
+    <div class="rs-glow" aria-hidden="true"></div>
+    <div class="rs-main">
+      <a class="rs-intro-brand" href="/">
+        <img src={brand.markUrl} width="48" height="55" alt="">
+        <span><b>Survey</b> <i>Rocket</i></span>
+      </a>
+
+      <div class="rs-steps" id="steps" style={`display:${definition ? "flex" : "none"}`}>
+        <div class="rs-step on" data-step="0">
+          <span class="dot">
+            <img class="ico" src="/assets/survey-intro/icon-hand.svg" width="20" height="20" alt="">
+            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
+          </span>
+          <span class="idx">Step 1</span>
+          <span class="nm">Welcome</span>
+          <span class="pill">In Progress</span>
         </div>
-        <span class="chat-prog" id="rs-prog"></span>
+        <span class="rs-step-line partial" aria-hidden="true"></span>
+        <div class="rs-step" data-step="1">
+          <span class="dot">
+            <img class="ico" src="/assets/survey-intro/icon-chat.svg" width="20" height="20" alt="">
+            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
+          </span>
+          <span class="idx">Step 2</span>
+          <span class="nm">Quick Chat</span>
+          <span class="pill">Pending</span>
+        </div>
+        <span class="rs-step-line" aria-hidden="true"></span>
+        <div class="rs-step" data-step="2">
+          <span class="dot">
+            <img class="ico" src="/assets/survey-intro/icon-dash.svg" width="20" height="20" alt="">
+            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
+          </span>
+          <span class="idx">Step 3</span>
+          <span class="nm">Your Dashboard</span>
+          <span class="pill">Pending</span>
+        </div>
       </div>
-      <div class="chat-log" id="rs-log" aria-live="polite"></div>
-      <div class="chat-input">
-        <input id="rs-inp" type="text" autocomplete="off" placeholder="Tap an option above" aria-label="Your answer" disabled>
-        <button class="send" id="rs-send" disabled>Send</button>
-        <button class="chat-restart" type="button" id="rs-restart">Restart</button>
+
+      <div class="rs-welcome" id="welcome" style={`display:${definition ? "flex" : "none"}`}>
+        <h1>Ready to <span class="em">share your results</span> with {clientName}?</h1>
+        <p class="rs-sub" id="g-meta">{introText}</p>
+        <div class="rs-video" title="Welcome video placeholder">
+          <span class="rs-play"><img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt=""></span>
+        </div>
+        <div class="rs-heads">
+          <span class="rs-heads-icon" aria-hidden="true"><img src="/assets/survey-intro/icon-smile.svg" width="18" height="18" alt=""></span>
+          <p><b>Heads up:</b> this is a short check-in from {clientName}. Most answers take a single tap, and nothing publishes without your yes.</p>
+        </div>
+        <div class="rs-contact" id="g-contact">
+          <p>First, your name and work email. They are saved with your answers so the team knows who said what.</p>
+          <label class="flabel" for="g-name">Your name</label>
+          <input id="g-name" class="field" type="text" autocomplete="name" placeholder="Your name">
+          <label class="flabel" for="g-email">Work email</label>
+          <input id="g-email" class="field" type="email" autocomplete="email" placeholder="you@company.com">
+        </div>
+        <button class="rs-begin" type="button" id="g-go">Begin <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt=""></button>
+        <p class="rs-micro"><img src="/assets/landing/icon-clock.svg" width="16" height="16" alt="">Takes about two minutes, and nothing publishes without your yes.</p>
+      </div>
+
+      <div class="rs-chat-wrap" id="chatWrap">
+        <div class="rs-chat-lede">
+          <h2>{brand.chatLede}</h2>
+          <p>{brand.chatSub}</p>
+        </div>
+        <div class="chat-frame" id="frame">
+          <div class="chat-head">
+            <div>
+              <b id="rs-title">{brand.chatTitle}</b>
+              <small>{brand.poweredBy}</small>
+            </div>
+            <span class="chat-prog" id="rs-prog"></span>
+          </div>
+          <div class="chat-log" id="rs-log" aria-live="polite"></div>
+          <div class="chat-input">
+            <input id="rs-inp" type="text" autocomplete="off" placeholder="Tap an option above" aria-label="Your answer" disabled>
+            <button class="send" id="rs-send" disabled>Send</button>
+            <button class="chat-restart" type="button" id="rs-restart">Restart</button>
+          </div>
+        </div>
+        <div class="rs-note" id="note">
+          <button class="btn ghost small" id="rs-copy" style="margin-left:4px;display:none">Copy my answers</button>
+        </div>
+        <div class="rs-after" id="after">
+          <div class="rs-results" id="afterResults" style="display:none">
+            <h3>How your answers compare</h3>
+            <div id="afterRows"></div>
+          </div>
+          <div class="rs-review" id="afterReview" style="display:none">
+            <img class="brand" src="/assets/landing/survey-rocket.svg" width="160" height="40" alt="Survey Rocket" />
+            <h2>Thanks for your answers</h2>
+            <p>Would you be open to leaving a public review? It helps others find the work.</p>
+            <div class="btns" id="reviewBtns"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rs-missing" id="missing" style={`display:${definition ? "none" : "block"}`}>
+        This survey link is not working.<br>
+        Ask whoever sent it for a fresh link.
       </div>
     </div>
-    <div class="rs-gate canvas" id="gate" style="display:none">
-      <h3 id="g-title">Ready when you are</h3>
-      <p id="g-meta"></p>
-      <div id="g-contact" style="display:none">
-        <p>First, your name and work email. They are saved with your answers so the team knows who said what.</p>
-        <label class="flabel" for="g-name">Your name</label>
-        <input id="g-name" class="field" type="text" autocomplete="name" placeholder="Your name">
-        <label class="flabel" for="g-email">Work email</label>
-        <input id="g-email" class="field" type="email" autocomplete="email" placeholder="you@company.com">
+
+    <footer class="rs-foot">
+      <div class="rs-foot-brand">
+        <img class="ll" src="/assets/landing/ll-logo.svg" width="89" height="30" alt="Lean Labs">
+        <span class="rs-tools">TOOLS</span>
       </div>
-      <p class="g-note">Your answers are recorded when you finish.</p>
-      <button class="btn primary" id="g-go">Start the survey</button>
-    </div>
-    <div class="rs-missing" id="missing" style={`display:${definition ? "none" : "block"}`}>
-      This survey link is not working.<br>
-      Ask whoever sent it for a fresh link.
-    </div>
-    <div class="rs-note" id="note">
-      <button class="btn ghost small" id="rs-copy" style="margin-left:4px;display:none">Copy my answers</button>
-    </div>
-    <div class="rs-after" id="after">
-      <div class="rs-results" id="afterResults" style="display:none">
-        <h3>How your answers compare</h3>
-        <div id="afterRows"></div>
+      <div class="rs-copy">
+        <span>&copy; 2026 SurveyRocket.ai.</span>
       </div>
-      <div class="rs-review" id="afterReview" style="display:none">
-        <img class="brand" src="/assets/landing/survey-rocket.svg" width="160" height="40" alt="Survey Rocket" />
-        <h2>Thanks for your answers</h2>
-        <p>Would you be open to leaving a public review? It helps others find the work.</p>
-        <div class="btns" id="reviewBtns"></div>
-      </div>
-    </div>
+    </footer>
   </div>
   <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
   <script is:inline src="/js/engine.js"></script>
@@ -101,18 +158,30 @@ const clientName = client?.name || "Survey Rocket";
         document.getElementById("frame").style.display="none";
         document.getElementById("note").style.display="none";
         document.getElementById("missing").style.display="block";
-        document.getElementById("gate").style.display="none";
+        document.getElementById("welcome").style.display="none";
+        document.getElementById("steps").style.display="none";
+        document.getElementById("chatWrap").style.display="none";
         return;
       }
       var survey = Object.assign({}, definition, { public_id: publicId, id: publicId });
       var settings = survey.settings || {};
       var lastAnswers=null, respondent={name:null,email:null};
       var run={id:SRHubSpot.uuid(), startedAt:null};
-      function countWord(n){
-        var words=["zero","one","two","three","four","five","six","seven","eight","nine"];
-        return n<words.length?words[n]:String(n);
+      function setStep(i, allDone){
+        var steps=document.querySelectorAll("#steps .rs-step");
+        steps.forEach(function(el, idx){
+          var done=!!allDone || idx<i;
+          var on=!allDone && idx===i;
+          el.classList.toggle("on", on);
+          el.classList.toggle("done", done && !on);
+          var pill=el.querySelector(".pill");
+          if(pill) pill.textContent=done && !on ? "Completed" : (on ? "In Progress" : "Pending");
+        });
+        document.querySelectorAll("#steps .rs-step-line").forEach(function(line, idx){
+          line.classList.toggle("fill", !!allDone || idx<i);
+          line.classList.toggle("partial", !allDone && idx===i);
+        });
       }
-      function cap(w){ return w.charAt(0).toUpperCase()+w.slice(1); }
       function sendRecord(reviewAsked, reviewOutcome){
         if(!lastAnswers) return;
         SRHubSpot.send(SRHubSpot.buildPayload(survey, lastAnswers, {
@@ -122,6 +191,7 @@ const clientName = client?.name || "Survey Rocket";
         }));
       }
       function showEnding(){
+        setStep(2, true);
         document.getElementById("after").style.display="flex";
         if(settings.show_results){
           SRHubSpot.results(publicId).then(function(res){
@@ -195,15 +265,11 @@ const clientName = client?.name || "Survey Rocket";
         document.getElementById("after").style.display="none";
         document.getElementById("afterResults").style.display="none";
         document.getElementById("afterReview").style.display="none";
+        setStep(1);
         chat.start();
       }
       document.getElementById("rs-restart").addEventListener("click",startRun);
-      var frame=document.getElementById("frame"), note=document.getElementById("note"), gate=document.getElementById("gate");
-      frame.style.display="none"; note.style.display="none";
-      gate.style.display="flex";
-      document.getElementById("g-title").textContent=survey.name||"Ready when you are";
-      var qn=survey.questions.length;
-      document.getElementById("g-meta").textContent=cap(countWord(qn))+" quick question"+(qn===1?"":"s")+" from "+clientName+". Most answers are one tap.";
+      var welcome=document.getElementById("welcome"), chatWrap=document.getElementById("chatWrap");
       if(settings.require_contact) document.getElementById("g-contact").style.display="flex";
       document.getElementById("g-go").addEventListener("click",function(){
         if(settings.require_contact){
@@ -212,8 +278,10 @@ const clientName = client?.name || "Survey Rocket";
           if(!name || email.indexOf("@")<1) return;
           respondent.name=name; respondent.email=email;
         }
-        gate.style.display="none";
-        frame.style.display=""; note.style.display="";
+        welcome.style.display="none";
+        var page=document.querySelector(".rs-page");
+        if(page) page.classList.add("is-chat");
+        chatWrap.style.display="flex";
         startRun();
       });
       document.getElementById("rs-copy").addEventListener("click",function(){
