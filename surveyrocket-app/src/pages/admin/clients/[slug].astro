@@ -8,44 +8,75 @@ const client = await clientBySlug(slug);
 if (!client) return Astro.redirect("/admin/clients");
 const conn = (await hubspotStatusByClient()).get(client.id);
 const members = await membersForClient(client.id);
+const hubspotLabel = conn?.status || "disconnected";
+const hubspotConnected = hubspotLabel === "connected";
 ---
 <Base title={`${client.name} · Admin`}>
   <AdminShell current="clients" email={Astro.locals.user?.email}>
     <div class="wrap">
-      <p><a href="/admin/clients">← Clients</a></p>
-      <div class="pagehead">
-        <h1>{client.name}</h1>
-        <p>Who can sign in to this portal, and a way to open it with full access.</p>
-      </div>
-      <p>Slug: {client.slug}</p>
-      <p>HubSpot: {conn?.status || "disconnected"}{conn?.portalId ? ` · portal ${conn.portalId}` : ""}</p>
-      <p class="admin-actions">
+      <a class="admin-back" href="/admin/clients">← Clients</a>
+      <div class="admin-head">
+        <div class="pagehead">
+          <h1>{client.name}</h1>
+          <p>Who can sign in to this portal, and a way to open it with full access.</p>
+          <div class="admin-meta">
+            <span class="chip">{client.slug}</span>
+            <span class:list={["chip", hubspotConnected ? "teal" : "gold"]}>
+              HubSpot {hubspotConnected ? "connected" : hubspotLabel}{conn?.portalId ? ` · ${conn.portalId}` : ""}
+            </span>
+          </div>
+        </div>
         <a class="btn primary" href={`/app/${client.slug}/dashboard`}>Open portal</a>
-      </p>
-      <h3>Users</h3>
-      <ul>
-        {members.length === 0 && <li>No users yet. Send a password setup email below.</li>}
-        {members.map((m) => (
-          <li>{m.email} · {m.role}</li>
-        ))}
-      </ul>
-      <form id="invite">
-        <label for="invite-email">Add a user</label>
-        <input id="invite-email" name="email" type="email" placeholder="first.user@client.com" required />
-        <label for="invite-role">Role</label>
-        <select id="invite-role" name="role">
-          <option value="owner">Owner</option>
-          <option value="member">Member</option>
-        </select>
-        <button class="btn ghost" type="submit" style="margin-top:14px">Send password setup email</button>
-        <p id="invite-msg" class="emptystate" hidden style="margin-top:10px"></p>
-      </form>
+      </div>
+
+      <div class="admin-card">
+        <h2>People</h2>
+        <p class="lede">Invite sent means they have an email to set a password. Accepted means they have signed in.</p>
+        {members.length === 0 ? (
+          <p class="emptystate" style="margin:0 0 16px">No one yet. Send an invite below.</p>
+        ) : (
+          <table class="raw">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((m) => (
+                <tr>
+                  <td>
+                    {m.fullName ? (
+                      <>
+                        {m.fullName}
+                        <div style="color:var(--tx-3);font-size:11px">{m.email}</div>
+                      </>
+                    ) : (
+                      m.email
+                    )}
+                  </td>
+                  <td>
+                    {m.inviteStatus === "signed_in" ? (
+                      <span class="chip teal">Accepted</span>
+                    ) : (
+                      <span class="chip gold">Invite sent</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <form id="invite" class="invite-follow">
+          <div class="invite-row">
+            <input id="invite-email" name="email" type="email" placeholder="first.user@client.com" required />
+            <button class="btn primary" type="submit">Send invite</button>
+          </div>
+          <p id="invite-msg" class="emptystate" hidden style="margin-top:12px"></p>
+        </form>
+      </div>
     </div>
   </AdminShell>
-  <style>
-    label{display:block;font-size:12px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px}
-    input,select{width:100%;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:11px 14px;color:var(--tx)}
-  </style>
   <script define:vars={{ slug }}>
     document.getElementById("invite")!.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -54,7 +85,7 @@ const members = await membersForClient(client.id);
       const res = await fetch("/api/app/members", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client: slug, email: fd.get("email"), role: fd.get("role") }),
+        body: JSON.stringify({ client: slug, email: fd.get("email") }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
     row = await createClientRecord({
       slug,
       name: body.name,
-      logoUrl: body.logoUrl || null,
+      logoUrl: null,
       brand: body.brand || {},
     });
   } catch (err) {
@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (body.inviteEmail) {
     try {
-      await inviteUserToClient(String(body.inviteEmail), row.id, "owner");
+      await inviteUserToClient(String(body.inviteEmail), row.id);
     } catch {
       /* client still created; admin can invite again */
     }

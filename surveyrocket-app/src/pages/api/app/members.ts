@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { jsonError, jsonOk, membersForClient, membershipFor, requireClientAccess } from "../../../lib/access";
+import { jsonError, jsonOk, membersForClient, requireClientAccess } from "../../../lib/access";
 import { inviteUserToClient } from "../../../lib/invite";
 import { db } from "../../../lib/db";
 import { clientMembers } from "../../../lib/schema";
@@ -17,12 +17,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!body?.client || !body?.email) return jsonError(400, "client and email required");
   const access = await requireClientAccess(locals.user, locals.isSuperadmin, body.client);
   if (!access.ok) return jsonError(access.status, access.error);
-  if (!locals.isSuperadmin) {
-    const me = await membershipFor(locals.user!.id, access.client.id);
-    if (me?.role !== "owner") return jsonError(403, "Owner only");
-  }
   try {
-    await inviteUserToClient(String(body.email), access.client.id, body.role === "owner" ? "owner" : "member");
+    await inviteUserToClient(String(body.email), access.client.id);
   } catch (err) {
     return jsonError(400, err instanceof Error ? err.message : "Could not invite user");
   }
@@ -34,10 +30,6 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!body?.client || !body?.userId) return jsonError(400, "client and userId required");
   const access = await requireClientAccess(locals.user, locals.isSuperadmin, body.client);
   if (!access.ok) return jsonError(access.status, access.error);
-  if (!locals.isSuperadmin) {
-    const me = await membershipFor(locals.user!.id, access.client.id);
-    if (me?.role !== "owner") return jsonError(403, "Owner only");
-  }
   if (body.userId === locals.user!.id) return jsonError(400, "You cannot remove yourself.");
   await db
     .delete(clientMembers)

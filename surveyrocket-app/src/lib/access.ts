@@ -214,15 +214,30 @@ export async function hubspotStatusByClient() {
   );
 }
 
+export type MemberInviteStatus = "invited" | "signed_in";
+
+async function inviteStatusByUserId(ids: string[]): Promise<Map<string, MemberInviteStatus>> {
+  const map = new Map<string, MemberInviteStatus>();
+  if (!ids.length) return map;
+  const admin = supabaseAdmin();
+  await Promise.all(
+    ids.map(async (id) => {
+      const { data } = await admin.auth.admin.getUserById(id);
+      map.set(id, data.user?.last_sign_in_at ? "signed_in" : "invited");
+    }),
+  );
+  return map;
+}
+
 export async function membersForClient(clientId: string) {
-  return withDb(
+  const rows = await withDb(
     async () => {
-      const rows = await db
+      const list = await db
         .select({ member: clientMembers, profile: profiles })
         .from(clientMembers)
         .innerJoin(profiles, eq(clientMembers.userId, profiles.id))
         .where(eq(clientMembers.clientId, clientId));
-      return rows.map((r) => ({
+      return list.map((r) => ({
         userId: r.member.userId,
         role: r.member.role,
         email: r.profile.email,
@@ -250,6 +265,11 @@ export async function membersForClient(clientId: string) {
       });
     },
   );
+  const status = await inviteStatusByUserId(rows.map((r) => r.userId));
+  return rows.map((r) => ({
+    ...r,
+    inviteStatus: status.get(r.userId) || ("invited" as MemberInviteStatus),
+  }));
 }
 
 function tally(ids: (string | null | undefined)[]) {
@@ -353,13 +373,13 @@ export async function listUsersWithClients() {
         ...p,
         clients: memberships
           .filter((m) => m.member.userId === p.id)
-          .map((m) => ({ slug: m.client.slug, name: m.client.name, role: m.member.role })),
+          .map((m) => ({ slug: m.client.slug, name: m.client.name })),
       }));
     },
     async () => {
       const admin = supabaseAdmin();
       const { data: people } = await admin.from("profiles").select("id,email,full_name,is_superadmin");
-      const { data: memberships } = await admin.from("client_members").select("user_id,role,client_id");
+      const { data: memberships } = await admin.from("client_members").select("user_id,client_id");
       const { data: clientRows } = await admin.from("clients").select("id,slug,name");
       const byClient = new Map((clientRows || []).map((c) => [c.id, c]));
       return (people || []).map((p) => ({
@@ -371,12 +391,18 @@ export async function listUsersWithClients() {
           .filter((m) => m.user_id === p.id)
           .map((m) => {
             const client = byClient.get(m.client_id);
-            return { slug: (client?.slug as string) || "", name: (client?.name as string) || "", role: m.role as string };
+            return { slug: (client?.slug as string) || "", name: (client?.name as string) || "" };
           })
           .filter((c) => c.slug),
       }));
     },
-  );
+  ).then(async (people) => {
+    const status = await inviteStatusByUserId(people.map((p) => p.id));
+    return people.map((p) => ({
+      ...p,
+      inviteStatus: status.get(p.id) || ("invited" as MemberInviteStatus),
+    }));
+  });
 }
 
 export type ShelfSurvey = {

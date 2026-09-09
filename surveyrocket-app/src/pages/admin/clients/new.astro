@@ -5,29 +5,31 @@ import AdminShell from "../../../components/AdminShell.astro";
 <Base title="New client · Admin">
   <AdminShell current="clients" email={Astro.locals.user?.email}>
     <div class="wrap">
-      <p><a href="/admin/clients">← Clients</a></p>
+      <a class="admin-back" href="/admin/clients">← Clients</a>
       <div class="pagehead">
         <h1>New client</h1>
         <p>Creates their portal. The first user gets a password setup email — they choose their own password.</p>
       </div>
-      <form id="f">
-        <label>Name</label>
-        <input name="name" required />
-        <label>Slug</label>
-        <input name="slug" placeholder="acme" />
-        <label>Logo URL</label>
-        <input name="logoUrl" />
-        <label>First user email</label>
-        <input name="inviteEmail" type="email" placeholder="they will get a password setup email" />
-        <button class="btn primary" type="submit" style="margin-top:16px">Create</button>
-        <p id="err" class="emptystate" hidden style="color:var(--red);margin-top:12px"></p>
-      </form>
+      <div class="admin-card">
+        <form id="f">
+          <div class="admin-field">
+            <label for="client-name">Name</label>
+            <input id="client-name" name="name" required placeholder="Acme Inc." />
+          </div>
+          <div class="admin-field">
+            <label for="client-slug">Slug <span style="text-transform:none;letter-spacing:0;color:var(--tx-3)">(optional)</span></label>
+            <input id="client-slug" name="slug" placeholder="acme" />
+          </div>
+          <div class="admin-field">
+            <label for="client-invite">First user email</label>
+            <input id="client-invite" name="inviteEmail" type="email" placeholder="they will get a password setup email" />
+          </div>
+          <button class="btn primary" type="submit">Create portal</button>
+          <p id="err" class="emptystate" hidden style="color:var(--red);margin-top:12px"></p>
+        </form>
+      </div>
     </div>
   </AdminShell>
-  <style>
-    label{display:block;font-size:12px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px}
-    input,select{width:100%;background:var(--page);box-shadow:var(--inset);border:0;border-radius:var(--r-md);padding:11px 14px;color:var(--tx)}
-  </style>
   <script>
     document.getElementById("f")!.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -40,7 +42,6 @@ import AdminShell from "../../../components/AdminShell.astro";
         body: JSON.stringify({
           name: fd.get("name"),
           slug: fd.get("slug"),
-          logoUrl: fd.get("logoUrl"),
           inviteEmail: fd.get("inviteEmail"),
         }),
       });

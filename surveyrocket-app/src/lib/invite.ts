@@ -12,10 +12,10 @@ async function findUserId(admin: ReturnType<typeof supabaseAdmin>, email: string
   return data.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
 }
 
-async function rememberMembership(userId: string, email: string, clientId: string, role: string) {
+async function rememberMembership(userId: string, email: string, clientId: string) {
   const admin = supabaseAdmin();
   const profile = { id: userId, email, is_superadmin: false };
-  const member = { user_id: userId, client_id: clientId, role };
+  const member = { user_id: userId, client_id: clientId, role: "owner" };
   const rest = await admin.from("profiles").upsert(profile);
   if (!rest.error) {
     await admin.from("client_members").upsert(member);
@@ -26,11 +26,11 @@ async function rememberMembership(userId: string, email: string, clientId: strin
   await db.insert(profiles).values({ id: userId, email, isSuperadmin: false }).onConflictDoNothing();
   await db
     .insert(clientMembers)
-    .values({ userId, clientId, role: role === "owner" ? "owner" : "member" })
+    .values({ userId, clientId, role: "owner" })
     .onConflictDoNothing();
 }
 
-export async function inviteUserToClient(emailRaw: string, clientId: string, role = "member") {
+export async function inviteUserToClient(emailRaw: string, clientId: string) {
   const email = emailRaw.trim().toLowerCase();
   if (!email) throw new Error("Email is required");
   const admin = supabaseAdmin();
@@ -53,7 +53,7 @@ export async function inviteUserToClient(emailRaw: string, clientId: string, rol
   }
 
   try {
-    await rememberMembership(userId, email, clientId, role === "owner" ? "owner" : "member");
+    await rememberMembership(userId, email, clientId);
   } catch {
     /* email still went out; membership can be repaired from admin */
   }

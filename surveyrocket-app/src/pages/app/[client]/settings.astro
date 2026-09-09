@@ -2,10 +2,7 @@
 import Base from "../../../layouts/Base.astro";
 import AppShell from "../../../components/AppShell.astro";
 import Settings from "../../../components/Settings";
-import { membershipFor, requireClientAccess } from "../../../lib/access";
-import { db } from "../../../lib/db";
-import { clientMembers, profiles } from "../../../lib/schema";
-import { eq } from "drizzle-orm";
+import { membersForClient, requireClientAccess } from "../../../lib/access";
 import { getConnection, publicConnection } from "../../../lib/hubspot/tokens";
 import { isHubSpotConfigured } from "../../../lib/hubspot/oauth";
 import { ensureClientSurveyLists } from "../../../lib/hubspot/lists";
@@ -17,20 +14,14 @@ if (!access.ok) {
   if (access.status === 401) return Astro.redirect("/login");
   return Astro.redirect("/app");
 }
-const [connRaw, memberRows, me] = await Promise.all([
+const [connRaw, memberRows] = await Promise.all([
   getConnection(access.client.id),
-  db
-    .select({ member: clientMembers, profile: profiles })
-    .from(clientMembers)
-    .innerJoin(profiles, eq(clientMembers.userId, profiles.id))
-    .where(eq(clientMembers.clientId, access.client.id)),
-  Astro.locals.isSuperadmin ? Promise.resolve({ role: "owner" as const }) : membershipFor(Astro.locals.user!.id, access.client.id),
+  membersForClient(access.client.id),
 ]);
 const conn = publicConnection(connRaw);
 if (conn.connected) {
   ensureClientSurveyLists(access.client.id).catch((err) => console.error("hubspot lists", err));
 }
-const canInvite = Astro.locals.isSuperadmin || me?.role === "owner";
 const hs = Astro.url.searchParams.get("hs");
 const profile = Astro.locals.profile;
 ---
@@ -50,12 +41,12 @@ const profile = Astro.locals.profile;
         hsConfigured={isHubSpotConfigured()}
         hsFlash={hs === "connected" || hs === "error" ? hs : null}
         members={memberRows.map((m) => ({
-          userId: m.member.userId,
-          email: m.profile.email,
-          fullName: m.profile.fullName,
-          role: m.member.role,
+          userId: m.userId,
+          email: m.email,
+          fullName: m.fullName,
+          inviteStatus: m.inviteStatus,
         }))}
-        canInvite={canInvite}
+        canInvite
         isSuperadmin={Astro.locals.isSuperadmin}
         profile={{
           id: Astro.locals.user!.id,

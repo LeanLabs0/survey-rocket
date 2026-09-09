@@ -14,13 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldContent, FieldDescription, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -33,7 +26,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Check, Eye, EyeOff, Monitor, Moon, Sun, X } from "lucide-react";
 
-type Member = { userId: string; email: string; fullName: string | null; role: string };
+type Member = { userId: string; email: string; fullName: string | null; inviteStatus?: "invited" | "signed_in" };
 type HubSpot = {
   connected: boolean;
   status: string;
@@ -275,7 +268,6 @@ export default function Settings(props: {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [members, setMembers] = useState(props.members);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("member");
 
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -577,13 +569,13 @@ export default function Settings(props: {
             </div>
           </SettingCard>
 
-          <SettingCard description="People who can open this workspace. Owners can invite new members." title="Members">
+          <SettingCard description="Anyone on this workspace can sign in and invite colleagues." title="Members">
             <div className="flex flex-col gap-4">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-end"> </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -596,7 +588,13 @@ export default function Settings(props: {
                           {m.fullName ? <span className="text-muted-foreground text-xs">{m.email}</span> : null}
                         </div>
                       </TableCell>
-                      <TableCell className="capitalize">{m.role}</TableCell>
+                      <TableCell>
+                        {m.inviteStatus === "signed_in" ? (
+                          <Badge variant="secondary">Accepted</Badge>
+                        ) : (
+                          <Badge variant="outline">Invite sent</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-end">
                         {props.canInvite && m.userId !== props.profile.id ? (
                           <Button
@@ -640,7 +638,7 @@ export default function Settings(props: {
                       const r = await fetch("/api/app/members", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ client: props.clientSlug, email: inviteEmail, role: inviteRole }),
+                        body: JSON.stringify({ client: props.clientSlug, email: inviteEmail }),
                       });
                       const d = await r.json().catch(() => null);
                       if (!r.ok) return flash(null, d?.error || "Could not invite.");
@@ -661,20 +659,9 @@ export default function Settings(props: {
                     type="email"
                     value={inviteEmail}
                   />
-                  <Select onValueChange={(value) => value && setInviteRole(value)} value={inviteRole}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue>{inviteRole === "owner" ? "Owner" : "Member"}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent align="start" className="p-1">
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="owner">Owner</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button loading={inviteBusy} type="submit">Add member</Button>
+                  <Button loading={inviteBusy} type="submit">Send invite</Button>
                 </form>
-              ) : (
-                <p className="text-muted-foreground text-sm">Ask a workspace owner to invite someone.</p>
-              )}
+              ) : null}
             </div>
           </SettingCard>
 
