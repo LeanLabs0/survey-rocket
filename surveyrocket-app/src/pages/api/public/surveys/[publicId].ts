@@ -8,7 +8,7 @@ export const GET: APIRoute = async ({ params }) => {
   const publicId = params.publicId;
   if (!publicId) return new Response("Not found", { status: 404 });
   const [sv] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
-  if (!sv || sv.status === "Draft") return new Response("Not found", { status: 404 });
+  if (!sv || sv.deletedAt || sv.status === "Draft") return new Response("Not found", { status: 404 });
   const [pub] = await db
     .select()
     .from(surveyPublications)

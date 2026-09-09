@@ -42,9 +42,13 @@ create table if not exists surveys (
   provenance jsonb not null default '{}'::jsonb,
   definition jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  hs_signed_in_list_id text,
+  hs_completed_list_id text,
   unique (client_id, slug)
 );
 create index if not exists surveys_client_idx on surveys (client_id);
+create index if not exists surveys_live_client_idx on surveys (client_id) where deleted_at is null;
 
 create table if not exists survey_publications (
   id uuid primary key default gen_random_uuid(),
@@ -61,6 +65,8 @@ create table if not exists respondents (
   client_id uuid not null references clients(id) on delete cascade,
   email text not null,
   name text,
+  company text,
+  website text,
   hubspot_contact_id text,
   first_seen_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now(),
@@ -77,7 +83,7 @@ create table if not exists responses (
   client_response_id text not null,
   source text not null default 'share',
   started_at timestamptz,
-  completed_at timestamptz not null default now(),
+  completed_at timestamptz,
   duration_ms integer,
   country text,
   ip_hash text,
@@ -133,6 +139,7 @@ create table if not exists hubspot_connections (
   expires_at timestamptz,
   scopes text,
   survey_object_type_id text,
+  signin_form_id text,
   status text not null default 'disconnected',
   connected_by uuid,
   connected_at timestamptz

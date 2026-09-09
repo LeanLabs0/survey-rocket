@@ -1,4 +1,5 @@
 import { createHash, createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { envVar } from "./env";
 
 export function hashToken(value: string | null | undefined) {
   if (!value) return "";
@@ -7,12 +8,12 @@ export function hashToken(value: string | null | undefined) {
 
 export function hashIp(ip: string | null | undefined) {
   if (!ip) return null;
-  const salt = process.env.IP_SALT || "dev-ip-salt";
+  const salt = envVar("IP_SALT") || "dev-ip-salt";
   return createHash("sha256").update(`${ip}${salt}`).digest("hex");
 }
 
 function encryptionKey() {
-  const raw = (process.env.HUBSPOT_TOKEN_ENCRYPTION_KEY || "dev-only-insecure-key").trim();
+  const raw = envVar("HUBSPOT_TOKEN_ENCRYPTION_KEY") || "dev-only-insecure-key";
   return createHash("sha256").update(raw).digest();
 }
 

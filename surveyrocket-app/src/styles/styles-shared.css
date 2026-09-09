@@ -28,6 +28,7 @@
 
   /* Type — Plus Jakarta Sans throughout. Tracking -4 in Figma is -0.04em. */
   --ll-font:'Plus Jakarta Sans',-apple-system,'Segoe UI',system-ui,sans-serif;
+  --rs-serif:"Editor's Note",Georgia,'Times New Roman',serif;
   --ll-h1:56px; --ll-h2:42px; --ll-h3:36px; --ll-h4:28px; --ll-h5:24px; --ll-h6:20px;
   --ll-text-lg:20px; --ll-text-md:18px; --ll-text-rg:16px; --ll-text-sm:14px; --ll-text-xs:12px;
   --ll-ls-display:-0.04em;
@@ -76,6 +77,23 @@ body{margin:0;background:var(--page);color:var(--tx-2);font-family:var(--font-bo
 h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;color:var(--tx);margin:0;letter-spacing:var(--ll-ls-display)}
 button,input,select,textarea{font-family:var(--font-body)}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+@font-face{
+  font-family:"Editor's Note";
+  src:url("/assets/fonts/WOFF/Editor%27sNote-Regular.woff2") format("woff2"),
+      url("/assets/fonts/WOFF/Editor%27sNote-Regular.woff") format("woff");
+  font-weight:400;
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Editor's Note";
+  src:url("/assets/fonts/WOFF/Editor%27sNote-Italic.woff2") format("woff2"),
+      url("/assets/fonts/WOFF/Editor%27sNote-Italic.woff") format("woff");
+  font-weight:400;
+  font-style:italic;
+  font-display:swap;
+}
 
 html[data-theme="light"]{
   --ll-page:#f4f4f5;

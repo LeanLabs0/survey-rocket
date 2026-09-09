@@ -1,6 +1,7 @@
-import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "./db";
 import { answers, responses, surveys } from "./schema";
+import { liveSurveys } from "./survey-scope";
 
 export type QuestionAgg = {
   question: string;
@@ -98,18 +99,38 @@ export function statsFromAgg(
 
 export async function aggregateSurvey(surveyId: string): Promise<SurveyAgg> {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const [totals] = await db
-    .select({
-      responses: count(),
-      thisWeek: sql<number>`count(*) filter (where ${responses.completedAt} >= ${weekAgo}::timestamptz)`,
-      latestAt: sql<Date | null>`max(${responses.completedAt})`,
-      reviewAsked: sql<number>`count(*) filter (where ${responses.reviewAsked} = true)`,
-      reviewClicked: sql<number>`count(*) filter (where ${responses.reviewOutcome} = 'clicked')`,
-    })
-    .from(responses)
-    .where(eq(responses.surveyId, surveyId));
+  const [[totals], rows] = await Promise.all([
+    db
+      .select({
+        responses: count(),
+        thisWeek: sql<number>`count(*) filter (where ${responses.completedAt} >= ${weekAgo}::timestamptz)`,
+        latestAt: sql<Date | null>`max(${responses.completedAt})`,
+        reviewAsked: sql<number>`count(*) filter (where ${responses.reviewAsked} = true)`,
+        reviewClicked: sql<number>`count(*) filter (where ${responses.reviewOutcome} = 'clicked')`,
+      })
+      .from(responses)
+      .where(and(eq(responses.surveyId, surveyId), isNotNull(responses.completedAt))),
+    db
+      .select({ row: answers })
+      .from(answers)
+      .innerJoin(responses, eq(answers.responseId, responses.id))
+      .where(and(eq(answers.surveyId, surveyId), isNotNull(responses.completedAt))),
+  ]);
+  return aggFromRows(totals, rows.map((r) => r.row));
+}
 
-  const rows = await db.select().from(answers).where(eq(answers.surveyId, surveyId));
+function aggFromRows(
+  totals:
+    | {
+        responses: number;
+        thisWeek: number;
+        latestAt: Date | null;
+        reviewAsked: number;
+        reviewClicked: number;
+      }
+    | undefined,
+  rows: (typeof answers.$inferSelect)[],
+): SurveyAgg {
   const questions: Record<string, QuestionAgg> = {};
   for (const row of rows) {
     const key = row.questionKey;
@@ -161,24 +182,55 @@ export async function aggregateSurvey(surveyId: string): Promise<SurveyAgg> {
 
 export async function clientDashboardStats(clientId: string) {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const list = await db.select().from(surveys).where(eq(surveys.clientId, clientId));
-  const [totals] = await db
-    .select({
-      answers: count(),
-      thisWeek: sql<number>`count(*) filter (where ${responses.completedAt} >= ${weekAgo}::timestamptz)`,
-      reviewClicked: sql<number>`count(*) filter (where ${responses.reviewOutcome} = 'clicked')`,
-      reviewAsked: sql<number>`count(*) filter (where ${responses.reviewAsked} = true)`,
-    })
-    .from(responses)
-    .where(eq(responses.clientId, clientId));
+  const [list, [totals], grouped, answerJoined] = await Promise.all([
+    db.select().from(surveys).where(liveSurveys(clientId)),
+    db
+      .select({
+        answers: count(),
+        thisWeek: sql<number>`count(*) filter (where ${responses.completedAt} >= ${weekAgo}::timestamptz)`,
+        reviewClicked: sql<number>`count(*) filter (where ${responses.reviewOutcome} = 'clicked')`,
+        reviewAsked: sql<number>`count(*) filter (where ${responses.reviewAsked} = true)`,
+      })
+      .from(responses)
+      .innerJoin(surveys, eq(responses.surveyId, surveys.id))
+      .where(and(eq(responses.clientId, clientId), isNotNull(responses.completedAt), isNull(surveys.deletedAt))),
+    db
+      .select({
+        surveyId: responses.surveyId,
+        responses: count(),
+        thisWeek: sql<number>`count(*) filter (where ${responses.completedAt} >= ${weekAgo}::timestamptz)`,
+        latestAt: sql<Date | null>`max(${responses.completedAt})`,
+        reviewAsked: sql<number>`count(*) filter (where ${responses.reviewAsked} = true)`,
+        reviewClicked: sql<number>`count(*) filter (where ${responses.reviewOutcome} = 'clicked')`,
+      })
+      .from(responses)
+      .innerJoin(surveys, eq(responses.surveyId, surveys.id))
+      .where(and(eq(responses.clientId, clientId), isNotNull(responses.completedAt), isNull(surveys.deletedAt)))
+      .groupBy(responses.surveyId),
+    db
+      .select({ row: answers })
+      .from(answers)
+      .innerJoin(responses, eq(answers.responseId, responses.id))
+      .innerJoin(surveys, eq(answers.surveyId, surveys.id))
+      .where(and(eq(answers.clientId, clientId), isNotNull(responses.completedAt), isNull(surveys.deletedAt))),
+  ]);
 
-  const items = [];
-  for (const sv of list) {
-    const agg = await aggregateSurvey(sv.id);
+  const answerRows = answerJoined.map((r) => r.row);
+
+  const answersBySurvey = new Map<string, (typeof answers.$inferSelect)[]>();
+  for (const row of answerRows) {
+    const listFor = answersBySurvey.get(row.surveyId) || [];
+    listFor.push(row);
+    answersBySurvey.set(row.surveyId, listFor);
+  }
+  const totalsBySurvey = new Map(grouped.map((row) => [row.surveyId, row]));
+
+  const items = list.map((sv) => {
+    const agg = aggFromRows(totalsBySurvey.get(sv.id), answersBySurvey.get(sv.id) || []);
     const def = sv.definition as { questions?: { id: string; q?: string }[] };
     const stats = statsFromAgg(sv.name, agg, def?.questions);
-    items.push({ survey: sv, agg, stats });
-  }
+    return { survey: sv, agg, stats };
+  });
   const pubs = items
     .flatMap((it) => it.stats.pubs.map((pb) => ({ ...pb, surveyName: it.survey.name, surveyId: it.survey.id })))
     .sort((a, b) => b.answers - a.answers)
@@ -194,11 +246,42 @@ export async function clientDashboardStats(clientId: string) {
   };
 }
 
+export async function loadClientDashboard(clientId: string, surveyDays = 30, seriesDays = 7) {
+  const [dash, bySurvey, byDay] = await Promise.all([
+    clientDashboardStats(clientId),
+    answersBySurvey(clientId, surveyDays),
+    answersByDay(clientId, seriesDays),
+  ]);
+  return {
+    total: dash.total,
+    week: dash.week,
+    clicked: dash.clicked,
+    asked: dash.asked,
+    verified: dash.verified,
+    bySurvey,
+    byDay,
+    surveys: dash.surveys.map((it) => {
+      const def = it.survey.definition as { questions?: unknown[] };
+      return {
+        id: it.survey.id,
+        publicId: it.survey.publicId,
+        name: it.survey.name,
+        status: it.survey.status,
+        cadence: it.survey.cadence,
+        questionCount: Array.isArray(def?.questions) ? def.questions.length : 0,
+        updatedAt: it.survey.updatedAt,
+        agg: it.agg,
+        stats: it.stats,
+      };
+    }),
+  };
+}
+
 export async function latestRespondents(surveyId: string, limit = 5) {
   return db
     .select()
     .from(responses)
-    .where(eq(responses.surveyId, surveyId))
+    .where(and(eq(responses.surveyId, surveyId), isNotNull(responses.completedAt)))
     .orderBy(desc(responses.completedAt))
     .limit(limit);
 }
@@ -222,15 +305,18 @@ function rangeStart(days: number) {
 export async function answersBySurvey(clientId: string, days = 30) {
   const period = clampDays(days, 30);
   const since = rangeStart(period);
-  const list = await db.select().from(surveys).where(eq(surveys.clientId, clientId));
-  const rows = await db
-    .select({
-      surveyId: responses.surveyId,
-      total: count(),
-    })
-    .from(responses)
-    .where(and(eq(responses.clientId, clientId), gte(responses.completedAt, since)))
-    .groupBy(responses.surveyId);
+  const [list, rows] = await Promise.all([
+    db.select().from(surveys).where(liveSurveys(clientId)),
+    db
+      .select({
+        surveyId: responses.surveyId,
+        total: count(),
+      })
+      .from(responses)
+      .innerJoin(surveys, eq(responses.surveyId, surveys.id))
+      .where(and(eq(responses.clientId, clientId), gte(responses.completedAt, since), isNull(surveys.deletedAt)))
+      .groupBy(responses.surveyId),
+  ]);
   const byId = new Map(rows.map((row) => [row.surveyId, Number(row.total)]));
   return {
     days: period,
@@ -252,7 +338,8 @@ export async function answersByDay(clientId: string, days = 7) {
       total: count(),
     })
     .from(responses)
-    .where(and(eq(responses.clientId, clientId), gte(responses.completedAt, since)))
+    .innerJoin(surveys, eq(responses.surveyId, surveys.id))
+    .where(and(eq(responses.clientId, clientId), gte(responses.completedAt, since), isNull(surveys.deletedAt)))
     .groupBy(dayKey);
   const byDay = new Map(rows.map((row) => [row.day, Number(row.total)]));
   const items: { date: string; count: number }[] = [];

@@ -43,5 +43,6 @@ export function publicConnection(conn: typeof hubspotConnections.$inferSelect | 
     portalName: conn.portalName,
     connectedAt: conn.connectedAt,
     surveyObjectTypeId: conn.surveyObjectTypeId,
+    signinFormId: conn.signinFormId,
   };
 }

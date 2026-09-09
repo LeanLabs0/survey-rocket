@@ -8,6 +8,7 @@ import { clientMembers, profiles } from "../../../lib/schema";
 import { eq } from "drizzle-orm";
 import { getConnection, publicConnection } from "../../../lib/hubspot/tokens";
 import { isHubSpotConfigured } from "../../../lib/hubspot/oauth";
+import { ensureClientSurveyLists } from "../../../lib/hubspot/lists";
 import { supabasePublishableKey, supabaseUrl } from "../../../lib/supabase";
 
 const slug = Astro.params.client!;
@@ -16,16 +17,22 @@ if (!access.ok) {
   if (access.status === 401) return Astro.redirect("/login");
   return Astro.redirect("/app");
 }
-const conn = publicConnection(await getConnection(access.client.id));
-const memberRows = await db
-  .select({ member: clientMembers, profile: profiles })
-  .from(clientMembers)
-  .innerJoin(profiles, eq(clientMembers.userId, profiles.id))
-  .where(eq(clientMembers.clientId, access.client.id));
-const me = Astro.locals.isSuperadmin ? { role: "owner" } : await membershipFor(Astro.locals.user!.id, access.client.id);
+const [connRaw, memberRows, me] = await Promise.all([
+  getConnection(access.client.id),
+  db
+    .select({ member: clientMembers, profile: profiles })
+    .from(clientMembers)
+    .innerJoin(profiles, eq(clientMembers.userId, profiles.id))
+    .where(eq(clientMembers.clientId, access.client.id)),
+  Astro.locals.isSuperadmin ? Promise.resolve({ role: "owner" as const }) : membershipFor(Astro.locals.user!.id, access.client.id),
+]);
+const conn = publicConnection(connRaw);
+if (conn.connected) {
+  ensureClientSurveyLists(access.client.id).catch((err) => console.error("hubspot lists", err));
+}
 const canInvite = Astro.locals.isSuperadmin || me?.role === "owner";
 const hs = Astro.url.searchParams.get("hs");
-const [profile] = await db.select().from(profiles).where(eq(profiles.id, Astro.locals.user!.id)).limit(1);
+const profile = Astro.locals.profile;
 ---
 <Base title="Settings · Survey Rocket">
   <AppShell slug={slug} clientName={access.client.name} current="settings" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email} theme={profile?.theme || Astro.locals.profile?.theme || "dark"}>

@@ -1,7 +1,7 @@
 /* Survey Rocket marketing homepage.
    Tokens come from styles-shared.css (Lean Labs Style Guide).
    Landing-only tweaks vs that guide, from Figma 12952:8445:
-   — display italic (Editor's Note → Instrument Serif)
+   — display italic (Editor's Note)
    — heading weight Regular instead of SemiBold
    — body Inter instead of Plus Jakarta
    — pill buttons (180px) instead of 8px
@@ -13,7 +13,7 @@ body.lp-on .topbar{display:none}
   --lp-max:1120px;
   --lp-pill:180px;
   --lp-font:var(--ll-font);
-  --lp-serif:'Instrument Serif',Georgia,'Times New Roman',serif;
+  --lp-serif:var(--rs-serif);
   --lp-body:Inter,var(--ll-font);
   --lp-card:var(--ll-card);
   --lp-border:var(--ll-border);
@@ -112,24 +112,45 @@ body.lp-on .topbar{display:none}
 /* Hero */
 #view-landing .lp-hero{
   position:relative;
+  isolation:isolate;
   overflow:hidden;
   padding:0 0 112px;
   text-align:center;
 }
-#view-landing .lp-glow{
+#view-landing .lp-ripple{
   position:absolute;
   left:50%;
-  top:40%;
-  width:min(1852px, 220vw);
-  height:min(1852px, 220vw);
-  transform:translate(-50%, -20%);
+  top:auto;
+  bottom:112px;
+  width:min(1852px, 170vw);
+  aspect-ratio:1;
+  transform:translate(-50%, 40%);
+  pointer-events:none;
+  z-index:0;
+  opacity:0;
+  filter:blur(24px);
+  will-change:opacity, filter;
+  background:radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, .80) 37.02%, rgba(168, 0, 101, .80) 58.17%, rgba(240, 0, 144, .80) 66.35%, rgba(168, 0, 101, .80) 75.48%, rgba(0, 0, 0, .80) 100%);
+}
+#view-landing .lp-hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.3);
   pointer-events:none;
   z-index:0;
 }
-#view-landing .lp-glow img{
+#view-landing .lp-ripple canvas{
   width:100%;
   height:100%;
   display:block;
+}
+#view-landing .lp-ripple.is-canvas-revealed{
+  animation:lp-hero-canvas-reveal 1.6s cubic-bezier(.22, .6, .28, 1) both;
+}
+@keyframes lp-hero-canvas-reveal{
+  from{opacity:0;filter:blur(24px)}
+  to{opacity:1;filter:blur(8px)}
 }
 #view-landing .lp-hero-inner{
   position:relative;
@@ -182,13 +203,43 @@ body.lp-on .topbar{display:none}
   aspect-ratio:16/9;
   background:#141414;
   border-radius:16px;
-  box-shadow:0 10px 10px rgba(29,0,68,.1);
+  box-shadow:0 10px 10px rgba(168,0,101,.1);
   display:flex;
   align-items:center;
   justify-content:center;
   overflow:hidden;
+  cursor:pointer;
+  border:0;
+  padding:0;
+}
+#view-landing .lp-video-thumb,
+#view-landing .lp-video-el{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+#view-landing .lp-video-el{
+  opacity:0;
+  pointer-events:none;
+}
+#view-landing .lp-video.is-playing{
+  cursor:default;
+}
+#view-landing .lp-video.is-playing .lp-video-el{
+  opacity:1;
+  pointer-events:auto;
+}
+#view-landing .lp-video.is-playing .lp-video-thumb,
+#view-landing .lp-video.is-playing .lp-play{
+  opacity:0;
+  pointer-events:none;
 }
 #view-landing .lp-play{
+  position:relative;
+  z-index:1;
   width:51px;
   height:51px;
   border-radius:80px;
@@ -198,11 +249,15 @@ body.lp-on .topbar{display:none}
   align-items:center;
   justify-content:center;
   padding:16px;
+  cursor:pointer;
 }
 #view-landing .lp-play img{width:19px;height:19px;display:block}
 
 /* Cite: heading → intro row → evidence rows (offset 6, not beside heading) */
 #view-landing .lp-cite{
+  position:relative;
+  z-index:1;
+  background:var(--ll-black);
   padding:112px 0;
 }
 #view-landing .lp-cite-grid{
@@ -847,6 +902,14 @@ body.lp-on .topbar{display:none}
 #view-landing .lp-foot a{color:rgba(255,255,255,.5);text-decoration:none}
 #view-landing .lp-foot a:hover{color:#fff}
 
+@media (max-width:767px){
+  #view-landing .lp-ripple{
+    top:auto;
+    bottom:80px;
+    width:min(1852px, 220vw);
+    transform:translate(-50%, 36%);
+  }
+}
 @media (max-width:980px){
   #view-landing .lp-cite-grid,
   #view-landing .lp-gaps-top,
@@ -916,6 +979,12 @@ body.lp-on .topbar{display:none}
   transition:opacity 1400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 @media (prefers-reduced-motion: reduce){
+  #view-landing .lp-ripple,
+  #view-landing .lp-ripple.is-canvas-revealed{
+    animation:none;
+    opacity:1;
+    filter:none;
+  }
   #view-landing .lp-reveal,
   #view-landing .lp-reveal.in,
   #view-landing .lp-reveal.fade,

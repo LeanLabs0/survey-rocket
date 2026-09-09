@@ -1,9 +1,11 @@
 import type { APIRoute } from "astro";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { jsonError, jsonOk, requireClientAccess } from "../../../../../lib/access";
 import { db } from "../../../../../lib/db";
 import { surveyPublications, surveys } from "../../../../../lib/schema";
 import { validateDefinition, type SurveyDefinition } from "../../../../../lib/definition";
+import { provisionSurveyLists } from "../../../../../lib/hubspot/lists";
+import { ownedLiveSurvey } from "../../../../../lib/survey-scope";
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
   const body = await request.json().catch(() => null);
@@ -13,7 +15,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const [sv] = await db
     .select()
     .from(surveys)
-    .where(and(eq(surveys.id, params.id!), eq(surveys.clientId, access.client.id)))
+    .where(ownedLiveSurvey(access.client.id, params.id!))
     .limit(1);
   if (!sv) return jsonError(404, "Survey not found");
   const definition = (body.definition || sv.definition) as SurveyDefinition;
@@ -59,5 +61,6 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     })
     .where(eq(surveys.id, sv.id))
     .returning();
+  if (row) provisionSurveyLists(row);
   return jsonOk({ survey: row, publication: pub });
 };

@@ -95,6 +95,8 @@ export default function SurveysList({
   }));
   const [copied, setCopied] = useState<string | null>(null);
   const [copyModal, setCopyModal] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
   const sample = list.find((s) => s.slug === "client-outcomes") || list[0] || null;
 
@@ -109,48 +111,65 @@ export default function SurveysList({
   }
 
   async function createBlank() {
-    const res = await fetch("/api/app/surveys", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ client: clientSlug, name: "Untitled survey" }),
-    });
-    const data = await res.json();
-    if (data.survey?.id) window.location.href = `/app/${clientSlug}/surveys/${data.survey.id}/edit`;
+    if (creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/app/surveys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client: clientSlug, name: "Untitled survey" }),
+      });
+      const data = await res.json();
+      if (data.survey?.id) window.location.href = `/app/${clientSlug}/surveys/${data.survey.id}/edit`;
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function duplicate(id: string) {
-    const res = await fetch(`/api/app/surveys/${id}/duplicate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ client: clientSlug }),
-    });
-    const data = await res.json();
-    const row = data.survey;
-    if (!row) return;
-    setList((cur) => [
-      {
-        id: row.id,
-        publicId: row.publicId,
-        slug: row.slug,
-        name: row.name,
-        cadence: row.cadence,
-        status: row.status,
-        questionCount: Array.isArray(row.definition?.questions) ? row.definition.questions.length : 0,
-        answers: 0,
-      },
-      ...cur,
-    ]);
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/app/surveys/${id}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client: clientSlug }),
+      });
+      const data = await res.json();
+      const row = data.survey;
+      if (!row) return;
+      setList((cur) => [
+        {
+          id: row.id,
+          publicId: row.publicId,
+          slug: row.slug,
+          name: row.name,
+          cadence: row.cadence,
+          status: row.status,
+          questionCount: Array.isArray(row.definition?.questions) ? row.definition.questions.length : 0,
+          answers: 0,
+        },
+        ...cur,
+      ]);
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function remove(id: string, name: string) {
     const ok = await confirm({
       title: "Delete survey",
-      message: `Delete “${name}”? Answers already collected stay in Results.`,
+      message: `Delete “${name}”? The live link will stop working.`,
       confirmLabel: "Delete survey",
     });
     if (!ok) return;
-    await fetch(`/api/app/surveys/${id}?client=${encodeURIComponent(clientSlug)}`, { method: "DELETE" });
-    setList((cur) => cur.filter((s) => s.id !== id));
+    setBusyId(id);
+    try {
+      await fetch(`/api/app/surveys/${id}?client=${encodeURIComponent(clientSlug)}`, { method: "DELETE" });
+      setList((cur) => cur.filter((s) => s.id !== id));
+    } finally {
+      setBusyId(null);
+    }
   }
 
   function copyLink(publicId: string) {
@@ -382,11 +401,11 @@ export default function SurveysList({
           </DialogHeader>
           <div className="overflow-hidden rounded-lg border">
             <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2">
-              <button className="text-left" onClick={createBlank} type="button">
+              <button className="text-left" disabled={creating} onClick={createBlank} type="button">
                 <FeatureCard
                   className={taskCardClass}
                   feature={{
-                    title: "Write it myself",
+                    title: creating ? "Creating…" : "Write it myself",
                     icon: <Pencil />,
                     description: "Start from a blank survey and type your exact questions.",
                   }}

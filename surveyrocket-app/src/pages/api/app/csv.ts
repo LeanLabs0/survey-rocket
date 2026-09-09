@@ -1,8 +1,9 @@
 import type { APIRoute } from "astro";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { jsonError, requireClientAccess } from "../../../lib/access";
 import { db } from "../../../lib/db";
 import { answers, respondents, responses, surveys } from "../../../lib/schema";
+import { ownedLiveSurvey } from "../../../lib/survey-scope";
 
 export const GET: APIRoute = async ({ url, locals }) => {
   const clientSlug = url.searchParams.get("client") || "";
@@ -12,7 +13,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const [sv] = await db
     .select()
     .from(surveys)
-    .where(and(eq(surveys.id, surveyId), eq(surveys.clientId, access.client.id)))
+    .where(ownedLiveSurvey(access.client.id, surveyId))
     .limit(1);
   if (!sv) return jsonError(404, "Survey not found");
   const rows = await db

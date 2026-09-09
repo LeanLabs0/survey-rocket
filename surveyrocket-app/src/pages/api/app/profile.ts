@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
-import { jsonError, jsonOk } from "../../../lib/access";
+import { jsonError, jsonOk, invalidateProfileCache } from "../../../lib/access";
 import { db } from "../../../lib/db";
 import { profiles } from "../../../lib/schema";
 import { supabaseFromCookies } from "../../../lib/supabase";
@@ -50,6 +50,8 @@ export const PUT: APIRoute = async ({ request, locals, cookies }) => {
       set: { fullName, theme, locale, notifyReviews },
     })
     .returning();
+
+  invalidateProfileCache(locals.user.id);
 
   if (typeof body.email === "string") {
     const email = body.email.trim().toLowerCase();

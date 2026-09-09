@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { supabaseBrowser } from "../lib/supabase-browser";
 import { applyTheme } from "../lib/theme";
 import { useConfirm } from "./ConfirmDialog";
@@ -39,6 +39,7 @@ type HubSpot = {
   status: string;
   portalId?: string | null;
   portalName?: string | null;
+  signinFormId?: string | null;
 };
 type Profile = {
   id: string;
@@ -220,15 +221,29 @@ function SaveRow({
   children: ReactNode;
   onSubmit: () => Promise<void>;
 }) {
+  const [saving, setSaving] = useState(false);
   return (
     <form
       className="flex max-w-lg items-center gap-2"
       onSubmit={async (e) => {
         e.preventDefault();
-        await onSubmit();
+        if (saving) return;
+        setSaving(true);
+        try {
+          await onSubmit();
+        } finally {
+          setSaving(false);
+        }
       }}
     >
-      {children}
+      {Children.map(children, (child) => {
+        if (!isValidElement(child)) return child;
+        const el = child as ReactElement<{ type?: string; loading?: boolean; disabled?: boolean }>;
+        if (el.props.type === "submit") {
+          return cloneElement(el, { loading: saving, disabled: saving || el.props.disabled });
+        }
+        return child;
+      })}
     </form>
   );
 }
@@ -270,6 +285,9 @@ export default function Settings(props: {
   const [pkStatus, setPkStatus] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [deletePw, setDeletePw] = useState("");
+  const [logoSaving, setLogoSaving] = useState(false);
+  const [hsBusy, setHsBusy] = useState(false);
+  const [inviteBusy, setInviteBusy] = useState(false);
   const { confirm, dialog } = useConfirm();
 
   const logoPreview = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : logo), [logoFile, logo]);
@@ -462,7 +480,7 @@ export default function Settings(props: {
           </SettingCard>
 
           <SettingCard
-            description="Answers stay in Survey Rocket. HubSpot holds the contact identity for this workspace."
+            description="Answers stay in Survey Rocket. Connecting HubSpot auto-creates [LL] SurveyRocket Sign in. Each survey gets two static lists: signed in and completed."
             title="HubSpot"
           >
             <div className="flex flex-col gap-3">
@@ -476,12 +494,28 @@ export default function Settings(props: {
                   You are viewing this as a superadmin. Connecting here attaches HubSpot to {props.clientName}.
                 </p>
               ) : null}
+              {props.hubspot.connected && props.hubspot.signinFormId ? (
+                <p className="text-muted-foreground text-sm">
+                  Sign-in form <span className="text-foreground">[LL] SurveyRocket Sign in</span> is ready. It opens when a respondent clicks Begin.
+                </p>
+              ) : props.hubspot.connected ? (
+                <p className="text-muted-foreground text-sm">
+                  Reconnect HubSpot so we can create the [LL] SurveyRocket Sign in form in this portal. The HubSpot app needs the forms scope.
+                </p>
+              ) : null}
               <div className="flex flex-wrap items-center gap-2">
-                <Button nativeButton={false} render={<a href={`/api/hubspot/oauth/start?client=${encodeURIComponent(props.clientSlug)}`} />}>
-                  {props.hubspot.connected ? "Reconnect HubSpot" : "Connect HubSpot"}
-                </Button>
+                {props.hsConfigured ? (
+                  <Button nativeButton={false} render={<a href={`/api/hubspot/oauth/start?client=${encodeURIComponent(props.clientSlug)}`} />}>
+                    {props.hubspot.connected ? "Reconnect HubSpot" : "Connect HubSpot"}
+                  </Button>
+                ) : (
+                  <Button disabled type="button">
+                    Connect HubSpot
+                  </Button>
+                )}
                 {props.hubspot.connected ? (
                   <Button
+                    loading={hsBusy}
                     onClick={async () => {
                       const ok = await confirm({
                         title: "Disconnect HubSpot",
@@ -489,12 +523,17 @@ export default function Settings(props: {
                         confirmLabel: "Disconnect",
                       });
                       if (!ok) return;
-                      await fetch("/api/hubspot/disconnect", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ client: props.clientSlug }),
-                      });
-                      location.reload();
+                      setHsBusy(true);
+                      try {
+                        await fetch("/api/hubspot/disconnect", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ client: props.clientSlug }),
+                        });
+                        location.reload();
+                      } finally {
+                        setHsBusy(false);
+                      }
                     }}
                     type="button"
                     variant="outline"
@@ -505,7 +544,7 @@ export default function Settings(props: {
               </div>
               {!props.hsConfigured ? (
                 <p className="text-muted-foreground text-sm">
-                  OAuth env vars are missing on this environment, so the connect flow will fail until they are set.
+                  Add HUBSPOT_APP_CLIENT_ID and HUBSPOT_APP_CLIENT_SECRET from HubSpot → Development → Projects → Survey Rocket → Auth, then restart the app.
                 </p>
               ) : null}
             </div>
@@ -515,9 +554,11 @@ export default function Settings(props: {
             <div className="flex flex-col items-start gap-3">
               <FileDrop label="Workspace logo" onFile={setLogoFile} preview={logoPreview} />
               <Button
-                disabled={!logoFile}
+                disabled={!logoFile || logoSaving}
+                loading={logoSaving}
                 onClick={async () => {
                   if (!logoFile) return;
+                  setLogoSaving(true);
                   try {
                     const url = await upload("logo", logoFile);
                     setLogo(url);
@@ -525,6 +566,8 @@ export default function Settings(props: {
                     flash("Logo saved.");
                   } catch (ex) {
                     flash(null, ex instanceof Error ? ex.message : "Could not save logo.");
+                  } finally {
+                    setLogoSaving(false);
                   }
                 }}
                 type="button"
@@ -591,17 +634,23 @@ export default function Settings(props: {
                   className="flex max-w-xl flex-wrap items-center gap-2"
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    const r = await fetch("/api/app/members", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ client: props.clientSlug, email: inviteEmail, role: inviteRole }),
-                    });
-                    const d = await r.json().catch(() => null);
-                    if (!r.ok) return flash(null, d?.error || "Could not invite.");
-                    setInviteEmail("");
-                    flash("Invite sent. They will get an email to set a password.");
-                    const list = await fetch(`/api/app/members?client=${encodeURIComponent(props.clientSlug)}`).then((x) => x.json());
-                    setMembers(list.members || members);
+                    if (inviteBusy) return;
+                    setInviteBusy(true);
+                    try {
+                      const r = await fetch("/api/app/members", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ client: props.clientSlug, email: inviteEmail, role: inviteRole }),
+                      });
+                      const d = await r.json().catch(() => null);
+                      if (!r.ok) return flash(null, d?.error || "Could not invite.");
+                      setInviteEmail("");
+                      flash("Invite sent. They will get an email to set a password.");
+                      const list = await fetch(`/api/app/members?client=${encodeURIComponent(props.clientSlug)}`).then((x) => x.json());
+                      setMembers(list.members || members);
+                    } finally {
+                      setInviteBusy(false);
+                    }
                   }}
                 >
                   <Input
@@ -621,7 +670,7 @@ export default function Settings(props: {
                       <SelectItem value="owner">Owner</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button type="submit">Add member</Button>
+                  <Button loading={inviteBusy} type="submit">Add member</Button>
                 </form>
               ) : (
                 <p className="text-muted-foreground text-sm">Ask a workspace owner to invite someone.</p>

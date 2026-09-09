@@ -6,7 +6,8 @@ import ViewTip from "../../../../components/ViewTip";
 import { requireClientAccess } from "../../../../lib/access";
 import { db } from "../../../../lib/db";
 import { surveys } from "../../../../lib/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
+import { liveSurveys } from "../../../../lib/survey-scope";
 
 const slug = Astro.params.client!;
 const id = Astro.params.id!;
@@ -15,7 +16,7 @@ if (!access.ok) {
   if (access.status === 401) return Astro.redirect("/login");
   return Astro.redirect("/app");
 }
-const list = await db.select().from(surveys).where(eq(surveys.clientId, access.client.id)).orderBy(desc(surveys.updatedAt));
+const list = await db.select().from(surveys).where(liveSurveys(access.client.id)).orderBy(desc(surveys.updatedAt));
 const sv = list.find((s) => s.id === id);
 if (!sv) return Astro.redirect(`/app/${slug}/results`);
 ---
@@ -24,7 +25,7 @@ if (!sv) return Astro.redirect(`/app/${slug}/results`);
     <div class="wrap">
       <div class="pagehead" id="resultsHead">
         <h1>Results</h1>
-        <p>Live results for every survey, newest answers first. Answers arrive here the moment someone finishes.</p>
+        <p>Live results for every survey, newest answers first. Progress updates as people answer.</p>
       </div>
       <ViewTip client:load />
       <Results

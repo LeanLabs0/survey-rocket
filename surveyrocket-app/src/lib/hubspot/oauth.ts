@@ -1,16 +1,20 @@
-const HUBSPOT_SCOPES = [
+import { envVar } from "../env";
+
+/** Must match hubspot-app/src/app/app-hsmeta.json requiredScopes. */
+const HUBSPOT_REQUIRED_SCOPES = [
   "oauth",
+  "forms",
+  "crm.lists.read",
+  "crm.lists.write",
   "crm.objects.contacts.read",
-  "crm.objects.contacts.write",
-  "crm.schemas.contacts.write",
-  "crm.objects.custom.read",
-  "crm.objects.custom.write",
-  "crm.schemas.custom.read",
-  "crm.schemas.custom.write",
-].join(" ");
+];
+
+const HUBSPOT_OPTIONAL_SCOPES: string[] = [];
+
+const HUBSPOT_SCOPES = HUBSPOT_REQUIRED_SCOPES.join(" ");
 
 function trimEnv(name: string) {
-  return String(process.env[name] || "").trim();
+  return envVar(name);
 }
 
 function isLocalhostUri(uri: string) {
@@ -24,7 +28,8 @@ export function hubspotRedirectUri() {
     const host = (trimEnv("PUBLIC_SITE_URL") || "https://beta.surveyrocket.ai").replace(/^https?:\/\//, "").replace(/\/$/, "");
     return `https://${host}/api/hubspot/oauth/callback`;
   }
-  return explicit || "http://localhost:4321/api/hubspot/oauth/callback";
+  if (explicit && isLocalhostUri(explicit)) return explicit;
+  return "http://localhost:4321/api/hubspot/oauth/callback";
 }
 
 export function isHubSpotConfigured() {
@@ -38,9 +43,12 @@ export function buildInstallUrl(state: string) {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: HUBSPOT_SCOPES,
+    scope: HUBSPOT_REQUIRED_SCOPES.join(" "),
     state,
   });
+  if (HUBSPOT_OPTIONAL_SCOPES.length) {
+    params.set("optional_scope", HUBSPOT_OPTIONAL_SCOPES.join(" "));
+  }
   return `https://app.hubspot.com/oauth/authorize?${params.toString()}`;
 }
 

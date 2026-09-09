@@ -4,6 +4,7 @@ import { db } from "./db";
 import { userSessions } from "./schema";
 import { clientIp, hashToken } from "./crypto";
 import { sessionFromCookies } from "./supabase";
+import { cacheDeletePrefix, cacheGetOrSet } from "./ttl-cache";
 
 export function currentTokenHash(cookies: AstroCookies) {
   const session = sessionFromCookies(cookies);
@@ -38,8 +39,10 @@ export async function touchSession(userId: string, cookies: AstroCookies, reques
 export async function sessionIsRevoked(cookies: AstroCookies) {
   const tokenHash = currentTokenHash(cookies);
   if (!tokenHash || !db) return false;
-  const [row] = await db.select().from(userSessions).where(eq(userSessions.tokenHash, tokenHash)).limit(1);
-  return Boolean(row?.revokedAt);
+  return cacheGetOrSet(`session:${tokenHash}`, 45_000, async () => {
+    const [row] = await db.select().from(userSessions).where(eq(userSessions.tokenHash, tokenHash)).limit(1);
+    return Boolean(row?.revokedAt);
+  });
 }
 
 export async function listSessions(userId: string, currentHash: string) {
@@ -63,5 +66,6 @@ export async function revokeSession(userId: string, sessionId: string) {
     .set({ revokedAt: new Date() })
     .where(and(eq(userSessions.id, sessionId), eq(userSessions.userId, userId)))
     .returning();
+  if (row?.tokenHash) cacheDeletePrefix(`session:${row.tokenHash}`);
   return row;
 }

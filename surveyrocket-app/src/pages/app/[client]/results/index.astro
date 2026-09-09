@@ -3,12 +3,13 @@ import Base from "../../../../layouts/Base.astro";
 import { requireClientAccess } from "../../../../lib/access";
 import { db } from "../../../../lib/db";
 import { surveys } from "../../../../lib/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
+import { liveSurveys } from "../../../../lib/survey-scope";
 
 const slug = Astro.params.client!;
 const access = await requireClientAccess(Astro.locals.user, Astro.locals.isSuperadmin, slug);
 if (!access.ok) return Astro.redirect("/app");
-const list = await db.select().from(surveys).where(eq(surveys.clientId, access.client.id)).orderBy(desc(surveys.updatedAt));
+const list = await db.select().from(surveys).where(liveSurveys(access.client.id)).orderBy(desc(surveys.updatedAt));
 if (list[0]) return Astro.redirect(`/app/${slug}/results/${list[0].id}`);
 ---
 <Base title="Results · Survey Rocket">

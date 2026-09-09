@@ -1,9 +1,10 @@
 import type { APIRoute } from "astro";
-import { and, eq } from "drizzle-orm";
 import { jsonError, jsonOk, requireClientAccess } from "../../../../../lib/access";
 import { db } from "../../../../../lib/db";
 import { surveys } from "../../../../../lib/schema";
 import { publicId, slugify } from "../../../../../lib/ids";
+import { provisionSurveyLists } from "../../../../../lib/hubspot/lists";
+import { ownedLiveSurvey } from "../../../../../lib/survey-scope";
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
   const body = await request.json().catch(() => null);
@@ -13,7 +14,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const [sv] = await db
     .select()
     .from(surveys)
-    .where(and(eq(surveys.id, params.id!), eq(surveys.clientId, access.client.id)))
+    .where(ownedLiveSurvey(access.client.id, params.id!))
     .limit(1);
   if (!sv) return jsonError(404, "Survey not found");
   const name = `${sv.name} (copy)`;
@@ -40,5 +41,6 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       definition,
     })
     .returning();
+  if (row) provisionSurveyLists(row);
   return jsonOk({ survey: row }, 201);
 };

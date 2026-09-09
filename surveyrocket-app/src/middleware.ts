@@ -2,50 +2,63 @@ import { defineMiddleware } from "astro:middleware";
 import { sessionFromCookies, supabaseFromCookies } from "./lib/supabase";
 import { loadProfile } from "./lib/access";
 import { sessionIsRevoked } from "./lib/sessions";
+import { hostSplitRedirect } from "./lib/site";
 
 const PROTECTED = [/^\/app(?:\/|$)/, /^\/admin(?:\/|$)/, /^\/api\/app(?:\/|$)/, /^\/api\/admin(?:\/|$)/, /^\/api\/hubspot\/oauth\/start/];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { cookies, url, locals, request } = context;
+  const split = hostSplitRedirect(url);
+  if (split) return context.redirect(split, 308);
   locals.user = null;
   locals.profile = null;
   locals.isSuperadmin = false;
 
+  const protectedRoute = PROTECTED.some((re) => re.test(url.pathname));
+
   try {
     const user = sessionFromCookies(cookies)?.user ?? null;
     if (user) {
-      const revoked = await sessionIsRevoked(cookies).catch(() => false);
-      if (revoked) {
-        try {
-          await supabaseFromCookies(cookies, request).auth.signOut();
-        } catch {
-          /* ignore */
-        }
-      } else {
+      if (!protectedRoute) {
         locals.user = { id: user.id, email: user.email ?? null };
-        const profile = await loadProfile(user.id).catch(() => null);
         const meta = user.app_metadata as { is_superadmin?: boolean; sr_role?: string } | undefined;
-        const fromJwt = meta?.is_superadmin === true || meta?.sr_role === "superadmin";
-        if (profile) {
-          locals.profile = {
-            id: profile.id,
-            email: profile.email,
-            fullName: profile.fullName,
-            avatarUrl: profile.avatarUrl,
-            theme: profile.theme,
-            locale: profile.locale,
-            notifyReviews: profile.notifyReviews,
-            isSuperadmin: profile.isSuperadmin,
-          };
+        locals.isSuperadmin = meta?.is_superadmin === true || meta?.sr_role === "superadmin";
+      } else {
+        const [revoked, profile] = await Promise.all([
+          sessionIsRevoked(cookies).catch(() => false),
+          loadProfile(user.id).catch(() => null),
+        ]);
+        if (revoked) {
+          try {
+            await supabaseFromCookies(cookies, request).auth.signOut();
+          } catch {
+            /* ignore */
+          }
+        } else {
+          locals.user = { id: user.id, email: user.email ?? null };
+          const meta = user.app_metadata as { is_superadmin?: boolean; sr_role?: string } | undefined;
+          const fromJwt = meta?.is_superadmin === true || meta?.sr_role === "superadmin";
+          if (profile) {
+            locals.profile = {
+              id: profile.id,
+              email: profile.email,
+              fullName: profile.fullName,
+              avatarUrl: profile.avatarUrl,
+              theme: profile.theme,
+              locale: profile.locale,
+              notifyReviews: profile.notifyReviews,
+              isSuperadmin: profile.isSuperadmin,
+            };
+          }
+          locals.isSuperadmin = Boolean(profile?.isSuperadmin || fromJwt);
         }
-        locals.isSuperadmin = Boolean(profile?.isSuperadmin || fromJwt);
       }
     }
   } catch {
     // env not configured yet
   }
 
-  if (PROTECTED.some((re) => re.test(url.pathname))) {
+  if (protectedRoute) {
     if (!locals.user) {
       if (url.pathname.startsWith("/api/")) {
         return new Response(JSON.stringify({ error: "Sign in required" }), {

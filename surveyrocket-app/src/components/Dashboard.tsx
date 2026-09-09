@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -404,8 +404,14 @@ function DayArea({
   );
 }
 
-export default function Dashboard({ clientSlug }: { clientSlug: string }) {
-  const [data, setData] = useState<DashData | null>(null);
+export default function Dashboard({
+  clientSlug,
+  initialData = null,
+}: {
+  clientSlug: string;
+  initialData?: DashData | null;
+}) {
+  const [data, setData] = useState<DashData | null>(initialData);
   const [surveyDays, setSurveyDays] = useState(30);
   const [seriesDays, setSeriesDays] = useState(7);
   const [open, setOpen] = useState<SurveyRow | null>(null);
@@ -418,8 +424,13 @@ export default function Dashboard({ clientSlug }: { clientSlug: string }) {
   const [expandSurvey, setExpandSurvey] = useState(false);
   const [expandDays, setExpandDays] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const skipInitialFetch = useRef(Boolean(initialData));
 
   useEffect(() => {
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
     const ac = new AbortController();
     fetch(
       `/api/app/aggregates?client=${encodeURIComponent(clientSlug)}&surveyDays=${surveyDays}&seriesDays=${seriesDays}`,

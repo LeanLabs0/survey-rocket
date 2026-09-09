@@ -48,7 +48,9 @@ type Row = {
   id: string;
   name: string | null;
   email: string | null;
-  submittedAt: string;
+  submittedAt: string | null;
+  completed?: boolean;
+  progress?: { answered: number; total: number; percent: number };
   country: string | null;
   reviewOutcome: string;
   hubspotUrl: string | null;
@@ -119,7 +121,8 @@ function npsMeta(choices: Record<string, number> | null) {
   return { score: Math.round(((prom - det) / tot) * 100), tot };
 }
 
-function formatWhen(iso: string) {
+function formatWhen(iso: string | null | undefined) {
+  if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("en-US", {
@@ -129,6 +132,18 @@ function formatWhen(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function ProgressCell({ row }: { row: Row }) {
+  const pct = row.progress?.percent ?? (row.completed ? 100 : 0);
+  return (
+    <div className="flex min-w-32 items-center gap-2">
+      <div className="bg-muted h-1.5 w-24 overflow-hidden rounded-full">
+        <div className="bg-primary h-full rounded-full" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-muted-foreground tabular-nums text-xs">{pct}%</span>
+    </div>
+  );
 }
 
 function answerDisplay(a: Answer) {
@@ -795,6 +810,7 @@ export default function Results({
                       <TableHead className="pl-6">When</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Progress</TableHead>
                       <TableHead>Country</TableHead>
                       <TableHead>Review</TableHead>
                       <TableHead className="pr-6">HubSpot</TableHead>
@@ -811,6 +827,9 @@ export default function Results({
                         </TableCell>
                         <TableCell>
                           <Skeleton className="h-4 w-40" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-24" />
                         </TableCell>
                         <TableCell>
                           <Skeleton className="h-4 w-16" />
@@ -837,6 +856,7 @@ export default function Results({
                       <TableHead className="pl-6">When</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Progress</TableHead>
                       <TableHead>Country</TableHead>
                       <TableHead>Review</TableHead>
                       <TableHead className="pr-6">HubSpot</TableHead>
@@ -852,6 +872,9 @@ export default function Results({
                           <TableCell className="pl-6">{formatWhen(r.submittedAt)}</TableCell>
                           <TableCell className="font-medium">{r.name || "Anonymous"}</TableCell>
                           <TableCell className="text-muted-foreground">{r.email || "—"}</TableCell>
+                          <TableCell>
+                            <ProgressCell row={r} />
+                          </TableCell>
                           <TableCell>{r.country || "—"}</TableCell>
                           <TableCell>
                             {REVIEW_LABEL[r.reviewOutcome] || r.reviewOutcome || "Not asked"}
@@ -874,7 +897,7 @@ export default function Results({
                         </TableRow>
                         {open === r.id ? (
                           <TableRow>
-                            <TableCell className="bg-muted/40 whitespace-normal" colSpan={6}>
+                            <TableCell className="bg-muted/40 whitespace-normal" colSpan={7}>
                               {r.answers.length ? (
                                 <div className="grid gap-3 p-2 sm:grid-cols-2">
                                   {r.answers.map((a) => (

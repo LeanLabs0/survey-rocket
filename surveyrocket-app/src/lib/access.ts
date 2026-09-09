@@ -1,7 +1,8 @@
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { databaseUrl, db } from "./db";
 import { clientMembers, clients, hubspotConnections, profiles, responses, surveys } from "./schema";
 import { supabaseAdmin } from "./supabase-admin";
+import { cacheDelete, cacheGetOrSet } from "./ttl-cache";
 
 export type SessionUser = {
   id: string;
@@ -67,8 +68,13 @@ function mapClient(row: {
   };
 }
 
+export function invalidateProfileCache(userId: string) {
+  cacheDelete(`profile:${userId}`);
+}
+
 export async function loadProfile(userId: string) {
-  return withDb(
+  return cacheGetOrSet(`profile:${userId}`, 20_000, () =>
+    withDb(
     async () => {
       const rows = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
       return rows[0] ?? null;
@@ -81,11 +87,13 @@ export async function loadProfile(userId: string) {
         .maybeSingle();
       return data ? mapProfile(data) : null;
     },
+    ),
   );
 }
 
 export async function clientBySlug(slug: string) {
-  return withDb(
+  return cacheGetOrSet(`client:${slug}`, 60_000, () =>
+    withDb(
     async () => {
       const rows = await db.select().from(clients).where(eq(clients.slug, slug)).limit(1);
       return rows[0] ?? null;
@@ -94,11 +102,13 @@ export async function clientBySlug(slug: string) {
       const { data } = await supabaseAdmin().from("clients").select("*").eq("slug", slug).maybeSingle();
       return data ? mapClient(data) : null;
     },
+    ),
   );
 }
 
 export async function membershipFor(userId: string, clientId: string) {
-  return withDb(
+  return cacheGetOrSet(`member:${userId}:${clientId}`, 30_000, () =>
+    withDb(
     async () => {
       const rows = await db
         .select()
@@ -117,6 +127,7 @@ export async function membershipFor(userId: string, clientId: string) {
       if (!data) return null;
       return { userId: data.user_id, clientId: data.client_id, role: data.role } as Member;
     },
+    ),
   );
 }
 
@@ -263,39 +274,48 @@ export type AdminClientRow = {
 };
 
 export async function adminWorkspaceOverview() {
-  const list = await listClients();
-  const hubspot = await hubspotStatusByClient();
-  const counts = await withDb(
-    async () => {
-      const memberRows = await db.select({ clientId: clientMembers.clientId }).from(clientMembers);
-      const surveyRows = await db.select({ clientId: surveys.clientId }).from(surveys);
-      const responseRows = await db.select({ clientId: responses.clientId }).from(responses);
-      const people = await db.select({ id: profiles.id, isSuperadmin: profiles.isSuperadmin }).from(profiles);
-      return {
-        members: tally(memberRows.map((r) => r.clientId)),
-        surveys: tally(surveyRows.map((r) => r.clientId)),
-        responses: tally(responseRows.map((r) => r.clientId)),
-        userCount: people.length,
-        portalUsers: people.filter((p) => !p.isSuperadmin).length,
-      };
-    },
-    async () => {
-      const admin = supabaseAdmin();
-      const [{ data: memberRows }, { data: surveyRows }, { data: responseRows }, { data: people }] = await Promise.all([
-        admin.from("client_members").select("client_id"),
-        admin.from("surveys").select("client_id"),
-        admin.from("responses").select("client_id"),
-        admin.from("profiles").select("id,is_superadmin"),
-      ]);
-      return {
-        members: tally((memberRows || []).map((r) => r.client_id as string)),
-        surveys: tally((surveyRows || []).map((r) => r.client_id as string)),
-        responses: tally((responseRows || []).map((r) => r.client_id as string)),
-        userCount: (people || []).length,
-        portalUsers: (people || []).filter((p) => !p.is_superadmin).length,
-      };
-    },
-  );
+  const [list, hubspot, counts] = await Promise.all([
+    listClients(),
+    hubspotStatusByClient(),
+    withDb(
+      async () => {
+        const [memberRows, surveyRows, responseRows, people] = await Promise.all([
+          db.select({ clientId: clientMembers.clientId, n: count() }).from(clientMembers).groupBy(clientMembers.clientId),
+          db.select({ clientId: surveys.clientId, n: count() }).from(surveys).where(isNull(surveys.deletedAt)).groupBy(surveys.clientId),
+          db
+            .select({ clientId: responses.clientId, n: count() })
+            .from(responses)
+            .innerJoin(surveys, eq(responses.surveyId, surveys.id))
+            .where(and(isNull(surveys.deletedAt), isNotNull(responses.completedAt)))
+            .groupBy(responses.clientId),
+          db.select({ id: profiles.id, isSuperadmin: profiles.isSuperadmin }).from(profiles),
+        ]);
+        return {
+          members: new Map(memberRows.map((r) => [r.clientId, Number(r.n)])),
+          surveys: new Map(surveyRows.map((r) => [r.clientId, Number(r.n)])),
+          responses: new Map(responseRows.map((r) => [r.clientId, Number(r.n)])),
+          userCount: people.length,
+          portalUsers: people.filter((p) => !p.isSuperadmin).length,
+        };
+      },
+      async () => {
+        const admin = supabaseAdmin();
+        const [{ data: memberRows }, { data: surveyRows }, { data: responseRows }, { data: people }] = await Promise.all([
+          admin.from("client_members").select("client_id"),
+          admin.from("surveys").select("client_id").is("deleted_at", null),
+          admin.from("responses").select("client_id,completed_at,survey_id").not("completed_at", "is", null),
+          admin.from("profiles").select("id,is_superadmin"),
+        ]);
+        return {
+          members: tally((memberRows || []).map((r) => r.client_id as string)),
+          surveys: tally((surveyRows || []).map((r) => r.client_id as string)),
+          responses: tally((responseRows || []).map((r) => r.client_id as string)),
+          userCount: (people || []).length,
+          portalUsers: (people || []).filter((p) => !p.is_superadmin).length,
+        };
+      },
+    ),
+  ]);
 
   const clientsRows: AdminClientRow[] = list.map((c) => ({
     id: c.id,
@@ -378,11 +398,11 @@ function questionCountFrom(definition: unknown) {
 export async function surveysForClient(clientId: string): Promise<ShelfSurvey[]> {
   return withDb(
     async () => {
-      const list = await db.select().from(surveys).where(eq(surveys.clientId, clientId)).orderBy(desc(surveys.updatedAt));
+      const list = await db.select().from(surveys).where(and(eq(surveys.clientId, clientId), isNull(surveys.deletedAt))).orderBy(desc(surveys.updatedAt));
       const rows = await db
         .select({ surveyId: responses.surveyId, n: count() })
         .from(responses)
-        .where(eq(responses.clientId, clientId))
+        .where(and(eq(responses.clientId, clientId), isNotNull(responses.completedAt)))
         .groupBy(responses.surveyId);
       const byId = new Map(rows.map((r) => [r.surveyId, Number(r.n)]));
       return list.map((s) => ({
@@ -398,8 +418,8 @@ export async function surveysForClient(clientId: string): Promise<ShelfSurvey[]>
     },
     async () => {
       const admin = supabaseAdmin();
-      const { data: list } = await admin.from("surveys").select("*").eq("client_id", clientId).order("updated_at", { ascending: false });
-      const { data: answerRows } = await admin.from("responses").select("survey_id").eq("client_id", clientId);
+      const { data: list } = await admin.from("surveys").select("*").eq("client_id", clientId).is("deleted_at", null).order("updated_at", { ascending: false });
+      const { data: answerRows } = await admin.from("responses").select("survey_id").eq("client_id", clientId).not("completed_at", "is", null);
       const byId = tally((answerRows || []).map((r) => r.survey_id as string));
       return (list || []).map((s) => ({
         id: s.id as string,
@@ -421,9 +441,13 @@ export async function requireClientAccess(
   slug: string,
 ) {
   if (!user) return { ok: false as const, status: 401, error: "Sign in required" };
+  if (isSuperadmin) {
+    const client = await clientBySlug(slug);
+    if (!client) return { ok: false as const, status: 404, error: "Client not found" };
+    return { ok: true as const, client, role: "superadmin" as const };
+  }
   const client = await clientBySlug(slug);
   if (!client) return { ok: false as const, status: 404, error: "Client not found" };
-  if (isSuperadmin) return { ok: true as const, client, role: "superadmin" as const };
   const member = await membershipFor(user.id, client.id);
   if (!member) return { ok: false as const, status: 403, error: "No access to this client" };
   return { ok: true as const, client, role: member.role };

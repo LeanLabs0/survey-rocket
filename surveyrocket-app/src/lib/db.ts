@@ -31,7 +31,7 @@ export function connectionSettings(url: string) {
     password: decodeURIComponent(parsed.password),
     ssl: "require" as const,
     prepare: false,
-    max: 5,
+    max: 8,
     idle_timeout: 20,
     max_lifetime: 60 * 10,
     connect_timeout: 8,

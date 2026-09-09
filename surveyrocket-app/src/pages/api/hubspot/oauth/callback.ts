@@ -3,6 +3,8 @@ import { db } from "../../../../lib/db";
 import { hubspotConnections } from "../../../../lib/schema";
 import { encrypt } from "../../../../lib/crypto";
 import { exchangeCodeForTokens, getTokenInfo } from "../../../../lib/hubspot/oauth";
+import { ensureLeadForm, saveSigninFormId } from "../../../../lib/hubspot/provision";
+import { ensureClientSurveyLists } from "../../../../lib/hubspot/lists";
 
 export const GET: APIRoute = async ({ url }) => {
   const err = url.searchParams.get("error");
@@ -21,6 +23,13 @@ export const GET: APIRoute = async ({ url }) => {
   try {
     const tokens = await exchangeCodeForTokens(code);
     const info = await getTokenInfo(tokens.access_token);
+    let signinFormId: string | null = null;
+    try {
+      const form = await ensureLeadForm(tokens.access_token);
+      signinFormId = form.id;
+    } catch (formErr) {
+      console.error("hubspot sign-in form", formErr);
+    }
     await db
       .insert(hubspotConnections)
       .values({
@@ -31,6 +40,7 @@ export const GET: APIRoute = async ({ url }) => {
         accessTokenEnc: encrypt(tokens.access_token),
         expiresAt: new Date(Date.now() + Number(tokens.expires_in || 1800) * 1000),
         scopes: (info.scopes || []).join(" "),
+        signinFormId,
         status: "connected",
         connectedBy: state.uid || null,
         connectedAt: new Date(),
@@ -44,11 +54,14 @@ export const GET: APIRoute = async ({ url }) => {
           accessTokenEnc: encrypt(tokens.access_token),
           expiresAt: new Date(Date.now() + Number(tokens.expires_in || 1800) * 1000),
           scopes: (info.scopes || []).join(" "),
+          signinFormId: signinFormId || undefined,
           status: "connected",
           connectedBy: state.uid || null,
           connectedAt: new Date(),
         },
       });
+    if (signinFormId) await saveSigninFormId(state.clientId, signinFormId);
+    ensureClientSurveyLists(state.clientId).catch((err) => console.error("hubspot lists", err));
     return new Response(null, { status: 302, headers: { Location: `${back}?hs=connected` } });
   } catch (e) {
     console.error(e);

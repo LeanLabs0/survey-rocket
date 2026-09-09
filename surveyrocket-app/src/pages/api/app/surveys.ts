@@ -5,6 +5,8 @@ import { db } from "../../../lib/db";
 import { surveys } from "../../../lib/schema";
 import { blankDefinition } from "../../../lib/definition";
 import { publicId, slugify } from "../../../lib/ids";
+import { provisionSurveyLists } from "../../../lib/hubspot/lists";
+import { liveSurveys } from "../../../lib/survey-scope";
 
 export const GET: APIRoute = async ({ url, locals }) => {
   const slug = url.searchParams.get("client");
@@ -14,7 +16,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const list = await db
     .select()
     .from(surveys)
-    .where(eq(surveys.clientId, access.client.id))
+    .where(liveSurveys(access.client.id))
     .orderBy(desc(surveys.updatedAt));
   return jsonOk({ surveys: list });
 };
@@ -60,5 +62,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       definition,
     })
     .returning();
+  if (row) provisionSurveyLists(row);
   return jsonOk({ survey: row }, 201);
 };

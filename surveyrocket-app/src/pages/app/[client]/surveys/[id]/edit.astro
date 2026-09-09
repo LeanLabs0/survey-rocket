@@ -7,6 +7,7 @@ import { requireClientAccess } from "../../../../../lib/access";
 import { db } from "../../../../../lib/db";
 import { surveys } from "../../../../../lib/schema";
 import { and, eq } from "drizzle-orm";
+import { isNull } from "drizzle-orm";
 import { siteUrl } from "../../../../../lib/supabase";
 
 const slug = Astro.params.client!;
@@ -16,7 +17,7 @@ if (!access.ok) {
   if (access.status === 401) return Astro.redirect("/login");
   return Astro.redirect("/app");
 }
-const [sv] = await db.select().from(surveys).where(and(eq(surveys.id, id), eq(surveys.clientId, access.client.id))).limit(1);
+const [sv] = await db.select().from(surveys).where(and(eq(surveys.id, id), eq(surveys.clientId, access.client.id), isNull(surveys.deletedAt))).limit(1);
 if (!sv) return Astro.redirect(`/app/${slug}/surveys`);
 ---
 <Base title={`${sv.name} · Editor`}>

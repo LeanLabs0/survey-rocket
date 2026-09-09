@@ -14,7 +14,6 @@ body.rs-intro-page{
   --sr-chip:rgba(255,255,255,.1);
   --sr-chip-hover:rgba(255,255,255,.2);
   --sr-bot-icon:url("/assets/survey-intro/icon-bot.svg");
-  --rs-serif:'Instrument Serif',Georgia,'Times New Roman',serif;
   --rs-max:736px;
   background:var(--sr-page);
   color:var(--sr-muted);
@@ -231,8 +230,34 @@ html[data-theme="light"] body.rs-intro-page{
   justify-content:center;
   border:0;
   padding:0;
-  cursor:default;
+  cursor:pointer;
   margin:0 0 28px;
+  overflow:hidden;
+}
+.rs-video-thumb,
+.rs-video-el{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.rs-video-el{
+  opacity:0;
+  pointer-events:none;
+}
+.rs-video.is-playing{
+  cursor:default;
+}
+.rs-video.is-playing .rs-video-el{
+  opacity:1;
+  pointer-events:auto;
+}
+.rs-video.is-playing .rs-video-thumb,
+.rs-video.is-playing .rs-play{
+  opacity:0;
+  pointer-events:none;
 }
 .rs-play{
   width:51px;
@@ -245,6 +270,12 @@ html[data-theme="light"] body.rs-intro-page{
   justify-content:center;
   padding:16px;
   box-sizing:border-box;
+  position:relative;
+  z-index:1;
+  color:inherit;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance:none;
 }
 .rs-play img{width:19px;height:19px;display:block}
 
@@ -259,6 +290,7 @@ html[data-theme="light"] body.rs-intro-page{
   padding:18px 20px;
   margin:0 0 32px;
   box-sizing:border-box;
+  align-items:center;
 }
 .rs-heads-icon{
   flex:0 0 36px;
@@ -452,6 +484,99 @@ html[data-theme="light"] body.rs-intro-page{
 }
 .rs-copy{display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
 
+.rs-intro-brand img.rs-workspace-logo{
+  width:auto;
+  height:48px;
+  max-width:200px;
+  object-fit:contain;
+}
+.rs-intro-brand .rs-client-name{
+  font-weight:600;
+  font-style:normal;
+}
+
+.rs-begin.is-busy{opacity:.7;pointer-events:none}
+.rs-begin.is-busy::after{
+  content:"";
+  width:14px;
+  height:14px;
+  margin-left:4px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  animation:rs-spin .7s linear infinite;
+}
+@keyframes rs-spin{to{transform:rotate(360deg)}}
+
+.rs-lead-modal{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(0,0,0,.72);
+}
+.rs-lead-modal.open{
+  display:flex;
+}
+.rs-lead-modal[hidden]{display:none !important}
+.rs-lead-card{
+  width:min(440px, 100%);
+  max-height:90vh;
+  overflow:auto;
+  background:#fff;
+  color:#33475b;
+  border-radius:16px;
+  padding:28px 24px 20px;
+  box-shadow:0 24px 80px rgba(0,0,0,.45);
+}
+.rs-lead-card h2{
+  margin:0 0 8px;
+  color:#121212;
+  font-size:22px;
+  font-weight:600;
+}
+.rs-lead-copy{
+  margin:0 0 20px;
+  font-size:14px;
+  line-height:1.5;
+  color:#51647a;
+}
+.rs-lead-native{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  text-align:left;
+}
+.rs-lead-native .field{
+  width:100%;
+  background:#f5f8fa;
+  color:#33475b;
+  border:1px solid #cbd6e2;
+}
+.rs-lead-native .rs-begin{
+  margin-top:8px;
+  align-self:stretch;
+  background:#121212;
+  color:#fff;
+}
+.rs-lead-close{
+  display:block;
+  margin:16px auto 0;
+  background:none;
+  border:0;
+  color:#7c98b6;
+  font-size:13px;
+  cursor:pointer;
+}
+.rs-hs-form .hs-form-field{margin-bottom:12px}
+.rs-hs-form .hs-button{
+  min-height:44px;
+  border-radius:180px !important;
+}
+
 @media (max-width:760px){
   .rs-step{flex-basis:88px}
   .rs-step .nm{font-size:12px}
@@ -460,7 +585,7 @@ html[data-theme="light"] body.rs-intro-page{
 @media (max-width:560px){
   .rs-page{padding:24px 16px 0}
   .rs-intro-brand{margin-bottom:28px}
-  .rs-intro-brand img{width:36px;height:42px}
+  .rs-intro-brand img.rs-workspace-logo{height:36px;max-width:140px}
   .rs-intro-brand span{font-size:18px}
   .rs-steps{padding:20px 12px 18px;margin-bottom:32px}
   .rs-step{flex-basis:72px}
@@ -473,6 +598,5 @@ html[data-theme="light"] body.rs-intro-page{
 }
 @media (max-height:880px){
   .rs-steps{margin-bottom:32px}
-  .rs-video{aspect-ratio:16/9;max-height:200px}
   .rs-heads{margin-bottom:24px}
 }

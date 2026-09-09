@@ -5,7 +5,7 @@ import { answers, respondents, responses, surveys, surveyPublications } from "..
 import { desc } from "drizzle-orm";
 import { clientCountry, clientIp, hashIp } from "../../../lib/crypto";
 import { makeUlid } from "../../../lib/ids";
-import { writeCompletionToHubSpot } from "../../../lib/hubspot/write";
+import { writeCompletionToHubSpot, writeSignedInToHubSpot } from "../../../lib/hubspot/write";
 import { notifyResponse, notifyReview } from "../../../lib/notifications";
 
 type IncomingAnswer = {
@@ -27,6 +27,14 @@ function parseBody(raw: string) {
   }
 }
 
+function payloadStage(payload: { status?: string; stage?: string; completed_at?: string }) {
+  const raw = String(payload.status || payload.stage || "").toLowerCase();
+  if (raw === "started" || raw === "start") return "started" as const;
+  if (raw === "progress") return "progress" as const;
+  if (raw === "completed" || raw === "complete") return "completed" as const;
+  return "completed" as const;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const raw = await request.text();
   const payload = parseBody(raw);
@@ -35,7 +43,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const publicId = String(payload.survey_id);
   const [sv] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
-  if (!sv) return new Response(JSON.stringify({ error: "survey not found" }), { status: 404 });
+  if (!sv || sv.deletedAt) return new Response(JSON.stringify({ error: "survey not found" }), { status: 404 });
   const [pub] = await db
     .select()
     .from(surveyPublications)
@@ -44,7 +52,14 @@ export const POST: APIRoute = async ({ request }) => {
     .limit(1);
 
   const email = payload.respondent?.email?.trim().toLowerCase() || null;
-  const name = payload.respondent?.name?.trim() || null;
+  const firstname = payload.respondent?.firstname?.trim() || null;
+  const lastname = payload.respondent?.lastname?.trim() || null;
+  const name =
+    payload.respondent?.name?.trim() ||
+    [firstname, lastname].filter(Boolean).join(" ").trim() ||
+    null;
+  const company = payload.respondent?.company?.trim() || null;
+  const website = payload.respondent?.website?.trim() || null;
   let respondentId: string | null = null;
   if (email) {
     const existing = await db
@@ -56,37 +71,53 @@ export const POST: APIRoute = async ({ request }) => {
       respondentId = existing[0].id;
       await db
         .update(respondents)
-        .set({ name: name || existing[0].name, lastSeenAt: new Date() })
+        .set({
+          name: name || existing[0].name,
+          company: company || existing[0].company,
+          website: website || existing[0].website,
+          lastSeenAt: new Date(),
+        })
         .where(eq(respondents.id, existing[0].id));
     } else {
       const [created] = await db
         .insert(respondents)
-        .values({ clientId: sv.clientId, email, name })
+        .values({ clientId: sv.clientId, email, name, company, website })
         .returning();
       respondentId = created.id;
     }
   }
 
-  const startedAt = payload.started_at ? new Date(payload.started_at) : null;
-  const completedAt = new Date();
+  const stage = payloadStage(payload);
+  const existingResp = await db
+    .select()
+    .from(responses)
+    .where(and(eq(responses.surveyId, sv.id), eq(responses.clientResponseId, String(payload.client_response_id))))
+    .limit(1);
+
+  if (existingResp[0]?.completedAt && stage !== "completed") {
+    return new Response(JSON.stringify({ ok: true, response_id: existingResp[0].id }), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
+
+  const now = new Date();
+  const startedAt = existingResp[0]?.startedAt || (payload.started_at ? new Date(payload.started_at) : now);
+  const completing = stage === "completed";
+  const completedAt = completing ? now : null;
   const durationMs =
-    startedAt && !Number.isNaN(startedAt.getTime()) ? Math.max(0, completedAt.getTime() - startedAt.getTime()) : null;
+    completing && startedAt && !Number.isNaN(startedAt.getTime())
+      ? Math.max(0, now.getTime() - startedAt.getTime())
+      : existingResp[0]?.durationMs || null;
 
   const record = {
     ...payload,
-    completed_at: completedAt.toISOString(),
+    completed_at: completedAt ? completedAt.toISOString() : null,
     meta: {
       ip_hash: hashIp(clientIp(request)),
       country: clientCountry(request),
       user_agent: request.headers.get("user-agent"),
     },
   };
-
-  const existingResp = await db
-    .select()
-    .from(responses)
-    .where(and(eq(responses.surveyId, sv.id), eq(responses.clientResponseId, String(payload.client_response_id))))
-    .limit(1);
 
   let responseId = existingResp[0]?.id || makeUlid();
   const row = {
@@ -96,7 +127,7 @@ export const POST: APIRoute = async ({ request }) => {
     respondentId,
     clientResponseId: String(payload.client_response_id),
     source: payload.source || "share",
-    startedAt,
+    startedAt: Number.isNaN(startedAt.getTime()) ? now : startedAt,
     completedAt,
     durationMs,
     country: clientCountry(request),
@@ -105,11 +136,11 @@ export const POST: APIRoute = async ({ request }) => {
     reviewAsked: Boolean(payload.review?.asked),
     reviewOutcome: payload.review?.outcome || "not_asked",
     quote: payload.quote || {},
-    hubspotStatus: email ? "pending" : "skipped",
+    hubspotStatus: completing && email ? "pending" : existingResp[0]?.hubspotStatus || "skipped",
     record,
   };
 
-  const isNewResponse = !existingResp[0];
+  const wasComplete = Boolean(existingResp[0]?.completedAt);
   if (existingResp[0]) {
     await db.update(responses).set(row).where(eq(responses.id, existingResp[0].id));
     await db.delete(answers).where(eq(answers.responseId, existingResp[0].id));
@@ -137,7 +168,10 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  if (email) {
+  if (email && (stage === "started" || stage === "progress")) {
+    writeSignedInToHubSpot(sv.id, email, respondentId).catch((err) => console.error("hubspot signed_in", err));
+  }
+  if (completing && email) {
     writeCompletionToHubSpot(responseId).catch((err) => console.error("hubspot write", err));
   }
 
@@ -147,23 +181,25 @@ export const POST: APIRoute = async ({ request }) => {
       : typeof (payload.quote as { _quote?: string } | undefined)?._quote === "string"
         ? (payload.quote as { _quote?: string })._quote
         : "";
-  if (isNewResponse) {
+  if (completing && !wasComplete) {
     notifyResponse({
       clientId: sv.clientId,
       surveyId: sv.id,
       surveyName: sv.name,
       respondentName: name,
-      answerCount: incoming.length,
+      answerCount: incoming.filter((a) => !a.skipped).length,
     }).catch((err) => console.error("notify response", err));
   }
-  notifyReview({
-    clientId: sv.clientId,
-    surveyId: sv.id,
-    surveyName: sv.name,
-    respondentName: name,
-    quoteText: quoteText || null,
-    reviewOutcome: payload.review?.outcome || null,
-  }).catch((err) => console.error("notify review", err));
+  if (completing) {
+    notifyReview({
+      clientId: sv.clientId,
+      surveyId: sv.id,
+      surveyName: sv.name,
+      respondentName: name,
+      quoteText: quoteText || null,
+      reviewOutcome: payload.review?.outcome || null,
+    }).catch((err) => console.error("notify review", err));
+  }
 
   return new Response(JSON.stringify({ ok: true, response_id: responseId }), {
     headers: {

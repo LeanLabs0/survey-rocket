@@ -13,6 +13,7 @@ export default function ScanForm({ clientSlug }: { clientSlug: string }) {
   const [log, setLog] = useState("");
   const [gaps, setGaps] = useState<Gap[]>([]);
   const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState<number | null>(null);
 
   async function run() {
     if (!url.trim() || busy) return;
@@ -45,15 +46,22 @@ export default function ScanForm({ clientSlug }: { clientSlug: string }) {
     }
   }
 
-  async function useDraft(gap: Gap) {
-    const res = await fetch("/api/app/scan", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ client: clientSlug, gap }),
-    });
-    const data = await res.json();
-    if (res.ok && data.survey?.id) {
-      window.location.href = `/app/${clientSlug}/surveys/${data.survey.id}/edit`;
+  async function useDraft(gap: Gap, index: number) {
+    if (drafting !== null) return;
+    setDrafting(index);
+    try {
+      const res = await fetch("/api/app/scan", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client: clientSlug, gap }),
+      });
+      const data = await res.json();
+      if (res.ok && data.survey?.id) {
+        window.location.href = `/app/${clientSlug}/surveys/${data.survey.id}/edit`;
+        return;
+      }
+    } finally {
+      setDrafting(null);
     }
   }
 
@@ -67,7 +75,9 @@ export default function ScanForm({ clientSlug }: { clientSlug: string }) {
         <label htmlFor="scan-stat">The stat you want to publish (optional)</label>
         <input id="scan-stat" value={stat} onChange={(e) => setStat(e.target.value)} placeholder="__% of customers see results in the first 90 days" />
         <div className="scan-actions">
-          <button className="btn primary" disabled={busy} onClick={run}>Scan this page</button>
+          <button className="btn primary" disabled={busy} aria-busy={busy} onClick={run}>
+            {busy ? "Scanning…" : "Scan this page"}
+          </button>
         </div>
         {log && <div className="scan-log" style={{ display: "block" }}><div>{log}</div></div>}
       </div>
@@ -79,7 +89,9 @@ export default function ScanForm({ clientSlug }: { clientSlug: string }) {
               <div style={{ fontSize: 13, color: "var(--tx-2)", marginBottom: 6 }}>Claim: “{g.claim || ""}”</div>
               <div style={{ fontSize: 13.5, marginBottom: 8 }}>Target stat: {g.target_stat || ""}</div>
               <div style={{ fontSize: 12, color: "var(--tx-dis)", marginBottom: 10 }}>{(g.questions || []).length} drafted question{(g.questions || []).length === 1 ? "" : "s"}</div>
-              <button className="btn primary small" onClick={() => useDraft(g)}>Use this draft in the editor</button>
+              <button className="btn primary small" disabled={drafting !== null} aria-busy={drafting === i} onClick={() => useDraft(g, i)}>
+                {drafting === i ? "Opening…" : "Use this draft in the editor"}
+              </button>
             </div>
           ))}
         </div>

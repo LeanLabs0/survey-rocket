@@ -3,15 +3,24 @@ import { resolve } from "node:path";
 
 let fileEnv: Record<string, string> | null = null;
 
+function unquote(value: string) {
+  const v = value.trim();
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    return v.slice(1, -1);
+  }
+  return v;
+}
+
 function loadDotenvFile() {
   if (fileEnv) return fileEnv;
   fileEnv = {};
   const path = resolve(process.cwd(), ".env");
   if (!existsSync(path)) return fileEnv;
-  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
+  for (const raw of readFileSync(path, "utf8").replace(/^\uFEFF/, "").split(/\r?\n/)) {
+    const line = raw.trim();
     if (!line || line.startsWith("#") || !line.includes("=")) continue;
     const i = line.indexOf("=");
-    fileEnv[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    fileEnv[line.slice(0, i).trim()] = unquote(line.slice(i + 1));
   }
   return fileEnv;
 }

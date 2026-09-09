@@ -42,7 +42,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Check, Eye, GripVertical, Link2, Pencil, Plus, Save, Upload, X } from "lucide-react";
+import { Check, Eye, GripVertical, Link2, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
 
 declare global {
   interface Window {
@@ -178,6 +178,7 @@ function EditorInner({
     },
   }));
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState<"draft" | "publish" | "delete" | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [optDraft, setOptDraft] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -242,27 +243,60 @@ function EditorInner({
   }, [previewKey, def.intro, def.outro]);
 
   async function save(publish: boolean) {
+    if (busy) return;
     setMsg("");
+    setBusy(publish ? "publish" : "draft");
     const next: Definition = {
       ...def,
       status: publish ? "Active" : def.status,
     };
-    const res = await fetch(publish ? `/api/app/surveys/${survey.id}/publish` : `/api/app/surveys/${survey.id}`, {
-      method: publish ? "POST" : "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ client: clientSlug, definition: next }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setMsg(data.error || "Could not save");
-      return;
+    try {
+      const res = await fetch(publish ? `/api/app/surveys/${survey.id}/publish` : `/api/app/surveys/${survey.id}`, {
+        method: publish ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client: clientSlug, definition: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMsg(data.error || "Could not save");
+        return;
+      }
+      setDef({
+        ...data.survey.definition,
+        status: data.survey.status || data.survey.definition.status,
+      });
+      setMsg(publish ? "Published" : "Draft saved");
+      if (publish) setShareOpen(true);
+    } finally {
+      setBusy(null);
     }
-    setDef({
-      ...data.survey.definition,
-      status: data.survey.status || data.survey.definition.status,
+  }
+
+  async function deleteDraft() {
+    if (busy) return;
+    const ok = await confirm({
+      title: def.status === "Draft" ? "Delete draft" : "Delete survey",
+      message:
+        def.status === "Draft"
+          ? `Delete “${def.name}”? This cannot be undone.`
+          : `Delete “${def.name}”? The live link will stop working.`,
+      confirmLabel: def.status === "Draft" ? "Delete draft" : "Delete survey",
     });
-    setMsg(publish ? "Published" : "Draft saved");
-    if (publish) setShareOpen(true);
+    if (!ok) return;
+    setBusy("delete");
+    try {
+      const res = await fetch(`/api/app/surveys/${survey.id}?client=${encodeURIComponent(clientSlug)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setMsg(data?.error || "Could not delete");
+        return;
+      }
+      window.location.href = `/app/${clientSlug}/surveys`;
+    } finally {
+      setBusy(null);
+    }
   }
 
   function copyLink() {
@@ -682,12 +716,12 @@ function EditorInner({
         </Card>
 
         <div className="flex flex-wrap items-center gap-2" id="ed-foot">
-          <Button onClick={() => save(true)} type="button">
-            <Upload data-icon="inline-start" />
+          <Button disabled={!!busy} loading={busy === "publish"} onClick={() => save(true)} type="button">
+            {busy === "publish" ? null : <Upload data-icon="inline-start" />}
             Publish
           </Button>
-          <Button onClick={() => save(false)} type="button" variant="outline">
-            <Save data-icon="inline-start" />
+          <Button disabled={!!busy} loading={busy === "draft"} onClick={() => save(false)} type="button" variant="outline">
+            {busy === "draft" ? null : <Save data-icon="inline-start" />}
             Save draft
           </Button>
           <Button onClick={copyLink} type="button" variant="ghost">
@@ -697,6 +731,16 @@ function EditorInner({
           <Button nativeButton={false} render={<a href={shareUrl} rel="noopener" target="_blank" />} variant="ghost">
             <Eye data-icon="inline-start" />
             Preview
+          </Button>
+          <Button
+            disabled={!!busy}
+            loading={busy === "delete"}
+            onClick={deleteDraft}
+            type="button"
+            variant="destructive"
+          >
+            {busy === "delete" ? null : <Trash2 data-icon="inline-start" />}
+            {def.status === "Draft" ? "Delete draft" : "Delete survey"}
           </Button>
           {msg ? <span className="text-muted-foreground text-sm">{msg}</span> : null}
         </div>

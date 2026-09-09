@@ -5,9 +5,12 @@ import { db } from "../../lib/db";
 import { clients, surveyPublications, surveys } from "../../lib/schema";
 import { desc, eq } from "drizzle-orm";
 import { resolveSurveyBrand } from "../../lib/brand";
+import { getConnection } from "../../lib/hubspot/tokens";
+import { ensureClientSignInForm } from "../../lib/hubspot/provision";
 
 const publicId = Astro.params.publicId!;
-const [sv] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
+const [found] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
+const sv = found && !found.deletedAt ? found : null;
 if (!sv || sv.status === "Draft") {
   // still render missing UI
 }
@@ -26,10 +29,32 @@ const introText =
   definition && typeof definition === "object" && "intro" in definition && typeof definition.intro === "string" && definition.intro.trim()
     ? definition.intro.trim()
     : "We'd love to capture what actually changed, so you and future clients can get a better experience with us.";
+const workspaceLogo = client?.logoUrl || null;
+const introVideo = client?.slug === "lean-labs"
+  ? {
+      src: "/assets/videos/Reputation%20Rocket%20Intro.mp4",
+      poster: "/assets/images/7c248b618a126294316f6a.gif",
+    }
+  : null;
+let hubspotForm: { portalId: string; formId: string } | null = null;
+if (client) {
+  const conn = await getConnection(client.id);
+  if (conn?.status === "connected" && conn.portalId && conn.signinFormId) {
+    hubspotForm = { portalId: conn.portalId, formId: conn.signinFormId };
+  } else if (conn?.status === "connected") {
+    try {
+      const ensured = await ensureClientSignInForm(client.id);
+      if (ensured?.portalId && ensured.formId) {
+        hubspotForm = { portalId: ensured.portalId, formId: ensured.formId };
+      }
+    } catch (err) {
+      console.error("signin form", err);
+    }
+  }
+}
 ---
 <Base title={sv?.name || "Survey"} bodyClass="rs-intro-page">
   <Fragment slot="head">
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <script is:inline>
       document.documentElement.setAttribute("data-theme", "dark");
       document.documentElement.classList.add("dark");
@@ -39,8 +64,12 @@ const introText =
     <div class="rs-glow" aria-hidden="true"></div>
     <div class="rs-main">
       <a class="rs-intro-brand" href="/">
-        <img src={brand.markUrl} width="48" height="55" alt="">
-        <span><b>Survey</b> <i>Rocket</i></span>
+        <img class:list={[{ "rs-workspace-logo": !!workspaceLogo }]} src={workspaceLogo || brand.markUrl} width={workspaceLogo ? undefined : 48} height={workspaceLogo ? undefined : 55} alt={clientName}>
+        {workspaceLogo ? (
+          <span class="rs-client-name">{clientName}</span>
+        ) : (
+          <span><b>Survey</b> <i>Rocket</i></span>
+        )}
       </a>
 
       <div class="rs-steps" id="steps" style={`display:${definition ? "flex" : "none"}`}>
@@ -78,22 +107,28 @@ const introText =
       <div class="rs-welcome" id="welcome" style={`display:${definition ? "flex" : "none"}`}>
         <h1>Ready to <span class="em">share your results</span> with {clientName}?</h1>
         <p class="rs-sub" id="g-meta">{introText}</p>
-        <div class="rs-video" title="Welcome video placeholder">
-          <span class="rs-play"><img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt=""></span>
-        </div>
+        {introVideo ? (
+          <div class="rs-video" id="rsVideo">
+            <img class="rs-video-thumb" src={introVideo.poster} width="736" height="379" alt="">
+            <video class="rs-video-el" id="rsWelcomeVideo" playsinline preload="metadata" poster={introVideo.poster}>
+              <source src={introVideo.src} type="video/mp4">
+            </video>
+            <button type="button" class="rs-play" id="rsVideoPlay" aria-label="Play welcome video">
+              <img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt="">
+            </button>
+          </div>
+        ) : (
+          <div class="rs-video" title="Welcome video placeholder">
+            <span class="rs-play"><img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt=""></span>
+          </div>
+        )}
         <div class="rs-heads">
           <span class="rs-heads-icon" aria-hidden="true"><img src="/assets/survey-intro/icon-smile.svg" width="18" height="18" alt=""></span>
-          <p><b>Heads up:</b> this is a short check-in from {clientName}. Most answers take a single tap, and nothing publishes without your yes.</p>
+          <p><b>Heads up:</b> this is a short check-in from {clientName}. Most answers take a single tap.</p>
         </div>
-        <div class="rs-contact" id="g-contact">
-          <p>First, your name and work email. They are saved with your answers so the team knows who said what.</p>
-          <label class="flabel" for="g-name">Your name</label>
-          <input id="g-name" class="field" type="text" autocomplete="name" placeholder="Your name">
-          <label class="flabel" for="g-email">Work email</label>
-          <input id="g-email" class="field" type="email" autocomplete="email" placeholder="you@company.com">
-        </div>
+        <div class="rs-contact" id="g-contact" hidden></div>
         <button class="rs-begin" type="button" id="g-go">Begin <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt=""></button>
-        <p class="rs-micro"><img src="/assets/landing/icon-clock.svg" width="16" height="16" alt="">Takes about two minutes, and nothing publishes without your yes.</p>
+        <p class="rs-micro"><img src="/assets/landing/icon-clock.svg" width="16" height="16" alt="">Takes about two minutes.</p>
       </div>
 
       <div class="rs-chat-wrap" id="chatWrap">
@@ -139,6 +174,28 @@ const introText =
       </div>
     </div>
 
+    <div id="leadModal" class="rs-lead-modal" hidden>
+      <div class="rs-lead-card" role="dialog" aria-modal="true" aria-labelledby="leadTitle">
+        <h2 id="leadTitle">Before we begin</h2>
+        <p class="rs-lead-copy">A few details so {clientName} can tie your answers to you.</p>
+        <div id="hsFormTarget" class="rs-hs-form"></div>
+        <form id="leadNative" class="rs-lead-native" hidden>
+          <label class="flabel" for="g-first">First name</label>
+          <input id="g-first" class="field" type="text" autocomplete="given-name" required>
+          <label class="flabel" for="g-last">Last name</label>
+          <input id="g-last" class="field" type="text" autocomplete="family-name" required>
+          <label class="flabel" for="g-email">Email</label>
+          <input id="g-email" class="field" type="email" autocomplete="email" required>
+          <label class="flabel" for="g-company">Company name</label>
+          <input id="g-company" class="field" type="text" autocomplete="organization" required>
+          <label class="flabel" for="g-website">Website URL</label>
+          <input id="g-website" class="field" type="text" autocomplete="url" placeholder="https://" required>
+          <button class="rs-begin" type="submit" id="leadNativeGo">Continue</button>
+        </form>
+        <button class="rs-lead-close" type="button" id="leadClose">Cancel</button>
+      </div>
+    </div>
+
     <footer class="rs-foot">
       <div class="rs-foot-brand">
         <img class="ll" src="/assets/landing/ll-logo.svg" width="89" height="30" alt="Lean Labs">
@@ -152,7 +209,26 @@ const introText =
   <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
   <script is:inline src="/js/engine.js"></script>
   <script is:inline src="/js/transport.js"></script>
-  <script is:inline define:vars={{ publicId, definition, clientName }}>
+  <script is:inline>
+    (function(){
+      var box = document.getElementById("rsVideo");
+      var vid = document.getElementById("rsWelcomeVideo");
+      if (!box || !vid) return;
+      function start(){
+        if (box.classList.contains("is-playing")) return;
+        box.classList.add("is-playing");
+        vid.setAttribute("controls", "");
+        var play = vid.play();
+        if (play && play.catch) play.catch(function(){});
+      }
+      box.addEventListener("click", function(e){
+        if (box.classList.contains("is-playing")) return;
+        e.preventDefault();
+        start();
+      });
+    })();
+  </script>
+  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm }}>
     (function(){
       if(!definition || !definition.questions || !definition.questions.length){
         document.getElementById("frame").style.display="none";
@@ -165,7 +241,7 @@ const introText =
       }
       var survey = Object.assign({}, definition, { public_id: publicId, id: publicId });
       var settings = survey.settings || {};
-      var lastAnswers=null, respondent={name:null,email:null};
+      var lastAnswers=null, respondent={name:null,firstname:null,lastname:null,email:null,company:null,website:null};
       var run={id:SRHubSpot.uuid(), startedAt:null};
       function setStep(i, allDone){
         var steps=document.querySelectorAll("#steps .rs-step");
@@ -182,13 +258,25 @@ const introText =
           line.classList.toggle("partial", !allDone && idx===i);
         });
       }
+      function identityOpts(){
+        return {
+          clientResponseId:run.id, startedAt:run.startedAt,
+          name:respondent.name, firstname:respondent.firstname, lastname:respondent.lastname,
+          email:respondent.email, company:respondent.company, website:respondent.website
+        };
+      }
+      function sendStart(){
+        SRHubSpot.send(SRHubSpot.buildPayload(survey, {}, Object.assign({ status:"started" }, identityOpts())));
+      }
+      function sendProgress(answers){
+        lastAnswers=answers;
+        SRHubSpot.sendProgress(SRHubSpot.buildPayload(survey, answers, Object.assign({ status:"progress" }, identityOpts())));
+      }
       function sendRecord(reviewAsked, reviewOutcome){
         if(!lastAnswers) return;
-        SRHubSpot.send(SRHubSpot.buildPayload(survey, lastAnswers, {
-          clientResponseId:run.id, startedAt:run.startedAt,
-          name:respondent.name, email:respondent.email,
-          reviewAsked:reviewAsked, reviewOutcome:reviewOutcome
-        }));
+        SRHubSpot.send(SRHubSpot.buildPayload(survey, lastAnswers, Object.assign({
+          status:"completed", reviewAsked:reviewAsked, reviewOutcome:reviewOutcome
+        }, identityOpts())));
       }
       function showEnding(){
         setStep(2, true);
@@ -252,6 +340,9 @@ const introText =
         progEl:document.getElementById("rs-prog"),
         script:survey.questions,
         outro: survey.outro || "That is everything. Thank you.",
+        onAnswer:function(_id, _value, answers){
+          sendProgress(answers);
+        },
         onComplete:function(answers){
           lastAnswers=answers;
           sendRecord(false,"not_asked");
@@ -262,6 +353,7 @@ const introText =
       function startRun(){
         run.id=SRHubSpot.uuid();
         run.startedAt=new Date().toISOString();
+        sendStart();
         document.getElementById("after").style.display="none";
         document.getElementById("afterResults").style.display="none";
         document.getElementById("afterReview").style.display="none";
@@ -270,19 +362,110 @@ const introText =
       }
       document.getElementById("rs-restart").addEventListener("click",startRun);
       var welcome=document.getElementById("welcome"), chatWrap=document.getElementById("chatWrap");
-      if(settings.require_contact) document.getElementById("g-contact").style.display="flex";
-      document.getElementById("g-go").addEventListener("click",function(){
-        if(settings.require_contact){
-          var name=document.getElementById("g-name").value.trim();
-          var email=document.getElementById("g-email").value.trim();
-          if(!name || email.indexOf("@")<1) return;
-          respondent.name=name; respondent.email=email;
-        }
+      var modal=document.getElementById("leadModal");
+      var nativeForm=document.getElementById("leadNative");
+      var hsMounted=false;
+      function fieldVal(data, name){
+        if(!Array.isArray(data)) return "";
+        var hit=data.find(function(f){
+          var n=String(f.name||"").split("/").pop();
+          return n===name;
+        });
+        return hit && hit.value!=null ? String(hit.value).trim() : "";
+      }
+      function applyIdentity(vals){
+        respondent.firstname=vals.firstname||null;
+        respondent.lastname=vals.lastname||null;
+        respondent.email=(vals.email||"").toLowerCase()||null;
+        respondent.company=vals.company||null;
+        respondent.website=vals.website||null;
+        respondent.name=[respondent.firstname, respondent.lastname].filter(Boolean).join(" ")||null;
+      }
+      function closeLeadModal(){
+        modal.hidden=true;
+        modal.classList.remove("open");
+        document.getElementById("g-go").classList.remove("is-busy");
+      }
+      function enterChat(){
+        closeLeadModal();
         welcome.style.display="none";
         var page=document.querySelector(".rs-page");
         if(page) page.classList.add("is-chat");
         chatWrap.style.display="flex";
         startRun();
+      }
+      function showNativeLead(){
+        nativeForm.hidden=false;
+        document.getElementById("hsFormTarget").style.display="none";
+      }
+      function loadHsForms(){
+        return new Promise(function(resolve, reject){
+          if(window.hbspt && window.hbspt.forms && window.hbspt.forms.create) return resolve();
+          var existing=document.querySelector('script[src*="js.hsforms.net/forms/embed/v2.js"]');
+          if(existing){
+            existing.addEventListener("load", function(){ resolve(); });
+            existing.addEventListener("error", function(){ reject(new Error("forms")); });
+            return;
+          }
+          var s=document.createElement("script");
+          s.src="https://js.hsforms.net/forms/embed/v2.js";
+          s.charset="utf-8";
+          s.async=true;
+          s.onload=function(){ resolve(); };
+          s.onerror=function(){ reject(new Error("forms")); };
+          document.head.appendChild(s);
+        });
+      }
+      function mountHsForm(){
+        if(hsMounted) return;
+        var target=document.getElementById("hsFormTarget");
+        target.innerHTML="";
+        window.hbspt.forms.create({
+          portalId: String(hubspotForm.portalId),
+          formId: String(hubspotForm.formId),
+          region: "na1",
+          target: "#hsFormTarget",
+          cssRequired: false
+        });
+        hsMounted=true;
+      }
+      window.addEventListener("message", function(event){
+        if(!event.data || event.data.type!=="hsFormCallback") return;
+        if(event.data.eventName!=="onFormSubmit") return;
+        if(hubspotForm && event.data.id && event.data.id!==hubspotForm.formId) return;
+        applyIdentity({
+          firstname: fieldVal(event.data.data, "firstname"),
+          lastname: fieldVal(event.data.data, "lastname"),
+          email: fieldVal(event.data.data, "email"),
+          company: fieldVal(event.data.data, "company"),
+          website: fieldVal(event.data.data, "website")
+        });
+        if(!respondent.email || respondent.email.indexOf("@")<1) return;
+        enterChat();
+      });
+      nativeForm.addEventListener("submit", function(e){
+        e.preventDefault();
+        applyIdentity({
+          firstname: document.getElementById("g-first").value.trim(),
+          lastname: document.getElementById("g-last").value.trim(),
+          email: document.getElementById("g-email").value.trim(),
+          company: document.getElementById("g-company").value.trim(),
+          website: document.getElementById("g-website").value.trim()
+        });
+        if(!respondent.email || respondent.email.indexOf("@")<1) return;
+        enterChat();
+      });
+      document.getElementById("leadClose").addEventListener("click", closeLeadModal);
+      document.getElementById("g-go").addEventListener("click", function(){
+        var btn=document.getElementById("g-go");
+        btn.classList.add("is-busy");
+        modal.hidden=false;
+        modal.classList.add("open");
+        if(hubspotForm && hubspotForm.portalId && hubspotForm.formId){
+          loadHsForms().then(mountHsForm).catch(showNativeLead);
+        } else {
+          showNativeLead();
+        }
       });
       document.getElementById("rs-copy").addEventListener("click",function(){
         if(!lastAnswers) return;

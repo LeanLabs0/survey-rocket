@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BellIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,23 +17,54 @@ import {
 	type NotificationNote,
 } from "@/components/latest-change";
 
+const STALE_MS = 60_000;
+
 export default function NotificationBell() {
 	const { slug } = useAppShell();
 	const [open, setOpen] = useState(false);
 	const [items, setItems] = useState<NotificationNote[]>([]);
+	const lastFetch = useRef(0);
+	const inflight = useRef<AbortController | null>(null);
 
-	function load() {
-		fetch(`/api/app/notifications?client=${encodeURIComponent(slug)}`)
-			.then((r) => r.json())
-			.then((d) => setItems(d.notifications || []))
-			.catch(() => setItems([]));
-	}
+	const load = useCallback(
+		(force = false) => {
+			if (!slug) return;
+			const now = Date.now();
+			if (!force && now - lastFetch.current < STALE_MS) return;
+			inflight.current?.abort();
+			const ac = new AbortController();
+			inflight.current = ac;
+			lastFetch.current = now;
+			fetch(`/api/app/notifications?client=${encodeURIComponent(slug)}`, {
+				signal: ac.signal,
+			})
+				.then((r) => r.json())
+				.then((d) => {
+					if (!ac.signal.aborted) setItems(d.notifications || []);
+				})
+				.catch((err) => {
+					if (err instanceof DOMException && err.name === "AbortError") return;
+				});
+		},
+		[slug],
+	);
 
 	useEffect(() => {
-		load();
-		const t = window.setInterval(load, 30000);
-		return () => window.clearInterval(t);
-	}, [slug]);
+		load(true);
+		function onVis() {
+			if (document.visibilityState === "visible") load(false);
+		}
+		function onFocus() {
+			load(false);
+		}
+		document.addEventListener("visibilitychange", onVis);
+		window.addEventListener("focus", onFocus);
+		return () => {
+			inflight.current?.abort();
+			document.removeEventListener("visibilitychange", onVis);
+			window.removeEventListener("focus", onFocus);
+		};
+	}, [load]);
 
 	const unread = items.filter((n) => !n.read);
 	const count = unread.length > 9 ? "9+" : String(unread.length);
@@ -60,7 +91,10 @@ export default function NotificationBell() {
 
 	function onOpenChange(next: boolean) {
 		setOpen(next);
-		if (next) markAll();
+		if (next) {
+			load(false);
+			markAll();
+		}
 	}
 
 	return (

@@ -75,6 +75,9 @@ export function NavUser() {
 									{email}
 								</span>
 							) : null}
+							<span className="truncate text-muted-foreground text-xs">
+								{workspace}
+							</span>
 						</div>
 					</DropdownMenuLabel>
 				</DropdownMenuGroup>

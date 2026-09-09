@@ -81,7 +81,9 @@ export function AuthPage({
 	const [error, setError] = useState(initialError || "");
 	const [waitLeft, setWaitLeft] = useState(0);
 	const [magicBusy, setMagicBusy] = useState(false);
+	const [passwordBusy, setPasswordBusy] = useState(false);
 	const [passkeyBusy, setPasskeyBusy] = useState(false);
+	const passwordBusyRef = useRef(false);
 	const magicEmailRef = useRef<HTMLInputElement>(null);
 	const passwordEmailRef = useRef<HTMLInputElement>(null);
 	const resetEmailRef = useRef<HTMLInputElement>(null);
@@ -251,6 +253,14 @@ export function AuthPage({
 							action="/api/auth/password"
 							className="flex flex-col gap-4"
 							method="post"
+							onSubmit={(event) => {
+								if (passwordBusyRef.current) {
+									event.preventDefault();
+									return;
+								}
+								passwordBusyRef.current = true;
+								setPasswordBusy(true);
+							}}
 						>
 							<input name="next" type="hidden" value={next} />
 							<FieldGroup>
@@ -315,7 +325,12 @@ export function AuthPage({
 									</InputGroup>
 								</Field>
 							</FieldGroup>
-							<Button className="sr-auth-submit w-full" type="submit">
+							<Button
+								className="sr-auth-submit w-full"
+								disabled={passwordBusy}
+								loading={passwordBusy}
+								type="submit"
+							>
 								Sign in
 							</Button>
 						</form>
@@ -349,6 +364,7 @@ export function AuthPage({
 							<Button
 								className="sr-auth-submit w-full"
 								disabled={magicBusy || waitLeft > 0}
+								loading={magicBusy}
 								type="submit"
 							>
 								Send magic link
@@ -371,11 +387,12 @@ export function AuthPage({
 					<Button
 						className="sr-auth-ghost w-full"
 						disabled={passkeyBusy}
+						loading={passkeyBusy}
 						type="button"
 						variant="outline"
 						onClick={onPasskey}
 					>
-						<FingerprintIcon data-icon="inline-start" />
+						{passkeyBusy ? null : <FingerprintIcon data-icon="inline-start" />}
 						Login with passkey
 					</Button>
 				</div>

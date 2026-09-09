@@ -1,9 +1,11 @@
 import type { APIRoute } from "astro";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { jsonError, jsonOk, requireClientAccess } from "../../../../lib/access";
 import { db } from "../../../../lib/db";
 import { surveys } from "../../../../lib/schema";
 import { validateDefinition, type SurveyDefinition } from "../../../../lib/definition";
+import { deleteSurveyLists } from "../../../../lib/hubspot/lists";
+import { ownedLiveSurvey } from "../../../../lib/survey-scope";
 
 async function loadOwned(locals: App.Locals, id: string, clientSlug: string) {
   const access = await requireClientAccess(locals.user, locals.isSuperadmin, clientSlug);
@@ -11,7 +13,7 @@ async function loadOwned(locals: App.Locals, id: string, clientSlug: string) {
   const [sv] = await db
     .select()
     .from(surveys)
-    .where(and(eq(surveys.id, id), eq(surveys.clientId, access.client.id)))
+    .where(ownedLiveSurvey(access.client.id, id))
     .limit(1);
   if (!sv) return { ok: false as const, status: 404, error: "Survey not found" };
   return { ok: true as const, client: access.client, survey: sv };
@@ -55,6 +57,15 @@ export const DELETE: APIRoute = async ({ params, url, locals }) => {
   const clientSlug = url.searchParams.get("client") || "";
   const loaded = await loadOwned(locals, params.id!, clientSlug);
   if (!loaded.ok) return jsonError(loaded.status, loaded.error);
-  await db.delete(surveys).where(eq(surveys.id, loaded.survey.id));
+  await deleteSurveyLists(loaded.survey);
+  await db
+    .update(surveys)
+    .set({
+      deletedAt: new Date(),
+      hsSignedInListId: null,
+      hsCompletedListId: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(surveys.id, loaded.survey.id));
   return jsonOk({ ok: true });
 };

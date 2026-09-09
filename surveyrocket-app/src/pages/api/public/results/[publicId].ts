@@ -8,7 +8,7 @@ export const GET: APIRoute = async ({ params }) => {
   const publicId = params.publicId;
   if (!publicId) return new Response("Not found", { status: 404 });
   const [sv] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
-  if (!sv) return new Response("Not found", { status: 404 });
+  if (!sv || sv.deletedAt) return new Response("Not found", { status: 404 });
   const agg = await aggregateSurvey(sv.id);
   const questions: Record<string, unknown> = {};
   for (const [key, q] of Object.entries(agg.questions)) {

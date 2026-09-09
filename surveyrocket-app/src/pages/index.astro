@@ -1,6 +1,9 @@
-﻿---
+---
 import "../styles/styles-shared.css";
 import "../styles/styles-landing.css";
+import { appOrigin } from "../lib/site";
+
+const demo = `${appOrigin()}/demo`;
 ---
 <!doctype html>
 <html lang="en">
@@ -11,7 +14,7 @@ import "../styles/styles-landing.css";
 <meta name="description" content="Turn customer surveys into stats you can publish. Survey Rocket asks your questions in a chat and turns results into numbers for your website.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 
   body{font-size:16px}
@@ -234,7 +237,7 @@ import "../styles/styles-landing.css";
 </style>
 </head>
 <body class="lp-on">
-<a class="skip-link" href="/demo">Skip to the demo</a>
+<a class="skip-link" href={demo}>Skip to the demo</a>
 <section class="view active" id="view-landing">
 
   <header class="lp-nav">
@@ -242,11 +245,13 @@ import "../styles/styles-landing.css";
       <img src="/assets/landing/logo-mark.svg" width="48" height="55" alt="">
       <span><b>Survey</b> <i>Rocket</i></span>
     </a>
-    <a class="lp-btn solid" href="/demo">Try the live demo</a>
+    <a class="lp-btn solid" href={demo}>Try the live demo</a>
   </header>
 
-  <section class="lp-hero">
-    <div class="lp-glow" aria-hidden="true"><img src="/assets/landing/hero-glow.svg" width="1852" height="1852" alt=""></div>
+  <section class="lp-hero" data-hero-builder>
+    <div class="lp-ripple" data-water-ripple aria-hidden="true">
+      <canvas></canvas>
+    </div>
     <div class="lp-hero-inner">
       <div>
         <h1 class="lp-reveal" data-delay="0">Turn customer surveys into <span class="em">stats you can publish</span></h1>
@@ -254,13 +259,19 @@ import "../styles/styles-landing.css";
       </div>
       <div>
         <div class="lp-ctas">
-          <a class="lp-btn solid lp-reveal" href="/demo" data-delay="1040">Try the live demo</a>
+          <a class="lp-btn solid lp-reveal" href={demo} data-delay="1040">Try the live demo</a>
           <a class="lp-btn glass lp-reveal" href="https://www.lean-labs.com" target="_blank" rel="noopener" data-delay="1280">Talk with our team</a>
         </div>
         <p class="lp-note lp-reveal" data-delay="1680"><img src="/assets/landing/icon-clock.svg" width="16" height="16" alt="">No sign-up. The demo takes about two minutes.</p>
       </div>
-      <div class="lp-video lp-reveal fade" data-delay="2160" title="Video placeholder. The recorded walkthrough embeds here.">
-        <div class="lp-play"><img src="/assets/landing/icon-play.svg" width="19" height="19" alt=""></div>
+      <div class="lp-video lp-reveal fade" data-delay="2160" id="lpVideo">
+        <img class="lp-video-thumb" src="/assets/images/7c248b618a126294316f6a.gif" width="736" height="379" alt="">
+        <video class="lp-video-el" id="lpWelcomeVideo" playsinline preload="metadata" poster="/assets/images/7c248b618a126294316f6a.gif">
+          <source src="/assets/videos/Reputation%20Rocket%20Intro.mp4" type="video/mp4">
+        </video>
+        <button type="button" class="lp-play" id="lpVideoPlay" aria-label="Play intro video">
+          <img src="/assets/landing/icon-play.svg" width="19" height="19" alt="">
+        </button>
       </div>
     </div>
   </section>
@@ -423,7 +434,7 @@ import "../styles/styles-landing.css";
         <p>Play the customer in the sandbox demo. Answer a short survey and watch the dashboard move.</p>
       </div>
       <div class="lp-band-cta">
-        <a class="lp-btn solid" href="/demo">Try the live demo</a>
+        <a class="lp-btn solid" href={demo}>Try the live demo</a>
         <span class="hint">No sign-up. The demo takes about two minutes.</span>
       </div>
     </div>
@@ -472,7 +483,7 @@ import "../styles/styles-landing.css";
         <p>Bring the stat you wish your website could show, and we will set up the survey that backs it.</p>
       </div>
       <div class="lp-band-cta" style="flex-direction:row;flex-wrap:wrap">
-        <a class="lp-btn solid" href="/demo">See the live demo</a>
+        <a class="lp-btn solid" href={demo}>See the live demo</a>
         <a class="lp-btn glass" href="https://www.lean-labs.com" target="_blank" rel="noopener">Talk with our team</a>
       </div>
     </div>
@@ -492,7 +503,7 @@ import "../styles/styles-landing.css";
     </div>
     <div class="lp-foot-links">
       <span>&copy; 2026 Lean Labs</span>
-      <a href="/demo">Live demo</a>
+      <a href={demo}>Live demo</a>
     </div>
   </footer>
 

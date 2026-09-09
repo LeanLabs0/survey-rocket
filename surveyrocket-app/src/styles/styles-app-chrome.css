@@ -112,6 +112,8 @@
   table.raw{width:100%;border-collapse:collapse;font-size:12.5px}
   table.raw th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--tx-3);font-weight:500;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
   table.raw td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--tx-2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+  table.raw a{color:inherit;text-decoration:none}
+  table.raw a:hover,table.raw a:focus-visible{color:var(--tx);text-decoration:underline}
   table.raw tr.rrow{cursor:pointer}
   table.raw tr.rrow:hover td{color:var(--tx)}
   table.raw tr.detail td{white-space:normal;background:var(--page);padding:14px}

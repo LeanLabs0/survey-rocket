@@ -13,7 +13,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const member = await membershipFor(locals.user.id, client.id);
     if (!member) return jsonError(403, "No access");
   }
-  if (!isHubSpotConfigured()) return jsonError(500, "HubSpot app is not configured");
+  if (!isHubSpotConfigured()) {
+    const back = slug ? `/app/${encodeURIComponent(slug)}/settings?hs=error` : "/app";
+    return new Response(null, { status: 302, headers: { Location: back } });
+  }
   const state = Buffer.from(JSON.stringify({ clientId: client.id, slug, uid: locals.user.id })).toString("base64url");
   return new Response(null, { status: 302, headers: { Location: buildInstallUrl(state) } });
 };
