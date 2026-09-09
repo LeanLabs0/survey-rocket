@@ -9,7 +9,11 @@ const PROTECTED = [/^\/app(?:\/|$)/, /^\/admin(?:\/|$)/, /^\/api\/app(?:\/|$)/, 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { cookies, url, locals, request } = context;
   const split = hostSplitRedirect(url, request);
-  if (split) return context.redirect(split, 308);
+  if (split) {
+    const method = request.method.toUpperCase();
+    const status = method === "GET" || method === "HEAD" ? 308 : 303;
+    return context.redirect(split, status);
+  }
   locals.user = null;
   locals.profile = null;
   locals.isSuperadmin = false;

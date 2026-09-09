@@ -177,6 +177,39 @@ export function AuthPage({
 		}
 	}
 
+	async function onPasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		if (passwordBusyRef.current) return;
+		const form = event.currentTarget;
+		const fd = new FormData(form);
+		passwordBusyRef.current = true;
+		setPasswordBusy(true);
+		setOk("");
+		setError("");
+		try {
+			const res = await fetch("/api/auth/password", {
+				method: "POST",
+				headers: { Accept: "application/json" },
+				body: fd,
+			});
+			const data = (await res.json().catch(() => ({}))) as {
+				error?: string;
+				next?: string;
+			};
+			if (!res.ok) {
+				setError(data.error || "Could not sign in.");
+				passwordBusyRef.current = false;
+				setPasswordBusy(false);
+				return;
+			}
+			window.location.assign(data.next || next || "/app");
+		} catch {
+			setError("Could not sign in. Try again.");
+			passwordBusyRef.current = false;
+			setPasswordBusy(false);
+		}
+	}
+
 	const waitMessage =
 		waitLeft > 0
 			? `For security, you can request another magic link in ${waitLeft} second${waitLeft === 1 ? "" : "s"}.`
@@ -250,17 +283,8 @@ export function AuthPage({
 
 					{method === "password" ? (
 						<form
-							action="/api/auth/password"
 							className="flex flex-col gap-4"
-							method="post"
-							onSubmit={(event) => {
-								if (passwordBusyRef.current) {
-									event.preventDefault();
-									return;
-								}
-								passwordBusyRef.current = true;
-								setPasswordBusy(true);
-							}}
+							onSubmit={onPasswordSubmit}
 						>
 							<input name="next" type="hidden" value={next} />
 							<FieldGroup>

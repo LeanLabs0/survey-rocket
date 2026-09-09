@@ -25,11 +25,16 @@ export function requestHost(request: Request, url: URL) {
   return raw.split(",")[0].trim().split(":")[0].toLowerCase();
 }
 
-/** Localhost and *.vercel.app keep serving everything. Production hosts split. */
+/** Localhost and *.vercel.app keep serving everything. Production hosts split.
+ *  Only redirect GET/HEAD. 308 on POST would replay the body to beta with
+ *  Origin still on surveyrocket.ai, and Astro rejects that as CSRF. */
 export function hostSplitRedirect(url: URL, request: Request): string | null {
   const host = requestHost(request, url);
+  const method = request.method.toUpperCase();
+  const safeRedirect = method === "GET" || method === "HEAD";
   if (MARKETING_HOSTS.has(host)) {
     if (!isMarketingAsset(url.pathname)) {
+      if (!safeRedirect) return `${APP_ORIGIN}/login`;
       return `${APP_ORIGIN}${url.pathname}${url.search}`;
     }
     if (host === "www.surveyrocket.ai") {

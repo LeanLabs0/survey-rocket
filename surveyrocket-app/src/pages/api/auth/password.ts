@@ -8,10 +8,19 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const email = String(form.get("email") || "").trim();
   const password = String(form.get("password") || "");
   const next = safeNextPath(String(form.get("next") || "/app"));
-  const back = (error: string) =>
-    redirect(
-      `/login?method=password&email=${encodeURIComponent(email)}&error=${encodeURIComponent(publicAuthMessage(error))}&next=${encodeURIComponent(next)}`,
+  const json = (request.headers.get("accept") || "").includes("application/json");
+  const back = (error: string) => {
+    const message = publicAuthMessage(error);
+    if (json) {
+      return new Response(JSON.stringify({ error: message }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return redirect(
+      `/login?method=password&email=${encodeURIComponent(email)}&error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`,
     );
+  };
   if (!email || !password) return back("Enter your email and password.");
 
   const url = supabaseUrl();
@@ -26,6 +35,12 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const message = err instanceof Error ? err.message : "Could not sign in.";
     console.error("password sign-in failed", message);
     return back(message);
+  }
+  if (json) {
+    return new Response(JSON.stringify({ ok: true, next }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   return redirect(next);
 };
