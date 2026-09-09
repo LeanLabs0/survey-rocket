@@ -169,13 +169,13 @@ html[data-theme="light"] .login-wordmark{
 .chat-row.me{display:flex;justify-content:flex-end;align-self:stretch}
 .chat-av{width:44px;height:44px;flex:none;border-radius:50%;background:var(--card) url("/assets/landing/icon-chat.svg") center/16px 16px no-repeat;border:1px solid var(--line)}
 .bub{max-width:100%;padding:24px;border-radius:16px;font-size:14px;line-height:1.5;overflow-wrap:break-word;background:var(--card);border:1px solid var(--line);box-shadow:4px 8px 6px rgba(29,0,68,.04);color:var(--tx)}
-.bub.bot{align-self:auto;display:flex;flex-direction:column;gap:12px;color:var(--tx);flex:1;min-width:0}
-.bub.me{align-self:auto;max-width:min(70%, 220px);min-height:50px;padding:6px 24px;border-radius:8px;background:#121212;color:var(--tx);font-weight:600;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.bub.bot{max-width:450px;align-self:auto;display:flex;flex-direction:column;gap:12px;color:var(--tx);flex:1;min-width:0}
+.bub.me{align-self:auto;min-height:50px;padding:6px 24px;border-radius:8px;background:#121212;color:var(--tx);font-weight:600;display:inline-flex;align-items:center;justify-content:center;text-align:center}
 .opts{display:flex;flex-wrap:wrap;gap:8px;max-width:100%}
 .opt{padding:6px 10px;min-height:32px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.1);box-shadow:none;font-size:14px;color:var(--tx);font-weight:400;cursor:pointer;transition:background .12s,border-color .12s}
 .opt:hover{background:rgba(255,255,255,.2);color:var(--tx)}
-.opt.on{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.25);color:var(--tx)}
-.opt.done-chip{background:rgba(53,211,153,.3);border:0;color:#35d399}
+.opt.on{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.2);color:var(--tx)}
+.opt.done-chip{background:rgba(53,211,153,.3);border:1px solid rgba(53,211,153,.45);color:#35d399}
 .opt.ghosted{cursor:default}
 .opts.locked .opt{cursor:default;opacity:.55}
 .opts.locked .opt.picked{opacity:1;background:rgba(255,255,255,.2);box-shadow:none;color:var(--tx);border-color:rgba(255,255,255,.25)}

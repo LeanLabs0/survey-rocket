@@ -76,16 +76,7 @@
         el.classList.add("in");
         io.unobserve(el);
         if(el.closest(".lp-steps") && el.tagName === "H2"){
-          var done = false;
-          function startCards(ev){
-            if(done) return;
-            if(ev && ev.propertyName && ev.propertyName !== "opacity") return;
-            done = true;
-            el.removeEventListener("transitionend", startCards);
-            playStepCards();
-          }
-          el.addEventListener("transitionend", startCards);
-          window.setTimeout(startCards, 1500);
+          playStepCards();
         }
       });
     }, { threshold: 0.35, rootMargin: "0px 0px -8% 0px" });

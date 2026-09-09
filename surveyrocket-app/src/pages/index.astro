@@ -4,7 +4,6 @@ import "../styles/styles-landing.css";
 import { appOrigin } from "../lib/site";
 
 const demo = `${appOrigin()}/demo`;
-const login = `${appOrigin()}/login`;
 ---
 <!doctype html>
 <html lang="en">
@@ -248,7 +247,6 @@ const login = `${appOrigin()}/login`;
       <span><b>Survey</b> <i>Rocket</i></span>
     </a>
     <div class="lp-nav-actions">
-      <a class="lp-btn glass" href={login}>Log in</a>
       <a class="lp-btn solid" href={demo}>Try the live demo</a>
     </div>
   </header>
@@ -496,8 +494,7 @@ const login = `${appOrigin()}/login`;
 
   <footer class="lp-foot">
     <div class="lp-foot-brand">
-      <img class="ll" src="/assets/landing/ll-logo.svg" width="89" height="30" alt="Lean Labs">
-      <span class="lp-tools">TOOLS</span>
+      <img class="ll" src="/assets/images/ll-tools.svg" width="122" height="30" alt="Lean Labs Tools">
       <nav class="lp-foot-links" aria-label="Lean Labs tools">
         <a href="https://sprocketrocket.co" target="_blank" rel="noopener">SprocketRocket</a>
         <span>CopyRocket</span>
@@ -508,7 +505,6 @@ const login = `${appOrigin()}/login`;
     </div>
     <div class="lp-foot-links">
       <span>&copy; 2026 Lean Labs</span>
-      <a href={login}>Log in</a>
       <a href={demo}>Live demo</a>
     </div>
   </footer>

@@ -887,18 +887,9 @@ body.lp-on .topbar{display:none}
   gap:14px;
 }
 #view-landing .lp-foot-brand .ll{
-  width:89px;
+  width:122px;
   height:30px;
   display:block;
-}
-#view-landing .lp-tools{
-  border:.75px solid #e5484d;
-  border-radius:2px;
-  font-size:6px;
-  letter-spacing:-.18px;
-  padding:2px 4px;
-  color:#fff;
-  line-height:1;
 }
 #view-landing .lp-foot-links{
   display:flex;
