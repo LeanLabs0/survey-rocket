@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { markPasswordSet } from "../../../lib/access";
 import { publicAuthMessage } from "../../../lib/auth-messages";
 import { persistSessionCookies, plainAuthClient, sessionFromCookies } from "../../../lib/supabase";
 
@@ -23,5 +24,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const { data, error } = await auth.auth.updateUser({ password });
   if (error) return fail(error.message);
   if (data.session) persistSessionCookies(cookies, data.session);
+  const userId = data.user?.id || session.user?.id;
+  if (userId) await markPasswordSet(userId).catch(() => null);
   return redirect("/app");
 };

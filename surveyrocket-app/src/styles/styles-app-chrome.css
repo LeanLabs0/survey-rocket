@@ -44,7 +44,9 @@
   .invite-follow{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
   .users-table{width:100%;max-width:none}
   .users-table table.raw{margin:0}
-  .users-table td{white-space:normal;max-width:none}
+  .users-table td{white-space:normal;max-width:none;overflow:visible}
+  .admin-card table.raw td:last-child{overflow:visible;max-width:none;white-space:nowrap;text-align:right;vertical-align:middle}
+  .row-actions{display:inline-flex;flex-wrap:nowrap;gap:6px;justify-content:flex-end;vertical-align:middle}
   .canvas + .canvas{margin-top:18px}
 
   .app-top{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line)}

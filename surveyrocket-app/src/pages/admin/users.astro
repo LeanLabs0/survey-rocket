@@ -11,7 +11,7 @@ const clients = await listClients();
     <div class="wrap">
       <div class="pagehead">
         <h1>Users</h1>
-        <p>Who can sign in, and which portals they belong to. New people get a password setup email — they never pick a password here.</p>
+        <p>Who can sign in, and which portals they belong to. An invite creates a pending account so we can email them — they cannot open a portal until they set a password from that email.</p>
       </div>
       {clients.length > 0 ? (
       <div class="admin-card">
@@ -58,7 +58,10 @@ const clients = await listClients();
                 <td>{u.clients.map((c) => c.name).join(", ") || "—"}</td>
                 <td>
                   {u.inviteStatus !== "signed_in" && u.clients[0]?.slug ? (
-                    <button class="btn ghost small" type="button" data-resend={u.email} data-client={u.clients[0].slug}>Resend invite</button>
+                    <div class="row-actions">
+                      <button class="btn ghost small" type="button" data-resend={u.email} data-client={u.clients[0].slug}>Resend invite</button>
+                      <button class="btn ghost small" type="button" data-remove={u.id} data-client={u.clients[0].slug} data-email={u.email}>Remove invite</button>
+                    </div>
                   ) : null}
                 </td>
               </tr>
@@ -111,6 +114,30 @@ const clients = await listClients();
       btn.addEventListener("click", async () => {
         const ok = await postInvite(btn.getAttribute("data-client"), btn.getAttribute("data-resend"), true, btn);
         if (ok) showMsg("Invite resent. They will get a fresh email to set a password.", true);
+      });
+    });
+    document.querySelectorAll("[data-remove]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const email = btn.getAttribute("data-email") || "this invite";
+        if (!confirm(`Delete the invite for ${email}? They will disappear from this list until you send a new one.`)) return;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        try {
+          const res = await fetch("/api/app/members", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ client: btn.getAttribute("data-client"), userId: btn.getAttribute("data-remove") }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            showMsg(data.error || "Could not remove that invite.", false);
+            return;
+          }
+          location.reload();
+        } finally {
+          btn.disabled = false;
+          btn.removeAttribute("aria-busy");
+        }
       });
     });
   </script>

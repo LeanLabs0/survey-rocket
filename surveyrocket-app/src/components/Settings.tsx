@@ -570,7 +570,7 @@ export default function Settings(props: {
             </div>
           </SettingCard>
 
-          <SettingCard description="Anyone on this workspace can sign in and invite colleagues." title="Members">
+          <SettingCard description="Invites create a pending account so we can email them. They cannot use this portal until they set a password from that email. Delete a pending invite to start over." title="Members">
             <div className="flex flex-col gap-4">
               <Table>
                 <TableHeader>
@@ -613,6 +613,8 @@ export default function Settings(props: {
                                   const d = await r.json().catch(() => null);
                                   if (!r.ok) return flash(null, d?.error || "Could not resend invite.");
                                   flash("Invite resent. They will get a fresh email to set a password.");
+                                  const list = await fetch(`/api/app/members?client=${encodeURIComponent(props.clientSlug)}`).then((x) => x.json());
+                                  setMembers(list.members || members);
                                 } finally {
                                   setResendBusy(null);
                                 }
@@ -627,10 +629,13 @@ export default function Settings(props: {
                           {props.canInvite && m.userId !== props.profile.id ? (
                             <Button
                               onClick={async () => {
+                                const pending = m.inviteStatus !== "signed_in";
                                 const ok = await confirm({
-                                  title: "Remove member",
-                                  message: `Remove ${m.fullName || m.email} from this workspace? They will lose access immediately.`,
-                                  confirmLabel: "Remove",
+                                  title: pending ? "Remove invite" : "Remove member",
+                                  message: pending
+                                    ? `Delete the invite for ${m.fullName || m.email}? They will disappear until you send a new one.`
+                                    : `Remove ${m.fullName || m.email} from this workspace? They will lose access immediately.`,
+                                  confirmLabel: pending ? "Remove invite" : "Remove",
                                 });
                                 if (!ok) return;
                                 const r = await fetch("/api/app/members", {
@@ -641,13 +646,13 @@ export default function Settings(props: {
                                 const d = await r.json().catch(() => null);
                                 if (!r.ok) return flash(null, d?.error || "Could not remove.");
                                 setMembers((prev) => prev.filter((x) => x.userId !== m.userId));
-                                flash("Member removed.");
+                                flash(pending ? "Invite removed." : "Member removed.");
                               }}
                               size="sm"
                               type="button"
                               variant="ghost"
                             >
-                              Remove
+                              {m.inviteStatus !== "signed_in" ? "Remove invite" : "Remove"}
                             </Button>
                           ) : null}
                         </div>

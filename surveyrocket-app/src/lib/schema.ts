@@ -30,6 +30,7 @@ export const profiles = pgTable("profiles", {
   locale: text("locale").notNull().default("en"),
   notifyReviews: boolean("notify_reviews").notNull().default(true),
   isSuperadmin: boolean("is_superadmin").notNull().default(false),
+  passwordSetAt: timestamp("password_set_at", { withTimezone: true }),
 });
 
 export const clientMembers = pgTable(

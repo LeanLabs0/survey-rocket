@@ -35,6 +35,7 @@ function mapProfile(row: {
   locale?: string | null;
   notify_reviews?: boolean | null;
   is_superadmin: boolean;
+  password_set_at?: string | null;
 }): Profile {
   return {
     id: row.id,
@@ -45,7 +46,21 @@ function mapProfile(row: {
     locale: row.locale || "en",
     notifyReviews: row.notify_reviews !== false,
     isSuperadmin: row.is_superadmin,
+    passwordSetAt: row.password_set_at ? new Date(row.password_set_at) : null,
   };
+}
+
+export async function markPasswordSet(userId: string) {
+  const now = new Date();
+  await withDb(
+    async () => {
+      await db.update(profiles).set({ passwordSetAt: now }).where(eq(profiles.id, userId));
+    },
+    async () => {
+      await supabaseAdmin().from("profiles").update({ password_set_at: now.toISOString() }).eq("id", userId);
+    },
+  );
+  invalidateProfileCache(userId);
 }
 
 function mapClient(row: {
@@ -82,7 +97,7 @@ export async function loadProfile(userId: string) {
     async () => {
       const { data } = await supabaseAdmin()
         .from("profiles")
-        .select("id,email,full_name,avatar_url,theme,locale,notify_reviews,is_superadmin")
+        .select("id,email,full_name,avatar_url,theme,locale,notify_reviews,is_superadmin,password_set_at")
         .eq("id", userId)
         .maybeSingle();
       return data ? mapProfile(data) : null;
@@ -216,17 +231,8 @@ export async function hubspotStatusByClient() {
 
 export type MemberInviteStatus = "invited" | "signed_in";
 
-async function inviteStatusByUserId(ids: string[]): Promise<Map<string, MemberInviteStatus>> {
-  const map = new Map<string, MemberInviteStatus>();
-  if (!ids.length) return map;
-  const admin = supabaseAdmin();
-  await Promise.all(
-    ids.map(async (id) => {
-      const { data } = await admin.auth.admin.getUserById(id);
-      map.set(id, data.user?.last_sign_in_at ? "signed_in" : "invited");
-    }),
-  );
-  return map;
+function inviteStatusFromPassword(setAt: Date | string | null | undefined): MemberInviteStatus {
+  return setAt ? "signed_in" : "invited";
 }
 
 export async function membersForClient(clientId: string) {
@@ -242,6 +248,7 @@ export async function membersForClient(clientId: string) {
         role: r.member.role,
         email: r.profile.email,
         fullName: r.profile.fullName,
+        inviteStatus: inviteStatusFromPassword(r.profile.passwordSetAt),
       }));
     },
     async () => {
@@ -252,7 +259,7 @@ export async function membersForClient(clientId: string) {
         .eq("client_id", clientId);
       const ids = (memberships || []).map((m) => m.user_id);
       if (!ids.length) return [];
-      const { data: people } = await admin.from("profiles").select("id,email,full_name").in("id", ids);
+      const { data: people } = await admin.from("profiles").select("id,email,full_name,password_set_at").in("id", ids);
       const byId = new Map((people || []).map((p) => [p.id, p]));
       return (memberships || []).map((m) => {
         const profile = byId.get(m.user_id);
@@ -261,14 +268,14 @@ export async function membersForClient(clientId: string) {
           role: m.role as string,
           email: (profile?.email as string) || "",
           fullName: (profile?.full_name as string) || null,
+          inviteStatus: inviteStatusFromPassword(profile?.password_set_at as string | null),
         };
       });
     },
   );
-  const status = await inviteStatusByUserId(rows.map((r) => r.userId));
   return rows.map((r) => ({
     ...r,
-    inviteStatus: status.get(r.userId) || ("invited" as MemberInviteStatus),
+    inviteStatus: r.inviteStatus || ("invited" as MemberInviteStatus),
   }));
 }
 
@@ -378,7 +385,7 @@ export async function listUsersWithClients() {
     },
     async () => {
       const admin = supabaseAdmin();
-      const { data: people } = await admin.from("profiles").select("id,email,full_name,is_superadmin");
+      const { data: people } = await admin.from("profiles").select("id,email,full_name,is_superadmin,password_set_at");
       const { data: memberships } = await admin.from("client_members").select("user_id,client_id");
       const { data: clientRows } = await admin.from("clients").select("id,slug,name");
       const byClient = new Map((clientRows || []).map((c) => [c.id, c]));
@@ -387,6 +394,7 @@ export async function listUsersWithClients() {
         email: p.email as string,
         fullName: (p.full_name as string) || null,
         isSuperadmin: Boolean(p.is_superadmin),
+        passwordSetAt: p.password_set_at ? new Date(p.password_set_at as string) : null,
         clients: (memberships || [])
           .filter((m) => m.user_id === p.id)
           .map((m) => {
@@ -396,13 +404,12 @@ export async function listUsersWithClients() {
           .filter((c) => c.slug),
       }));
     },
-  ).then(async (people) => {
-    const status = await inviteStatusByUserId(people.map((p) => p.id));
-    return people.map((p) => ({
+  ).then((people) =>
+    people.map((p) => ({
       ...p,
-      inviteStatus: status.get(p.id) || ("invited" as MemberInviteStatus),
-    }));
-  });
+      inviteStatus: inviteStatusFromPassword(p.passwordSetAt),
+    })),
+  );
 }
 
 export type ShelfSurvey = {

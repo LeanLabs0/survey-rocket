@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { publicAuthMessage } from "../../../lib/auth-messages";
 import { persistSessionCookies, safeNextPath, signInWithPasswordDirect, supabasePublishableKey, supabaseUrl } from "../../../lib/supabase";
+import { markPasswordSet } from "../../../lib/access";
 import { touchSession } from "../../../lib/sessions";
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
@@ -30,7 +31,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
     const session = await signInWithPasswordDirect(email, password);
     persistSessionCookies(cookies, session);
-    if (session.user?.id) await touchSession(session.user.id, cookies, request).catch(() => null);
+    if (session.user?.id) {
+      await touchSession(session.user.id, cookies, request).catch(() => null);
+      await markPasswordSet(session.user.id).catch(() => null);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not sign in.";
     console.error("password sign-in failed", message);

@@ -1,0 +1,91 @@
+---
+import type { EmailOtpType } from "@supabase/supabase-js";
+import Base from "../../layouts/Base.astro";
+import { passwordSetupPath } from "../../lib/auth-messages";
+import { persistSessionCookies, plainAuthClient, safeNextPath, supabaseFromCookies } from "../../lib/supabase";
+
+const SETUP_TYPES = new Set(["invite", "recovery", "signup"]);
+const next = safeNextPath(Astro.url.searchParams.get("next"));
+const code = Astro.url.searchParams.get("code");
+const token = Astro.url.searchParams.get("token_hash");
+const type = Astro.url.searchParams.get("type") as EmailOtpType | null;
+const auth = plainAuthClient();
+let established = false;
+
+if (code) {
+  const { data } = await auth.auth.exchangeCodeForSession(code);
+  if (data.session) {
+    persistSessionCookies(Astro.cookies, data.session);
+    established = true;
+  }
+}
+
+if (token && type) {
+  const { data } = await auth.auth.verifyOtp({ token_hash: token, type });
+  if (data.session) {
+    persistSessionCookies(Astro.cookies, data.session);
+    established = true;
+  } else {
+    const supabase = supabaseFromCookies(Astro.cookies, Astro.request);
+    const verified = await supabase.auth.verifyOtp({ token_hash: token, type });
+    if (verified.data.session) established = true;
+  }
+}
+
+const setup = SETUP_TYPES.has(type || "") || next === passwordSetupPath();
+if (established) {
+  return Astro.redirect(setup ? passwordSetupPath() : next);
+}
+
+const dest = setup ? passwordSetupPath() : next;
+---
+<Base title="Opening your invite · Survey Rocket" bodyClass="login-page">
+  <header class="login-top">
+    <a class="login-wordmark" href="/">
+      <img src="/assets/landing/survey-rocket.svg" width="180" height="45" alt="Survey Rocket" />
+    </a>
+  </header>
+  <main class="login-main">
+    <div class="login-card">
+      <h1>Opening your invite</h1>
+      <p id="status" class="lede">One moment…</p>
+      <p class="back"><a href="/login">Back to sign in</a></p>
+    </div>
+  </main>
+</Base>
+<style>
+.login-page{min-height:100vh;background:var(--page)}
+.login-top{display:flex;align-items:center;height:64px;padding:0 24px;border-bottom:1px solid var(--line)}
+.login-wordmark{display:inline-flex;align-items:center;text-decoration:none}
+.login-wordmark img{display:block;height:36px;width:auto}
+.login-main{display:flex;justify-content:center;padding:56px 20px 80px}
+.login-card{width:100%;max-width:420px;background:var(--card);box-shadow:var(--inset);border-radius:var(--r-lg);padding:32px 28px 28px}
+.login-card h1{font-size:28px;letter-spacing:-.03em;margin:0 0 8px}
+.lede{margin:0 0 22px;color:var(--tx-2);font-size:14px;line-height:1.5}
+.back{margin:22px 0 0;font-size:13px}
+.back a{color:var(--tx-2)}
+</style>
+<script define:vars={{ dest }}>
+  (async () => {
+    const status = document.getElementById("status");
+    const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const access_token = hash.get("access_token");
+    const refresh_token = hash.get("refresh_token");
+    const hashType = hash.get("type") || "";
+    if (!access_token || !refresh_token) {
+      if (status) status.textContent = "This link is missing a sign-in token. Ask your admin to resend the invite.";
+      return;
+    }
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token, refresh_token }),
+    });
+    if (!res.ok) {
+      if (status) status.textContent = "This link expired. Ask your admin to resend the invite.";
+      return;
+    }
+    const setup = hashType === "invite" || hashType === "recovery" || hashType === "signup";
+    location.replace(setup ? "/auth/set-password" : dest);
+  })();
+</script>

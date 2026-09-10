@@ -31,7 +31,7 @@ const hubspotConnected = hubspotLabel === "connected";
 
       <div class="admin-card">
         <h2>People</h2>
-        <p class="lede">Invite sent means they have an email to set a password. Accepted means they have signed in.</p>
+        <p class="lede">Invite sent is a pending account so we can email them — they cannot use this portal until they set a password. Accepted means they finished setup. You can delete a pending invite and send a new one.</p>
         {members.length === 0 ? (
           <p class="emptystate" style="margin:0 0 16px">No one yet. Send an invite below.</p>
         ) : (
@@ -65,7 +65,10 @@ const hubspotConnected = hubspotLabel === "connected";
                   </td>
                   <td>
                     {m.inviteStatus !== "signed_in" && m.email ? (
-                      <button class="btn ghost small" type="button" data-resend={m.email}>Resend invite</button>
+                      <div class="row-actions">
+                        <button class="btn ghost small" type="button" data-resend={m.email}>Resend invite</button>
+                        <button class="btn ghost small" type="button" data-remove={m.userId} data-email={m.email}>Remove invite</button>
+                      </div>
                     ) : null}
                   </td>
                 </tr>
@@ -126,6 +129,30 @@ const hubspotConnected = hubspotLabel === "connected";
       btn.addEventListener("click", async () => {
         const ok = await sendInvite(btn.getAttribute("data-resend"), true, btn);
         if (ok) showMsg("Invite resent. They will get a fresh email to set a password.", true);
+      });
+    });
+    document.querySelectorAll("[data-remove]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const email = btn.getAttribute("data-email") || "this invite";
+        if (!confirm(`Delete the invite for ${email}? They will disappear until you send a new one.`)) return;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        try {
+          const res = await fetch("/api/app/members", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ client: slug, userId: btn.getAttribute("data-remove") }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            showMsg(data.error || "Could not remove that invite.", false);
+            return;
+          }
+          location.reload();
+        } finally {
+          btn.disabled = false;
+          btn.removeAttribute("aria-busy");
+        }
       });
     });
   </script>

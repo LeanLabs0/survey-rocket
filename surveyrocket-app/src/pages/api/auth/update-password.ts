@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { markPasswordSet } from "../../../lib/access";
 import { supabaseFromCookies } from "../../../lib/supabase";
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
@@ -12,9 +13,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     return redirect("/auth/update-password?error=" + encodeURIComponent("Passwords do not match."));
   }
   const supabase = supabaseFromCookies(cookies, request);
-  const { error } = await supabase.auth.updateUser({ password });
+  const { data, error } = await supabase.auth.updateUser({ password });
   if (error) {
     return redirect("/auth/update-password?error=" + encodeURIComponent(error.message));
   }
+  const userId = data.user?.id;
+  if (userId) await markPasswordSet(userId).catch(() => null);
   return redirect("/app");
 };

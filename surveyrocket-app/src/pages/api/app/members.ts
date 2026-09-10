@@ -1,9 +1,7 @@
 import type { APIRoute } from "astro";
 import { jsonError, jsonOk, membersForClient, requireClientAccess } from "../../../lib/access";
-import { inviteUserToClient, resendInviteEmail } from "../../../lib/invite";
-import { db } from "../../../lib/db";
-import { clientMembers } from "../../../lib/schema";
-import { and, eq } from "drizzle-orm";
+import { deletePendingInvite, inviteUserToClient, isPasswordSet, resendInviteEmail } from "../../../lib/invite";
+import { supabaseAdmin } from "../../../lib/supabase-admin";
 
 export const GET: APIRoute = async ({ url, locals }) => {
   const clientSlug = url.searchParams.get("client") || "";
@@ -23,7 +21,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const people = await membersForClient(access.client.id);
       const onPortal = people.some((m) => m.email.toLowerCase() === email.trim().toLowerCase());
       if (!onPortal) return jsonError(400, "That person is not on this portal.");
-      await resendInviteEmail(email);
+      await resendInviteEmail(email, access.client.id);
     } else {
       await inviteUserToClient(email, access.client.id);
     }
@@ -38,9 +36,20 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!body?.client || !body?.userId) return jsonError(400, "client and userId required");
   const access = await requireClientAccess(locals.user, locals.isSuperadmin, body.client);
   if (!access.ok) return jsonError(access.status, access.error);
-  if (body.userId === locals.user!.id) return jsonError(400, "You cannot remove yourself.");
-  await db
-    .delete(clientMembers)
-    .where(and(eq(clientMembers.clientId, access.client.id), eq(clientMembers.userId, String(body.userId))));
+  const userId = String(body.userId);
+  if (userId === locals.user!.id) return jsonError(400, "You cannot remove yourself.");
+  try {
+    if (!(await isPasswordSet(userId))) {
+      await deletePendingInvite(userId);
+      return jsonOk({ ok: true });
+    }
+  } catch (err) {
+    return jsonError(400, err instanceof Error ? err.message : "Could not remove invite");
+  }
+  await supabaseAdmin()
+    .from("client_members")
+    .delete()
+    .eq("client_id", access.client.id)
+    .eq("user_id", userId);
   return jsonOk({ ok: true });
 };

@@ -22,7 +22,7 @@ Do this in order. You need GitHub access to `LeanLabs0/survey-rocket`, a Vercel 
 
 ### 2. Database
 
-Vercel does not run SQL. In the Supabase SQL editor, apply `drizzle/0000_init.sql` through `drizzle/0006_lists_soft_delete.sql` in order, then from a laptop:
+Vercel does not run SQL. In the Supabase SQL editor, apply `drizzle/0000_init.sql` through `drizzle/0007_password_set.sql` in order, then from a laptop:
 
 ```
 npm install
