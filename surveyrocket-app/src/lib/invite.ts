@@ -30,6 +30,34 @@ async function rememberMembership(userId: string, email: string, clientId: strin
     .onConflictDoNothing();
 }
 
+function inviteMailError(message: string) {
+  if (/rate limit/i.test(message)) {
+    return "Too many invite emails were sent. Wait a few minutes, then resend.";
+  }
+  if (/after \d+ seconds/i.test(message)) {
+    return "Wait a minute before sending another email to this person.";
+  }
+  return message;
+}
+
+async function sendPasswordSetupEmail(email: string, strict = false) {
+  const mailer = createClient(supabaseUrl(), supabasePublishableKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error } = await mailer.auth.resetPasswordForEmail(email, { redirectTo: passwordSetupRedirect() });
+  if (error) {
+    if (!strict && /after \d+ seconds/i.test(error.message)) return;
+    throw new Error(inviteMailError(error.message));
+  }
+}
+
+export async function resendInviteEmail(emailRaw: string) {
+  const email = emailRaw.trim().toLowerCase();
+  if (!email) throw new Error("Email is required");
+  await sendPasswordSetupEmail(email, true);
+  return { email };
+}
+
 export async function inviteUserToClient(emailRaw: string, clientId: string) {
   const email = emailRaw.trim().toLowerCase();
   if (!email) throw new Error("Email is required");
@@ -39,17 +67,13 @@ export async function inviteUserToClient(emailRaw: string, clientId: string) {
   let userId = invited.data.user?.id ?? null;
   const already = invited.error && /already|registered|exists/i.test(invited.error.message || "");
   if (invited.error && !already) {
-    throw new Error(invited.error.message);
+    throw new Error(inviteMailError(invited.error.message));
   }
   if (!userId) userId = await findUserId(admin, email);
   if (!userId) throw new Error("Could not invite user");
 
   if (already || !invited.data.user) {
-    const mailer = createClient(supabaseUrl(), supabasePublishableKey(), {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { error } = await mailer.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error && !/after \d+ seconds/i.test(error.message)) throw new Error(error.message);
+    await sendPasswordSetupEmail(email);
   }
 
   try {

@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { jsonError, jsonOk, membersForClient, requireClientAccess } from "../../../lib/access";
-import { inviteUserToClient } from "../../../lib/invite";
+import { inviteUserToClient, resendInviteEmail } from "../../../lib/invite";
 import { db } from "../../../lib/db";
 import { clientMembers } from "../../../lib/schema";
 import { and, eq } from "drizzle-orm";
@@ -17,8 +17,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!body?.client || !body?.email) return jsonError(400, "client and email required");
   const access = await requireClientAccess(locals.user, locals.isSuperadmin, body.client);
   if (!access.ok) return jsonError(access.status, access.error);
+  const email = String(body.email);
   try {
-    await inviteUserToClient(String(body.email), access.client.id);
+    if (body.resend) {
+      const people = await membersForClient(access.client.id);
+      const onPortal = people.some((m) => m.email.toLowerCase() === email.trim().toLowerCase());
+      if (!onPortal) return jsonError(400, "That person is not on this portal.");
+      await resendInviteEmail(email);
+    } else {
+      await inviteUserToClient(email, access.client.id);
+    }
   } catch (err) {
     return jsonError(400, err instanceof Error ? err.message : "Could not invite user");
   }

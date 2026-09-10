@@ -150,6 +150,23 @@ html[data-theme="light"] .login-wordmark{
 .btn.small{--ll-btn-h:36px;--ll-btn-px:12px;--ll-btn-fs:12px}
 .btn.danger{background:transparent;box-shadow:var(--inset);color:var(--tx-2)}
 .btn.danger:hover,.btn.danger:focus-visible{color:var(--red);background:var(--btn)}
+.btn[aria-busy="true"]{
+  position:relative;
+  pointer-events:none;
+  cursor:wait;
+  opacity:.7;
+}
+.btn[aria-busy="true"]::before{
+  content:"";
+  width:14px;
+  height:14px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  animation:sr-spin .6s linear infinite;
+  flex:none;
+}
+@keyframes sr-spin{to{transform:rotate(360deg)}}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:500;box-shadow:var(--inset);color:var(--tx-2)}
 .chip.teal{color:var(--green)}
 .chip.gold{color:var(--alert)}

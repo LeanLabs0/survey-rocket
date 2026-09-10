@@ -280,6 +280,7 @@ export default function Settings(props: {
   const [logoSaving, setLogoSaving] = useState(false);
   const [hsBusy, setHsBusy] = useState(false);
   const [inviteBusy, setInviteBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
 
   const logoPreview = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : logo), [logoFile, logo]);
@@ -596,32 +597,60 @@ export default function Settings(props: {
                         )}
                       </TableCell>
                       <TableCell className="text-end">
-                        {props.canInvite && m.userId !== props.profile.id ? (
-                          <Button
-                            onClick={async () => {
-                              const ok = await confirm({
-                                title: "Remove member",
-                                message: `Remove ${m.fullName || m.email} from this workspace? They will lose access immediately.`,
-                                confirmLabel: "Remove",
-                              });
-                              if (!ok) return;
-                              const r = await fetch("/api/app/members", {
-                                method: "DELETE",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ client: props.clientSlug, userId: m.userId }),
-                              });
-                              const d = await r.json().catch(() => null);
-                              if (!r.ok) return flash(null, d?.error || "Could not remove.");
-                              setMembers((prev) => prev.filter((x) => x.userId !== m.userId));
-                              flash("Member removed.");
-                            }}
-                            size="sm"
-                            type="button"
-                            variant="ghost"
-                          >
-                            Remove
-                          </Button>
-                        ) : null}
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          {props.canInvite && m.inviteStatus !== "signed_in" ? (
+                            <Button
+                              loading={resendBusy === m.userId}
+                              onClick={async () => {
+                                if (resendBusy) return;
+                                setResendBusy(m.userId);
+                                try {
+                                  const r = await fetch("/api/app/members", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ client: props.clientSlug, email: m.email, resend: true }),
+                                  });
+                                  const d = await r.json().catch(() => null);
+                                  if (!r.ok) return flash(null, d?.error || "Could not resend invite.");
+                                  flash("Invite resent. They will get a fresh email to set a password.");
+                                } finally {
+                                  setResendBusy(null);
+                                }
+                              }}
+                              size="sm"
+                              type="button"
+                              variant="ghost"
+                            >
+                              Resend invite
+                            </Button>
+                          ) : null}
+                          {props.canInvite && m.userId !== props.profile.id ? (
+                            <Button
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: "Remove member",
+                                  message: `Remove ${m.fullName || m.email} from this workspace? They will lose access immediately.`,
+                                  confirmLabel: "Remove",
+                                });
+                                if (!ok) return;
+                                const r = await fetch("/api/app/members", {
+                                  method: "DELETE",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ client: props.clientSlug, userId: m.userId }),
+                                });
+                                const d = await r.json().catch(() => null);
+                                if (!r.ok) return flash(null, d?.error || "Could not remove.");
+                                setMembers((prev) => prev.filter((x) => x.userId !== m.userId));
+                                flash("Member removed.");
+                              }}
+                              size="sm"
+                              type="button"
+                              variant="ghost"
+                            >
+                              Remove
+                            </Button>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

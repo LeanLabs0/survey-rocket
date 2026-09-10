@@ -40,6 +40,7 @@ const hubspotConnected = hubspotLabel === "connected";
               <tr>
                 <th>Email</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -62,6 +63,11 @@ const hubspotConnected = hubspotLabel === "connected";
                       <span class="chip gold">Invite sent</span>
                     )}
                   </td>
+                  <td>
+                    {m.inviteStatus !== "signed_in" && m.email ? (
+                      <button class="btn ghost small" type="button" data-resend={m.email}>Resend invite</button>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -78,23 +84,49 @@ const hubspotConnected = hubspotLabel === "connected";
     </div>
   </AdminShell>
   <script define:vars={{ slug }}>
-    document.getElementById("invite")!.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target as HTMLFormElement);
-      const msg = document.getElementById("invite-msg")!;
-      const res = await fetch("/api/app/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client: slug, email: fd.get("email") }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        msg.hidden = false;
-        msg.style.color = "var(--red)";
-        msg.textContent = data.error || "Could not invite that user.";
-        return;
+    const msg = document.getElementById("invite-msg");
+    function showMsg(text, ok) {
+      if (!msg) return;
+      msg.hidden = false;
+      msg.style.color = ok ? "var(--tx-2)" : "var(--red)";
+      msg.textContent = text;
+    }
+    async function sendInvite(email, resend, btn) {
+      if (btn) {
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
       }
-      location.reload();
+      try {
+        const res = await fetch("/api/app/members", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client: slug, email, resend: !!resend }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showMsg(data.error || "Could not invite that user.", false);
+          return false;
+        }
+        return true;
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.removeAttribute("aria-busy");
+        }
+      }
+    }
+    document.getElementById("invite").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const btn = e.target.querySelector("[type=submit]");
+      const ok = await sendInvite(fd.get("email"), false, btn);
+      if (ok) location.reload();
+    });
+    document.querySelectorAll("[data-resend]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const ok = await sendInvite(btn.getAttribute("data-resend"), true, btn);
+        if (ok) showMsg("Invite resent. They will get a fresh email to set a password.", true);
+      });
     });
   </script>
 </Base>

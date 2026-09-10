@@ -39,7 +39,7 @@ const clients = await listClients();
       )}
       <div class="admin-card users-table" style="max-width:none">
         <table class="raw">
-          <thead><tr><th>Email</th><th>Status</th><th>Superadmin</th><th>Portals</th></tr></thead>
+          <thead><tr><th>Email</th><th>Status</th><th>Superadmin</th><th>Portals</th><th></th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr>
@@ -56,6 +56,11 @@ const clients = await listClients();
                 </td>
                 <td>{u.isSuperadmin ? "yes" : ""}</td>
                 <td>{u.clients.map((c) => c.name).join(", ") || "—"}</td>
+                <td>
+                  {u.inviteStatus !== "signed_in" && u.clients[0]?.slug ? (
+                    <button class="btn ghost small" type="button" data-resend={u.email} data-client={u.clients[0].slug}>Resend invite</button>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -64,23 +69,49 @@ const clients = await listClients();
     </div>
   </AdminShell>
   <script>
+    const msg = document.getElementById("invite-msg");
+    function showMsg(text, ok) {
+      if (!msg) return;
+      msg.hidden = false;
+      msg.style.color = ok ? "" : "var(--red)";
+      msg.textContent = text;
+    }
+    async function postInvite(client, email, resend, btn) {
+      if (btn) {
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+      }
+      try {
+        const res = await fetch("/api/app/members", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client, email, resend: !!resend }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showMsg(data.error || "Could not invite that user.", false);
+          return false;
+        }
+        return true;
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.removeAttribute("aria-busy");
+        }
+      }
+    }
     document.getElementById("invite")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const fd = new FormData(e.target as HTMLFormElement);
-      const msg = document.getElementById("invite-msg")!;
-      const res = await fetch("/api/app/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client: fd.get("client"), email: fd.get("email") }),
+      const fd = new FormData(e.target);
+      const btn = e.target.querySelector("[type=submit]");
+      const ok = await postInvite(fd.get("client"), fd.get("email"), false, btn);
+      if (ok) location.reload();
+    });
+    document.querySelectorAll("[data-resend]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const ok = await postInvite(btn.getAttribute("data-client"), btn.getAttribute("data-resend"), true, btn);
+        if (ok) showMsg("Invite resent. They will get a fresh email to set a password.", true);
       });
-      const data = await res.json().catch(() => ({}));
-      msg.hidden = false;
-      if (!res.ok) {
-        msg.style.color = "var(--red)";
-        msg.textContent = data.error || "Could not invite that user.";
-        return;
-      }
-      location.reload();
     });
   </script>
 </Base>
