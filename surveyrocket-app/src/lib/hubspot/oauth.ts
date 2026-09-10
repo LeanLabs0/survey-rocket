@@ -1,16 +1,14 @@
 import { envVar } from "../env";
 
-/** Must match hubspot-app/src/app/app-hsmeta.json requiredScopes / optionalScopes. */
+/** Must match hubspot-app/src/app/app-hsmeta.json requiredScopes. */
 export const HUBSPOT_REQUIRED_SCOPES = [
   "oauth",
   "forms",
   "crm.lists.read",
   "crm.lists.write",
   "crm.objects.contacts.read",
+  "crm.objects.contacts.write",
 ];
-
-/** Lets us create a contact if the sign-in form has not indexed them yet. Not required for segment membership. */
-const HUBSPOT_OPTIONAL_SCOPES = ["crm.objects.contacts.write"];
 
 const HUBSPOT_SCOPES = HUBSPOT_REQUIRED_SCOPES.join(" ");
 
@@ -37,7 +35,7 @@ export function missingHubSpotScopes(raw: string | string[] | null | undefined) 
 
 export function missingContactScopes(raw: string | string[] | null | undefined) {
   const have = grantedScopeSet(raw);
-  return have.has(CONTACT_READ) ? [] : [CONTACT_READ];
+  return [CONTACT_READ, CONTACT_WRITE].filter((scope) => !have.has(scope));
 }
 
 export function hasContactWrite(raw: string | string[] | null | undefined) {
@@ -69,9 +67,6 @@ export function buildInstallUrl(state: string) {
     scope: HUBSPOT_REQUIRED_SCOPES.join(" "),
     state,
   });
-  if (HUBSPOT_OPTIONAL_SCOPES.length) {
-    params.set("optional_scope", HUBSPOT_OPTIONAL_SCOPES.join(" "));
-  }
   return `https://app.hubspot.com/oauth/authorize?${params.toString()}`;
 }
 

@@ -5,7 +5,7 @@ import { hasContactWrite, missingContactScopes } from "./oauth";
 import { resolveAccessToken } from "./tokens";
 
 const CONTACT_SCOPE_ERROR =
-  "HubSpot is missing contact read access. Reconnect HubSpot in Settings and accept crm.objects.contacts.read so we can add people to segments.";
+  "HubSpot is missing contact write access. Adding someone to a segment is a contact edit in HubSpot, so reconnect and accept crm.objects.contacts.write.";
 
 const OBJECT_CONTACTS = "0-1";
 

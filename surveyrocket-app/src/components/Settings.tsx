@@ -380,7 +380,7 @@ export default function Settings(props: {
       ) : null}
       {props.hsFlash === "scopes" && tab === "general" ? (
         <p className="text-destructive text-sm">
-          HubSpot connected, but contact read was not granted. Reconnect and accept contacts read so people can be added to segments.
+          HubSpot connected, but contact write was not granted. Reconnect and accept contacts write so people can be added to segments.
         </p>
       ) : null}
       {props.hsFlash === "error" && tab === "general" ? (
@@ -496,7 +496,7 @@ export default function Settings(props: {
               ) : null}
               {props.hubspot.connected && !props.hubspot.canEnrollContacts ? (
                 <p className="text-destructive text-sm">
-                  HubSpot is connected, but this install cannot add people to segments. Reconnect HubSpot and accept contact read. Form submissions can still log in HubSpot without this. Contact write is optional.
+                  HubSpot is connected, but this install cannot add people to segments. Reconnect HubSpot and accept contact write. HubSpot treats segment membership as editing the contact, so read-only is not enough. Form submissions can still log without write.
                 </p>
               ) : props.hubspot.connected && props.hubspot.signinFormId ? (
                 <p className="text-muted-foreground text-sm">
