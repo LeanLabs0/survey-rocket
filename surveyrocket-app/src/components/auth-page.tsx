@@ -165,6 +165,17 @@ export function AuthPage({
 			};
 			const { error: passkeyError } = await auth.signInWithPasskey();
 			if (passkeyError) throw passkeyError;
+			const { data } = await supabase.auth.getSession();
+			if (data.session?.access_token && data.session.refresh_token) {
+				await fetch("/api/auth/session", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						access_token: data.session.access_token,
+						refresh_token: data.session.refresh_token,
+					}),
+				});
+			}
 			window.location.assign(next || "/app");
 		} catch (err) {
 			const message =

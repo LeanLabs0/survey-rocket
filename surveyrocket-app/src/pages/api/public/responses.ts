@@ -168,8 +168,20 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  if (email && (stage === "started" || stage === "progress")) {
-    await writeSignedInToHubSpot(sv.id, email, respondentId, { firstname, lastname, company, website });
+  if (email && (stage === "started" || stage === "progress") && !completing) {
+    try {
+      await writeSignedInToHubSpot(sv.id, email, respondentId, { firstname, lastname, company, website });
+      await db
+        .update(responses)
+        .set({ hubspotStatus: "written", hubspotWrittenAt: now, hubspotError: null })
+        .where(eq(responses.id, responseId));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await db
+        .update(responses)
+        .set({ hubspotStatus: "failed", hubspotError: message.slice(0, 500) })
+        .where(eq(responses.id, responseId));
+    }
   }
   if (completing && email) {
     await writeCompletionToHubSpot(responseId);

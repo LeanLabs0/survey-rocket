@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { responses, surveys } from "../schema";
-import { addEmailToSurveyList, storeHubspotContactId, type HubSpotContactProps } from "./lists";
+import { enrollContactToSurveyLists, type HubSpotContactProps } from "./lists";
 import { resolveAccessToken } from "./tokens";
 
 export async function writeSignedInToHubSpot(
@@ -10,15 +10,10 @@ export async function writeSignedInToHubSpot(
   respondentId: string | null,
   extras?: HubSpotContactProps,
 ) {
-  try {
-    const [sv] = await db.select().from(surveys).where(eq(surveys.id, surveyId)).limit(1);
-    if (!sv || sv.deletedAt) return;
-    if (!(await resolveAccessToken(sv.clientId))) return;
-    const contactId = await addEmailToSurveyList(sv, email, "signedIn", extras);
-    await storeHubspotContactId(respondentId, contactId || null);
-  } catch (err) {
-    console.error("hubspot signed_in", err);
-  }
+  const [sv] = await db.select().from(surveys).where(eq(surveys.id, surveyId)).limit(1);
+  if (!sv || sv.deletedAt) return;
+  if (!(await resolveAccessToken(sv.clientId))) return;
+  await enrollContactToSurveyLists(sv, email, "signedIn", extras, respondentId);
 }
 
 export async function writeCompletionToHubSpot(responseId: string) {
@@ -63,9 +58,7 @@ export async function writeCompletionToHubSpot(responseId: string) {
       company: rec.respondent?.company as string | undefined,
       website: rec.respondent?.website as string | undefined,
     };
-    await addEmailToSurveyList(sv, email, "signedIn", extras);
-    const contactId = await addEmailToSurveyList(sv, email, "completed", extras);
-    await storeHubspotContactId(row.respondentId, contactId || null);
+    await enrollContactToSurveyLists(sv, email, "completed", extras, row.respondentId);
     await db
       .update(responses)
       .set({ hubspotStatus: "written", hubspotWrittenAt: new Date(), hubspotError: null })

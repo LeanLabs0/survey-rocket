@@ -33,6 +33,8 @@ type HubSpot = {
   portalId?: string | null;
   portalName?: string | null;
   signinFormId?: string | null;
+  canEnrollContacts?: boolean;
+  missingScopes?: string[];
 };
 type Profile = {
   id: string;
@@ -376,6 +378,11 @@ export default function Settings(props: {
       {props.hsFlash === "connected" && tab === "general" ? (
         <p className="text-sm text-[var(--green)]">HubSpot connected.</p>
       ) : null}
+      {props.hsFlash === "scopes" && tab === "general" ? (
+        <p className="text-destructive text-sm">
+          HubSpot connected, but contact read was not granted. Reconnect and accept contacts read so people can be added to segments.
+        </p>
+      ) : null}
       {props.hsFlash === "error" && tab === "general" ? (
         <p className="text-destructive text-sm">Could not connect HubSpot. Try again.</p>
       ) : null}
@@ -487,9 +494,13 @@ export default function Settings(props: {
                   You are viewing this as a superadmin. Connecting here attaches HubSpot to {props.clientName}.
                 </p>
               ) : null}
-              {props.hubspot.connected && props.hubspot.signinFormId ? (
+              {props.hubspot.connected && !props.hubspot.canEnrollContacts ? (
+                <p className="text-destructive text-sm">
+                  HubSpot is connected, but this install cannot add people to segments. Reconnect HubSpot and accept contact read. Form submissions can still log in HubSpot without this. Contact write is optional.
+                </p>
+              ) : props.hubspot.connected && props.hubspot.signinFormId ? (
                 <p className="text-muted-foreground text-sm">
-                  Sign-in form <span className="text-foreground">[LL] SurveyRocket Sign in</span> is ready. It opens when a respondent clicks Begin.
+                  Sign-in form <span className="text-foreground">[LL] SurveyRocket Sign in</span> is ready. It opens when a respondent clicks Begin. People who submit it go on the signed-in segment; people who finish the questionnaire go on the completed segment.
                 </p>
               ) : props.hubspot.connected ? (
                 <p className="text-muted-foreground text-sm">

@@ -41,7 +41,7 @@ const profile = Astro.locals.profile;
         logoUrl={access.client.logoUrl}
         hubspot={conn}
         hsConfigured={isHubSpotConfigured()}
-        hsFlash={hs === "connected" || hs === "error" ? hs : null}
+        hsFlash={hs === "connected" || hs === "error" || hs === "scopes" ? hs : null}
         members={memberRows.map((m) => ({
           userId: m.userId,
           email: m.email,

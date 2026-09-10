@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { db } from "../../../../lib/db";
 import { hubspotConnections } from "../../../../lib/schema";
 import { encrypt } from "../../../../lib/crypto";
-import { exchangeCodeForTokens, getTokenInfo } from "../../../../lib/hubspot/oauth";
+import { exchangeCodeForTokens, getTokenInfo, missingContactScopes } from "../../../../lib/hubspot/oauth";
 import { ensureLeadForm, saveSigninFormId } from "../../../../lib/hubspot/provision";
 import { ensureClientSurveyLists } from "../../../../lib/hubspot/lists";
 
@@ -62,7 +62,11 @@ export const GET: APIRoute = async ({ url }) => {
       });
     if (signinFormId) await saveSigninFormId(state.clientId, signinFormId);
     ensureClientSurveyLists(state.clientId).catch((err) => console.error("hubspot lists", err));
-    return new Response(null, { status: 302, headers: { Location: `${back}?hs=connected` } });
+    const missing = missingContactScopes(info.scopes);
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${back}?hs=${missing.length ? "scopes" : "connected"}` },
+    });
   } catch (e) {
     console.error(e);
     return new Response(null, { status: 302, headers: { Location: `${back}?hs=error` } });

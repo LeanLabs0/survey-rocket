@@ -1,8 +1,9 @@
 ---
 import Base from "../layouts/Base.astro";
 import { AuthPage } from "../components/auth-page";
+import { passwordSetupPath } from "../lib/auth-messages";
 import { marketingOrigin } from "../lib/site";
-import { parseOtpWaitSeconds, supabasePublishableKey, supabaseUrl } from "../lib/supabase";
+import { parseOtpWaitSeconds, safeNextPath, supabasePublishableKey, supabaseUrl } from "../lib/supabase";
 
 const homeHref = `${marketingOrigin()}/`;
 
@@ -16,7 +17,10 @@ const errorMessages: Record<string, string> = {
 };
 const error = rawError ? errorMessages[rawError] || rawError : null;
 const waitParam = Number(Astro.url.searchParams.get("wait") || "") || parseOtpWaitSeconds(rawError || "") || 0;
-const next = Astro.url.searchParams.get("next") || "/app";
+const next = safeNextPath(Astro.url.searchParams.get("next") || "/app");
+if (Astro.locals.user && !rawError && next !== passwordSetupPath()) {
+  return Astro.redirect(next);
+}
 const emailPrefill = Astro.url.searchParams.get("email") || "";
 const method = Astro.url.searchParams.get("method") === "magic" || sent || waitParam ? "magic" : "password";
 ---

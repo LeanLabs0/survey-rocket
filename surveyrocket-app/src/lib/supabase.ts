@@ -105,17 +105,30 @@ function authCookieKey() {
   return `sb-${new URL(supabaseUrl()).hostname.split(".")[0]}-auth-token`;
 }
 
+function sessionCookieOpts() {
+  return {
+    path: "/",
+    sameSite: "lax" as const,
+    httpOnly: false,
+    secure: !import.meta.env.DEV,
+    maxAge: 400 * 24 * 60 * 60,
+  };
+}
+
 /** Write the auth session the same way @supabase/ssr does, without a follow-up Auth fetch. */
 export function persistSessionCookies(cookies: AstroCookies, session: Session) {
   const key = authCookieKey();
   const encoded = "base64-" + stringToBase64URL(JSON.stringify(session));
-  for (const chunk of createChunks(key, encoded)) {
-    cookies.set(chunk.name, chunk.value, {
-      path: "/",
-      sameSite: "lax",
-      httpOnly: false,
-      maxAge: 400 * 24 * 60 * 60,
-    });
+  const chunks = createChunks(key, encoded);
+  const written = new Set(chunks.map((chunk) => chunk.name));
+  const opts = sessionCookieOpts();
+  for (const chunk of chunks) {
+    cookies.set(chunk.name, chunk.value, opts);
+  }
+  if (!written.has(key) && cookies.get(key)?.value) cookies.delete(key, { path: "/" });
+  for (let i = 0; i < 8; i += 1) {
+    const name = `${key}.${i}`;
+    if (!written.has(name) && cookies.get(name)?.value) cookies.delete(name, { path: "/" });
   }
 }
 
@@ -137,6 +150,23 @@ export function sessionFromCookies(cookies: AstroCookies): Session | null {
     return JSON.parse(json) as Session;
   } catch {
     return null;
+  }
+}
+
+/** Keep a stored browser session alive by refreshing the access token before it expires. */
+export async function restoreSession(cookies: AstroCookies): Promise<Session | null> {
+  const session = sessionFromCookies(cookies);
+  if (!session?.user || !session.access_token) return null;
+  const expiresAt = Number(session.expires_at || 0);
+  const stillFresh = expiresAt > Math.floor(Date.now() / 1000) + 60;
+  if (stillFresh || !session.refresh_token) return session;
+  try {
+    const { data, error } = await plainAuthClient().auth.refreshSession({ refresh_token: session.refresh_token });
+    if (error || !data.session) return session;
+    persistSessionCookies(cookies, data.session);
+    return data.session;
+  } catch {
+    return session;
   }
 }
 

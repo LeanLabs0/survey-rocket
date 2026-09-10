@@ -1,5 +1,5 @@
 import { defineMiddleware } from "astro:middleware";
-import { sessionFromCookies, supabaseFromCookies } from "./lib/supabase";
+import { restoreSession, supabaseFromCookies } from "./lib/supabase";
 import { loadProfile } from "./lib/access";
 import { sessionIsRevoked } from "./lib/sessions";
 import { hostSplitRedirect } from "./lib/site";
@@ -21,7 +21,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const protectedRoute = PROTECTED.some((re) => re.test(url.pathname));
 
   try {
-    const user = sessionFromCookies(cookies)?.user ?? null;
+    const user = (await restoreSession(cookies))?.user ?? null;
     if (user) {
       if (!protectedRoute) {
         locals.user = { id: user.id, email: user.email ?? null };

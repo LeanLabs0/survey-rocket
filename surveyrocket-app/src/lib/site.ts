@@ -61,7 +61,7 @@ export function hostSplitRedirect(url: URL, request: Request): string | null {
     return null;
   }
   if (host === "beta.surveyrocket.ai" && (url.pathname === "/" || url.pathname === "")) {
-    return `${APP_ORIGIN}/login`;
+    return `${APP_ORIGIN}/app`;
   }
   return null;
 }

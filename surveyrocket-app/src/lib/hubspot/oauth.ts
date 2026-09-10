@@ -1,7 +1,7 @@
 import { envVar } from "../env";
 
-/** Must match hubspot-app/src/app/app-hsmeta.json requiredScopes. */
-const HUBSPOT_REQUIRED_SCOPES = [
+/** Must match hubspot-app/src/app/app-hsmeta.json requiredScopes / optionalScopes. */
+export const HUBSPOT_REQUIRED_SCOPES = [
   "oauth",
   "forms",
   "crm.lists.read",
@@ -9,10 +9,13 @@ const HUBSPOT_REQUIRED_SCOPES = [
   "crm.objects.contacts.read",
 ];
 
-/** Needed to create a contact if the form has not indexed them yet. */
+/** Lets us create a contact if the sign-in form has not indexed them yet. Not required for segment membership. */
 const HUBSPOT_OPTIONAL_SCOPES = ["crm.objects.contacts.write"];
 
 const HUBSPOT_SCOPES = HUBSPOT_REQUIRED_SCOPES.join(" ");
+
+const CONTACT_READ = "crm.objects.contacts.read";
+const CONTACT_WRITE = "crm.objects.contacts.write";
 
 function trimEnv(name: string) {
   return envVar(name);
@@ -20,6 +23,25 @@ function trimEnv(name: string) {
 
 function isLocalhostUri(uri: string) {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(uri);
+}
+
+export function grantedScopeSet(raw: string | string[] | null | undefined) {
+  const text = Array.isArray(raw) ? raw.join(" ") : raw || "";
+  return new Set(text.split(/[\s,]+/).filter(Boolean));
+}
+
+export function missingHubSpotScopes(raw: string | string[] | null | undefined) {
+  const have = grantedScopeSet(raw);
+  return HUBSPOT_REQUIRED_SCOPES.filter((scope) => !have.has(scope));
+}
+
+export function missingContactScopes(raw: string | string[] | null | undefined) {
+  const have = grantedScopeSet(raw);
+  return have.has(CONTACT_READ) ? [] : [CONTACT_READ];
+}
+
+export function hasContactWrite(raw: string | string[] | null | undefined) {
+  return grantedScopeSet(raw).has(CONTACT_WRITE);
 }
 
 export function hubspotRedirectUri() {

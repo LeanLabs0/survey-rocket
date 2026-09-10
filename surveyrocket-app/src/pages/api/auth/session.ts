@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { jsonError, jsonOk } from "../../../lib/access";
 import { persistSessionCookies, plainAuthClient } from "../../../lib/supabase";
+import { touchSession } from "../../../lib/sessions";
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const body = await request.json().catch(() => null);
@@ -14,5 +15,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   });
   if (error || !data.session) return jsonError(401, error?.message || "This link expired.");
   persistSessionCookies(cookies, data.session);
+  if (data.session.user?.id) {
+    await touchSession(data.session.user.id, cookies, request).catch(() => null);
+  }
   return jsonOk({ ok: true });
 };

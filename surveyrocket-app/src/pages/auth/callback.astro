@@ -3,6 +3,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import Base from "../../layouts/Base.astro";
 import { passwordSetupPath } from "../../lib/auth-messages";
 import { persistSessionCookies, plainAuthClient, safeNextPath, supabaseFromCookies } from "../../lib/supabase";
+import { touchSession } from "../../lib/sessions";
 
 const SETUP_TYPES = new Set(["invite", "recovery", "signup"]);
 const next = safeNextPath(Astro.url.searchParams.get("next"));
@@ -12,23 +13,28 @@ const type = Astro.url.searchParams.get("type") as EmailOtpType | null;
 const auth = plainAuthClient();
 let established = false;
 
+async function keep(session: { user?: { id?: string } | null } | null) {
+  if (!session) return false;
+  persistSessionCookies(Astro.cookies, session as Parameters<typeof persistSessionCookies>[1]);
+  if (session.user?.id) {
+    await touchSession(session.user.id, Astro.cookies, Astro.request).catch(() => null);
+  }
+  return true;
+}
+
 if (code) {
   const { data } = await auth.auth.exchangeCodeForSession(code);
-  if (data.session) {
-    persistSessionCookies(Astro.cookies, data.session);
-    established = true;
-  }
+  established = await keep(data.session);
 }
 
 if (token && type) {
   const { data } = await auth.auth.verifyOtp({ token_hash: token, type });
   if (data.session) {
-    persistSessionCookies(Astro.cookies, data.session);
-    established = true;
+    established = await keep(data.session);
   } else {
     const supabase = supabaseFromCookies(Astro.cookies, Astro.request);
     const verified = await supabase.auth.verifyOtp({ token_hash: token, type });
-    if (verified.data.session) established = true;
+    established = await keep(verified.data.session) || established;
   }
 }
 

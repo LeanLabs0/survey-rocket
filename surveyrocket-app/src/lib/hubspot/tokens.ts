@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { hubspotConnections } from "../schema";
 import { decrypt, encrypt } from "../crypto";
-import { refreshAccessToken } from "./oauth";
+import { missingContactScopes, refreshAccessToken } from "./oauth";
 
 export async function getConnection(clientId: string) {
   const rows = await db
@@ -35,7 +35,8 @@ export async function resolveAccessToken(clientId: string) {
 }
 
 export function publicConnection(conn: typeof hubspotConnections.$inferSelect | null) {
-  if (!conn) return { connected: false, status: "disconnected" };
+  if (!conn) return { connected: false, status: "disconnected", canEnrollContacts: false, missingScopes: [] as string[] };
+  const missingScopes = missingContactScopes(conn.scopes);
   return {
     connected: conn.status === "connected",
     status: conn.status,
@@ -44,5 +45,7 @@ export function publicConnection(conn: typeof hubspotConnections.$inferSelect | 
     connectedAt: conn.connectedAt,
     surveyObjectTypeId: conn.surveyObjectTypeId,
     signinFormId: conn.signinFormId,
+    missingScopes,
+    canEnrollContacts: conn.status === "connected" && missingScopes.length === 0,
   };
 }

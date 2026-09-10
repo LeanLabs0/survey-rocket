@@ -278,6 +278,44 @@ if (!missing && client) {
           status:"completed", reviewAsked:reviewAsked, reviewOutcome:reviewOutcome
         }, identityOpts())));
       }
+      function enrollHubSpot(which){
+        if(!respondent.email || respondent.email.indexOf("@")<1) return Promise.resolve();
+        var timedOut=false;
+        var timer=null;
+        var request=fetch("/api/public/lists", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify({
+            publicId:publicId,
+            which:which,
+            email:respondent.email,
+            firstname:respondent.firstname,
+            lastname:respondent.lastname,
+            company:respondent.company,
+            website:respondent.website
+          })
+        }).then(function(r){
+          return r.json().catch(function(){ return {}; }).then(function(body){
+            if(!r.ok || (body && body.ok===false)){
+              console.error("hubspot lists", r.status, body && body.error);
+            }
+            return body;
+          });
+        }).catch(function(err){
+          console.error("hubspot lists", err);
+        });
+        var timeout=new Promise(function(resolve){
+          timer=setTimeout(function(){
+            timedOut=true;
+            resolve(null);
+          }, 12000);
+        });
+        return Promise.race([request, timeout]).then(function(result){
+          if(timer) clearTimeout(timer);
+          if(timedOut) console.error("hubspot lists timed out", which);
+          return result;
+        });
+      }
       function showEnding(){
         setStep(2, true);
         document.getElementById("after").style.display="flex";
@@ -345,7 +383,9 @@ if (!missing && client) {
         },
         onComplete:function(answers){
           lastAnswers=answers;
-          sendRecord(false,"not_asked");
+          enrollHubSpot("completed").finally(function(){
+            sendRecord(false,"not_asked");
+          });
           document.getElementById("rs-copy").style.display="inline-flex";
           showEnding();
         }
@@ -363,7 +403,7 @@ if (!missing && client) {
       document.getElementById("rs-restart").addEventListener("click",startRun);
       var welcome=document.getElementById("welcome"), chatWrap=document.getElementById("chatWrap");
       var modal=document.getElementById("leadModal");
-      var hsMounted=false, hsReady=false, hsFailed=false, leadBusy=false, startedFromLead=false;
+      var hsMounted=false, hsReady=false, hsFailed=false, leadBusy=false, startedFromLead=false, signedInEnroll=null;
       function fieldVal(data, name){
         if(!Array.isArray(data)) return "";
         var hit=data.find(function(f){
@@ -396,6 +436,17 @@ if (!missing && client) {
         if(page) page.classList.add("is-chat");
         chatWrap.style.display="flex";
         startRun();
+      }
+      function enrollSignedIn(){
+        if(signedInEnroll) return signedInEnroll;
+        signedInEnroll=enrollHubSpot("signedIn");
+        return signedInEnroll;
+      }
+      function beginAfterIdentity(){
+        if(startedFromLead) return;
+        enrollSignedIn().finally(function(){
+          enterChat();
+        });
       }
       function readLeadFields(){
         return {
@@ -488,13 +539,14 @@ if (!missing && client) {
           sendStart();
           return;
         }
-        enterChat();
+        if(event.data.eventName!=="onFormSubmitted") return;
+        beginAfterIdentity();
       });
       function finishLeadWithoutHs(){
         var vals=readLeadFields();
         applyIdentity(vals);
         if(!respondent.email || respondent.email.indexOf("@")<1) return;
-        enterChat();
+        beginAfterIdentity();
       }
       function waitForHs(cb){
         if(!hubspotForm || hsFailed || hsReady) return cb();
@@ -518,11 +570,11 @@ if (!missing && client) {
         waitForHs(function(){
           if(hubspotForm && !hsFailed && submitHiddenHsForm(vals)){
             setTimeout(function(){
-              if(!startedFromLead) finishLeadWithoutHs();
+              if(!startedFromLead) beginAfterIdentity();
             }, 8000);
             return;
           }
-          finishLeadWithoutHs();
+          beginAfterIdentity();
         });
       });
       document.getElementById("leadClose").addEventListener("click", closeLeadModal);

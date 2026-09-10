@@ -1,7 +1,11 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { respondents, surveys } from "../schema";
+import { hasContactWrite, missingContactScopes } from "./oauth";
 import { resolveAccessToken } from "./tokens";
+
+const CONTACT_SCOPE_ERROR =
+  "HubSpot is missing contact read access. Reconnect HubSpot in Settings and accept crm.objects.contacts.read so we can add people to segments.";
 
 const OBJECT_CONTACTS = "0-1";
 
@@ -191,10 +195,31 @@ function contactProperties(email: string, extras?: HubSpotContactProps) {
   return properties;
 }
 
+function contactIdFrom(data: HsJson | null) {
+  if (!data) return null;
+  const results = (data.results as Record<string, unknown>[] | undefined) || [];
+  const row = (results[0] || data) as Record<string, unknown>;
+  const props = row.properties as Record<string, unknown> | undefined;
+  const hsId = props?.hs_object_id;
+  if (hsId != null && String(hsId).trim()) return String(hsId);
+  const rowId = row.id;
+  if (rowId != null && String(rowId).trim() && !String(rowId).includes("@")) return String(rowId);
+  if (typeof data.id === "string" || typeof data.id === "number") {
+    const id = String(data.id);
+    if (id && !id.includes("@")) return id;
+  }
+  return null;
+}
+
+function throwIfForbidden(status: number, action: string): void {
+  if (status === 403) throw new Error(`${CONTACT_SCOPE_ERROR} (${action})`);
+}
+
 async function getContactByEmail(token: string, email: string) {
   const path = `/crm/v3/objects/contacts/${encodeURIComponent(email)}?idProperty=email`;
-  const got = await hs(token, path, { allowStatuses: [404] });
-  if (got.ok && got.data?.id) return String(got.data.id);
+  const got = await hs(token, path, { allowStatuses: [403, 404] });
+  throwIfForbidden(got.status, "read contact");
+  if (got.ok && contactIdFrom(got.data)) return contactIdFrom(got.data);
   const search = await hs(token, "/crm/v3/objects/contacts/search", {
     method: "POST",
     body: {
@@ -202,28 +227,72 @@ async function getContactByEmail(token: string, email: string) {
       properties: ["email"],
       limit: 1,
     },
+    allowStatuses: [403],
   });
-  const hit = (search.data?.results as { id?: string }[] | undefined)?.[0];
-  return hit?.id ? String(hit.id) : null;
+  throwIfForbidden(search.status, "search contact");
+  return contactIdFrom(search.data);
 }
 
-async function getOrCreateContact(token: string, email: string, extras?: HubSpotContactProps) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt) await new Promise((r) => setTimeout(r, 400));
-    const id = await getContactByEmail(token, email);
-    if (id) return id;
+async function upsertContact(token: string, email: string, extras?: HubSpotContactProps) {
+  const bodyFor = (properties: Record<string, string>) => ({
+    inputs: [{ id: email, idProperty: "email", properties }],
+  });
+  const full = await hs(token, "/crm/v3/objects/contacts/batch/upsert", {
+    method: "POST",
+    body: bodyFor(contactProperties(email, extras)),
+    allowStatuses: [400, 403],
+  });
+  if (full.status === 403) return null;
+  if (full.ok && contactIdFrom(full.data)) return contactIdFrom(full.data);
+  if (full.status === 400) {
+    const emailOnly = await hs(token, "/crm/v3/objects/contacts/batch/upsert", {
+      method: "POST",
+      body: bodyFor({ email }),
+      allowStatuses: [400, 403],
+    });
+    if (emailOnly.status === 403) return null;
+    if (emailOnly.ok && contactIdFrom(emailOnly.data)) return contactIdFrom(emailOnly.data);
   }
+  return null;
+}
+
+async function createContact(token: string, email: string, extras?: HubSpotContactProps) {
   const created = await hs(token, "/crm/v3/objects/contacts", {
     method: "POST",
     body: { properties: contactProperties(email, extras) },
     allowStatuses: [403, 409],
   });
-  if (created.ok && created.data?.id) return String(created.data.id);
-  if (created.status === 409) {
+  if (created.status === 403) return null;
+  if (created.ok && contactIdFrom(created.data)) return contactIdFrom(created.data);
+  if (created.status === 409) return getContactByEmail(token, email);
+  return null;
+}
+
+async function findContactWithRetry(token: string, email: string) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
+    const id = await getContactByEmail(token, email);
+    if (id) return id;
+  }
+  return null;
+}
+
+async function getOrCreateContact(token: string, email: string, extras: HubSpotContactProps | undefined, canWrite: boolean) {
+  const existing = await findContactWithRetry(token, email);
+  if (existing) return existing;
+  if (canWrite) {
+    const upserted = await upsertContact(token, email, extras);
+    if (upserted) return upserted;
+    const created = await createContact(token, email, extras);
+    if (created) return created;
     const again = await getContactByEmail(token, email);
     if (again) return again;
   }
-  return null;
+  throw new Error(
+    "HubSpot contact not found for " +
+      email +
+      ". The sign-in form creates the contact; without contact write we can only add them after that.",
+  );
 }
 
 async function addToList(token: string, listId: string, contactId: string) {
@@ -248,9 +317,31 @@ export async function addEmailToSurveyList(
   if (!listId) throw new Error(`HubSpot ${which} list missing for survey ${survey.id}`);
   const access = await resolveAccessToken(survey.clientId);
   if (!access) throw new Error("HubSpot not connected");
-  const contactId = await getOrCreateContact(access.token, email, extras);
+  const missing = missingContactScopes(access.conn.scopes);
+  if (missing.length) throw new Error(`${CONTACT_SCOPE_ERROR} Missing: ${missing.join(", ")}.`);
+  const contactId = await getOrCreateContact(access.token, email, extras, hasContactWrite(access.conn.scopes));
   if (!contactId) throw new Error("HubSpot contact not found for " + email);
   await addToList(access.token, listId, contactId);
+  return contactId;
+}
+
+export async function enrollContactToSurveyLists(
+  survey: typeof surveys.$inferSelect,
+  email: string,
+  which: "signedIn" | "completed",
+  extras?: HubSpotContactProps,
+  respondentId?: string | null,
+) {
+  if (which === "completed") {
+    await addEmailToSurveyList(survey, email, "signedIn", extras);
+  }
+  const contactId = await addEmailToSurveyList(
+    survey,
+    email,
+    which === "completed" ? "completed" : "signedIn",
+    extras,
+  );
+  await storeHubspotContactId(respondentId || null, contactId);
   return contactId;
 }
 
