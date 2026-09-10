@@ -1,15 +1,20 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { responses, surveys } from "../schema";
-import { addEmailToSurveyList, storeHubspotContactId } from "./lists";
+import { addEmailToSurveyList, storeHubspotContactId, type HubSpotContactProps } from "./lists";
 import { resolveAccessToken } from "./tokens";
 
-export async function writeSignedInToHubSpot(surveyId: string, email: string, respondentId: string | null) {
+export async function writeSignedInToHubSpot(
+  surveyId: string,
+  email: string,
+  respondentId: string | null,
+  extras?: HubSpotContactProps,
+) {
   try {
     const [sv] = await db.select().from(surveys).where(eq(surveys.id, surveyId)).limit(1);
     if (!sv || sv.deletedAt) return;
     if (!(await resolveAccessToken(sv.clientId))) return;
-    const contactId = await addEmailToSurveyList(sv, email, "signedIn");
+    const contactId = await addEmailToSurveyList(sv, email, "signedIn", extras);
     await storeHubspotContactId(respondentId, contactId || null);
   } catch (err) {
     console.error("hubspot signed_in", err);
@@ -19,7 +24,15 @@ export async function writeSignedInToHubSpot(surveyId: string, email: string, re
 export async function writeCompletionToHubSpot(responseId: string) {
   const [row] = await db.select().from(responses).where(eq(responses.id, responseId)).limit(1);
   if (!row) return;
-  const rec = (row.record || {}) as { respondent?: { email?: string | null } };
+  const rec = (row.record || {}) as {
+    respondent?: {
+      email?: string | null;
+      firstname?: string | null;
+      lastname?: string | null;
+      company?: string | null;
+      website?: string | null;
+    };
+  };
   const email = rec.respondent?.email?.trim().toLowerCase() || null;
   if (!email) {
     await db
@@ -44,8 +57,14 @@ export async function writeCompletionToHubSpot(responseId: string) {
     return;
   }
   try {
-    await addEmailToSurveyList(sv, email, "signedIn");
-    const contactId = await addEmailToSurveyList(sv, email, "completed");
+    const extras = {
+      firstname: rec.respondent?.firstname as string | undefined,
+      lastname: rec.respondent?.lastname as string | undefined,
+      company: rec.respondent?.company as string | undefined,
+      website: rec.respondent?.website as string | undefined,
+    };
+    await addEmailToSurveyList(sv, email, "signedIn", extras);
+    const contactId = await addEmailToSurveyList(sv, email, "completed", extras);
     await storeHubspotContactId(row.respondentId, contactId || null);
     await db
       .update(responses)

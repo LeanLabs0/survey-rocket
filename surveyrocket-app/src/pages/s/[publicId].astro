@@ -484,6 +484,10 @@ if (!missing && client) {
           website: fieldVal(event.data.data, "website") || respondent.website
         });
         if(!respondent.email || respondent.email.indexOf("@")<1) return;
+        if(event.data.eventName==="onFormSubmitted" && startedFromLead){
+          sendStart();
+          return;
+        }
         enterChat();
       });
       function finishLeadWithoutHs(){

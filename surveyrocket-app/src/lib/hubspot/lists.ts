@@ -175,19 +175,45 @@ export async function deleteSurveyLists(survey: typeof surveys.$inferSelect) {
   }
 }
 
-async function findContactId(token: string, email: string) {
+export type HubSpotContactProps = {
+  firstname?: string | null;
+  lastname?: string | null;
+  company?: string | null;
+  website?: string | null;
+};
+
+function contactProperties(email: string, extras?: HubSpotContactProps) {
+  const properties: Record<string, string> = { email };
+  if (extras?.firstname) properties.firstname = extras.firstname;
+  if (extras?.lastname) properties.lastname = extras.lastname;
+  if (extras?.company) properties.company = extras.company;
+  if (extras?.website) properties.website = extras.website;
+  return properties;
+}
+
+async function getContactByEmail(token: string, email: string) {
+  const path = `/crm/v3/objects/contacts/${encodeURIComponent(email)}?idProperty=email`;
+  const got = await hs(token, path, { allowStatuses: [404] });
+  if (got.ok && got.data?.id) return String(got.data.id);
+  return null;
+}
+
+async function getOrCreateContact(token: string, email: string, extras?: HubSpotContactProps) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 700));
+    const id = await getContactByEmail(token, email);
+    if (id) return id;
+  }
+  const created = await hs(token, "/crm/v3/objects/contacts", {
+    method: "POST",
+    body: { properties: contactProperties(email, extras) },
+    allowStatuses: [409],
+  });
+  if (created.ok && created.data?.id) return String(created.data.id);
   for (let attempt = 0; attempt < 4; attempt++) {
-    if (attempt) await new Promise((r) => setTimeout(r, 400 * attempt));
-    const search = await hs(token, "/crm/v3/objects/contacts/search", {
-      method: "POST",
-      body: {
-        filterGroups: [{ filters: [{ propertyName: "email", operator: "EQ", value: email }] }],
-        properties: ["email"],
-        limit: 1,
-      },
-    });
-    const hit = (search.data?.results as { id?: string }[] | undefined)?.[0];
-    if (hit?.id) return String(hit.id);
+    if (attempt) await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    const id = await getContactByEmail(token, email);
+    if (id) return id;
   }
   return null;
 }
@@ -203,13 +229,14 @@ export async function addEmailToSurveyList(
   survey: typeof surveys.$inferSelect,
   email: string,
   which: "signedIn" | "completed",
+  extras?: HubSpotContactProps,
 ) {
   const fresh = await ensureSurveyLists(survey);
   const listId = which === "signedIn" ? fresh.hsSignedInListId : fresh.hsCompletedListId;
   if (!listId) return;
   const access = await resolveAccessToken(survey.clientId);
   if (!access) return;
-  const contactId = await findContactId(access.token, email);
+  const contactId = await getOrCreateContact(access.token, email, extras);
   if (!contactId) throw new Error("HubSpot contact not found for " + email);
   await addToList(access.token, listId, contactId);
   return contactId;

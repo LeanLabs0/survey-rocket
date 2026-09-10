@@ -169,7 +169,9 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   if (email && (stage === "started" || stage === "progress")) {
-    writeSignedInToHubSpot(sv.id, email, respondentId).catch((err) => console.error("hubspot signed_in", err));
+    writeSignedInToHubSpot(sv.id, email, respondentId, { firstname, lastname, company, website }).catch((err) =>
+      console.error("hubspot signed_in", err),
+    );
   }
   if (completing && email) {
     writeCompletionToHubSpot(responseId).catch((err) => console.error("hubspot write", err));

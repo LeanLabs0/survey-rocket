@@ -105,8 +105,7 @@ export function resolveSurveyBrand(
 ): ResolvedSurveyBrand {
   const b = raw || {};
   const color = asColor(b.color ?? b.accent, DEFAULT_SURVEY_BRAND.color);
-  const logoUrl = asUrl(extras.logoUrl, "");
-  const botIcon = logoUrl || asUrl(b.botIcon, DEFAULT_SURVEY_BRAND.botIcon);
+  const botIcon = asUrl(b.botIcon, DEFAULT_SURVEY_BRAND.botIcon);
   const surveyName = extras.surveyName?.trim() || "Survey";
   const alreadyNamed = surveyName.toLowerCase().startsWith(extras.clientName.toLowerCase());
   const resolved: Omit<ResolvedSurveyBrand, "cssVars"> = {
@@ -127,7 +126,7 @@ export function resolveSurveyBrand(
     chatSub: asText(b.chatSub, DEFAULT_SURVEY_BRAND.chatSub),
     markUrl: asUrl(b.markUrl, DEFAULT_SURVEY_BRAND.markUrl),
     botIcon,
-    botAvatar: logoUrl ? "logo" : "icon",
+    botAvatar: "icon",
   };
   const cssVars = [
     `--sr-accent:${resolved.color}`,
