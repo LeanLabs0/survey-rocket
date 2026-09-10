@@ -1,7 +1,10 @@
 ---
 import Base from "../layouts/Base.astro";
 import { AuthPage } from "../components/auth-page";
+import { marketingOrigin } from "../lib/site";
 import { parseOtpWaitSeconds, supabasePublishableKey, supabaseUrl } from "../lib/supabase";
+
+const homeHref = `${marketingOrigin()}/`;
 
 const sent = Astro.url.searchParams.get("sent");
 const reset = Astro.url.searchParams.get("reset");
@@ -20,6 +23,7 @@ const method = Astro.url.searchParams.get("method") === "magic" || sent || waitP
 <Base title="Sign in · Survey Rocket">
   <AuthPage
     client:load
+    homeHref={homeHref}
     next={next}
     emailPrefill={emailPrefill}
     initialMethod={method}

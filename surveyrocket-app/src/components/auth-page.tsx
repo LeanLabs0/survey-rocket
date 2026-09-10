@@ -35,6 +35,7 @@ export type AuthPageProps = {
 	waitParam: number;
 	supabasePublicUrl: string;
 	supabaseKey: string;
+	homeHref?: string;
 };
 
 const waitKey = "sr.magicWait";
@@ -68,6 +69,7 @@ export function AuthPage({
 	waitParam,
 	supabasePublicUrl,
 	supabaseKey,
+	homeHref = "/",
 }: AuthPageProps) {
 	const [method, setMethod] = useState<"password" | "magic">(initialMethod);
 	const [showPassword, setShowPassword] = useState(false);
@@ -227,7 +229,7 @@ export function AuthPage({
 				<Button
 					className="absolute top-4 left-4"
 					variant="ghost"
-					render={<a href="/" />}
+					render={<a href={homeHref} />}
 					nativeButton={false}
 				>
 					<ChevronLeftIcon data-icon="inline-start" />
