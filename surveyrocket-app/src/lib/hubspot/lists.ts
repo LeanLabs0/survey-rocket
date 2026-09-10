@@ -332,21 +332,75 @@ export async function enrollContactToSurveyLists(
   extras?: HubSpotContactProps,
   respondentId?: string | null,
 ) {
-  if (which === "completed") {
-    await addEmailToSurveyList(survey, email, "signedIn", extras);
+  try {
+    if (which === "completed") {
+      await addEmailToSurveyList(survey, email, "signedIn", extras);
+    }
+    const contactId = await addEmailToSurveyList(
+      survey,
+      email,
+      which === "completed" ? "completed" : "signedIn",
+      extras,
+    );
+    await storeHubspotContactId(respondentId || null, contactId);
+    return contactId;
+  } catch (err) {
+    await rememberContactByEmail(survey.clientId, email, respondentId || null).catch(() => null);
+    throw err;
   }
-  const contactId = await addEmailToSurveyList(
-    survey,
-    email,
-    which === "completed" ? "completed" : "signedIn",
-    extras,
-  );
-  await storeHubspotContactId(respondentId || null, contactId);
-  return contactId;
 }
 
 export function provisionSurveyLists(survey: typeof surveys.$inferSelect) {
   ensureSurveyLists(survey).catch((err) => console.error("hubspot lists", err));
+}
+
+export function hubspotContactRecordUrl(portalId: string | null | undefined, contactId: string | null | undefined) {
+  if (!portalId || !contactId) return null;
+  return `https://app.hubspot.com/contacts/${portalId}/record/0-1/${contactId}`;
+}
+
+async function rememberContactByEmail(clientId: string, email: string, respondentId: string | null) {
+  const access = await resolveAccessToken(clientId);
+  if (!access) return;
+  const id = await getContactByEmail(access.token, email).catch(() => null);
+  await storeHubspotContactId(respondentId, id);
+}
+
+function collectContactIds(data: HsJson | null, out: Map<string, string>) {
+  const results = (data?.results as { id?: string; properties?: { email?: string; hs_object_id?: string } }[] | undefined) || [];
+  for (const row of results) {
+    const email = String(row.properties?.email || "").trim().toLowerCase();
+    const id = contactIdFrom(row as HsJson);
+    if (id && email) out.set(email, id);
+  }
+}
+
+export async function lookupContactIdsByEmails(clientId: string, emails: string[]) {
+  const unique = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter((e) => e.includes("@")))];
+  const out = new Map<string, string>();
+  if (!unique.length) return out;
+  const access = await resolveAccessToken(clientId);
+  if (!access) return out;
+  for (let i = 0; i < unique.length; i += 100) {
+    const chunk = unique.slice(i, i + 100);
+    const res = await hs(access.token, "/crm/v3/objects/contacts/batch/read", {
+      method: "POST",
+      body: {
+        idProperty: "email",
+        properties: ["email", "hs_object_id"],
+        inputs: chunk.map((id) => ({ id })),
+      },
+      allowStatuses: [400, 403, 207],
+    }).catch(() => ({ ok: false as const, status: 0, data: null as HsJson | null }));
+    if (res.status === 403) return out;
+    collectContactIds(res.data, out);
+    const missing = chunk.filter((email) => !out.has(email));
+    for (const email of missing) {
+      const id = await getContactByEmail(access.token, email).catch(() => null);
+      if (id) out.set(email, id);
+    }
+  }
+  return out;
 }
 
 export async function storeHubspotContactId(respondentId: string | null, contactId: string | null) {

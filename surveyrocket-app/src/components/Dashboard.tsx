@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BarChart3, Copy, Link2, Maximize2, Pencil } from "lucide-react";
+import { AnswerList, HubSpotContactLink } from "@/components/respondent-answers";
 
 const PERIODS = [7, 14, 30, 90] as const;
 const RESPONDENT_PAGE = 10;
@@ -109,6 +110,7 @@ type Respondent = {
     questionKey: string;
     questionText: string | null;
     type: string;
+    nps?: boolean;
     valueText: string | null;
     valueNumber: number | null;
     valueList: string[] | null;
@@ -150,14 +152,6 @@ function formatWhen(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function answerDisplay(a: Respondent["answers"][number]) {
-  if (a.skipped) return "skipped";
-  if (a.valueList?.length) return a.valueList.join(", ");
-  if (a.valueText) return a.valueText;
-  if (a.valueNumber !== null && a.valueNumber !== undefined) return String(a.valueNumber);
-  return "—";
 }
 
 function copyText(text: string) {
@@ -897,38 +891,13 @@ export default function Dashboard({
                                   {REVIEW_LABEL[r.reviewOutcome] || r.reviewOutcome || "Not asked"}
                                 </TableCell>
                                 <TableCell>
-                                  {r.hubspotUrl ? (
-                                    <a
-                                      className="underline-offset-4 hover:underline"
-                                      href={r.hubspotUrl}
-                                      onClick={(e) => e.stopPropagation()}
-                                      rel="noopener"
-                                      target="_blank"
-                                    >
-                                      Contact
-                                    </a>
-                                  ) : (
-                                    "—"
-                                  )}
+                                  <HubSpotContactLink href={r.hubspotUrl} />
                                 </TableCell>
                               </TableRow>
                               {expandedId === r.id ? (
                                 <TableRow>
-                                  <TableCell className="bg-muted/40 whitespace-normal" colSpan={6}>
-                                    <dl className="grid gap-2 sm:grid-cols-2">
-                                      {r.answers.length ? (
-                                        r.answers.map((a) => (
-                                          <div className="flex justify-between gap-3" key={a.questionKey}>
-                                            <dt className="text-muted-foreground">
-                                              {a.questionText || a.questionKey}
-                                            </dt>
-                                            <dd className="text-right">{answerDisplay(a)}</dd>
-                                          </div>
-                                        ))
-                                      ) : (
-                                        <div className="text-muted-foreground">None recorded</div>
-                                      )}
-                                    </dl>
+                                  <TableCell className="bg-muted/40 whitespace-normal px-4 py-4" colSpan={6}>
+                                    <AnswerList answers={r.answers} />
                                   </TableCell>
                                 </TableRow>
                               ) : null}

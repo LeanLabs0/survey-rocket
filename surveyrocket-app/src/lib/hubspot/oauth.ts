@@ -42,6 +42,10 @@ export function hasContactWrite(raw: string | string[] | null | undefined) {
   return grantedScopeSet(raw).has(CONTACT_WRITE);
 }
 
+export function hasContactRead(raw: string | string[] | null | undefined) {
+  return grantedScopeSet(raw).has(CONTACT_READ);
+}
+
 export function hubspotRedirectUri() {
   const explicit = trimEnv("HUBSPOT_APP_REDIRECT_URI");
   if (process.env.VERCEL) {

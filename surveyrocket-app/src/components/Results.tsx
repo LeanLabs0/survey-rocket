@@ -34,11 +34,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { AnswerList, HubSpotContactLink } from "@/components/respondent-answers";
 
 type Answer = {
   questionKey: string;
   questionText: string | null;
   type: string;
+  nps?: boolean;
   valueText: string | null;
   valueNumber: number | null;
   valueList: string[] | null;
@@ -144,14 +146,6 @@ function ProgressCell({ row }: { row: Row }) {
       <span className="text-muted-foreground tabular-nums text-xs">{pct}%</span>
     </div>
   );
-}
-
-function answerDisplay(a: Answer) {
-  if (a.skipped) return "skipped";
-  if (a.valueList?.length) return a.valueList.join(", ");
-  if (a.valueText) return a.valueText;
-  if (a.valueNumber !== null && a.valueNumber !== undefined) return String(a.valueNumber);
-  return "—";
 }
 
 function orderedQuestions(def: QDef[], agg: Agg): QDef[] {
@@ -880,41 +874,13 @@ export default function Results({
                             {REVIEW_LABEL[r.reviewOutcome] || r.reviewOutcome || "Not asked"}
                           </TableCell>
                           <TableCell className="pr-6">
-                            {r.hubspotUrl ? (
-                              <a
-                                className="underline-offset-4 hover:underline"
-                                href={r.hubspotUrl}
-                                onClick={(e) => e.stopPropagation()}
-                                rel="noopener"
-                                target="_blank"
-                              >
-                                Contact
-                              </a>
-                            ) : (
-                              "—"
-                            )}
+                            <HubSpotContactLink href={r.hubspotUrl} />
                           </TableCell>
                         </TableRow>
                         {open === r.id ? (
                           <TableRow>
-                            <TableCell className="bg-muted/40 whitespace-normal" colSpan={7}>
-                              {r.answers.length ? (
-                                <div className="grid gap-3 p-2 sm:grid-cols-2">
-                                  {r.answers.map((a) => (
-                                    <div
-                                      className="rounded-lg border border-border bg-background/40 p-3"
-                                      key={a.questionKey}
-                                    >
-                                      <p className="text-muted-foreground text-xs text-pretty">
-                                        {a.questionText || a.questionKey}
-                                      </p>
-                                      <p className="mt-1 font-medium text-pretty">{answerDisplay(a)}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="px-2 text-muted-foreground">None recorded</p>
-                              )}
+                            <TableCell className="bg-muted/40 whitespace-normal px-6 py-4" colSpan={7}>
+                              <AnswerList answers={r.answers} />
                             </TableCell>
                           </TableRow>
                         ) : null}
