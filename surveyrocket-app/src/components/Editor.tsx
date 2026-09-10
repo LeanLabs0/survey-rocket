@@ -663,24 +663,11 @@ function EditorInner({
           <CardHeader className="border-b">
             <CardTitle className="text-lg text-balance">Before and after the questions</CardTitle>
             <CardDescription className="text-pretty">
-              Contact, results, and the optional review ask.
+              Results and the optional review ask. Name and email come from the HubSpot sign-in form.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
             <FieldGroup>
-              <Field orientation="horizontal">
-                <FieldContent>
-                  <FieldTitle>Require name and email</FieldTitle>
-                  <FieldDescription>Asked before the first question, saved with the answers.</FieldDescription>
-                </FieldContent>
-                <Switch
-                  aria-label="Require name and email"
-                  checked={def.settings.require_contact}
-                  onCheckedChange={(checked) =>
-                    setDef({ ...def, settings: { ...def.settings, require_contact: checked } })
-                  }
-                />
-              </Field>
               <Field orientation="horizontal">
                 <FieldContent>
                   <FieldTitle>Show results on completion</FieldTitle>
@@ -739,20 +726,35 @@ function EditorInner({
             {busy === "draft" ? null : <Save data-icon="inline-start" />}
             Save draft
           </Button>
-          <Button onClick={copyLink} type="button" variant="ghost">
-            <Link2 data-icon="inline-start" />
-            Copy link
-          </Button>
-          <Button
-            disabled={def.status === "Draft"}
-            nativeButton={false}
-            render={def.status === "Draft" ? undefined : <a href={shareUrl} rel="noopener" target="_blank" />}
-            title={def.status === "Draft" ? "Publish the survey to preview it" : undefined}
-            variant="ghost"
+          <span
+            className="inline-flex"
+            title={def.status === "Draft" ? "Publish the survey to copy its link" : undefined}
           >
-            <Eye data-icon="inline-start" />
-            Preview
-          </Button>
+            <Button
+              disabled={def.status === "Draft"}
+              onClick={copyLink}
+              type="button"
+              variant="ghost"
+            >
+              <Link2 data-icon="inline-start" />
+              Copy link
+            </Button>
+          </span>
+          <span
+            className="inline-flex"
+            title={def.status === "Draft" ? "Publish the survey to preview it" : undefined}
+          >
+            <Button
+              disabled={def.status === "Draft"}
+              nativeButton={def.status !== "Draft" ? false : undefined}
+              render={def.status === "Draft" ? undefined : <a href={shareUrl} rel="noopener" target="_blank" />}
+              type="button"
+              variant="ghost"
+            >
+              <Eye data-icon="inline-start" />
+              Preview
+            </Button>
+          </span>
           <Button
             disabled={!!busy}
             loading={busy === "delete"}

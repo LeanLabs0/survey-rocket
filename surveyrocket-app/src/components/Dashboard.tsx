@@ -723,20 +723,26 @@ export default function Dashboard({
                     </DialogDescription>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      onClick={() => {
-                        copyText(surveyLink(open.publicId)).then(() => {
-                          setLinkCopied(true);
-                          window.setTimeout(() => setLinkCopied(false), 2000);
-                        });
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
+                    <span
+                      className="inline-flex"
+                      title={open.status === "Draft" ? "Publish the survey to copy its link" : undefined}
                     >
-                      <Link2 data-icon="inline-start" />
-                      {linkCopied ? "Copied" : "Copy link"}
-                    </Button>
+                      <Button
+                        disabled={open.status === "Draft"}
+                        onClick={() => {
+                          copyText(surveyLink(open.publicId)).then(() => {
+                            setLinkCopied(true);
+                            window.setTimeout(() => setLinkCopied(false), 2000);
+                          });
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        <Link2 data-icon="inline-start" />
+                        {linkCopied ? "Copied" : "Copy link"}
+                      </Button>
+                    </span>
                     <Button
                       nativeButton={false}
                       render={<a href={`/app/${clientSlug}/surveys/${open.id}/edit`} />}

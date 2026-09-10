@@ -2,6 +2,7 @@
 import Base from "../../../layouts/Base.astro";
 import AppShell from "../../../components/AppShell.astro";
 import Settings from "../../../components/Settings";
+import PageBack from "../../../components/PageBack.astro";
 import { membersForClient, requireClientAccess } from "../../../lib/access";
 import { getConnection, publicConnection } from "../../../lib/hubspot/tokens";
 import { isHubSpotConfigured } from "../../../lib/hubspot/oauth";
@@ -30,6 +31,7 @@ const profile = Astro.locals.profile;
 <Base title="Settings · Survey Rocket">
   <AppShell slug={slug} clientName={access.client.name} current="settings" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email} theme={profile?.theme || Astro.locals.profile?.theme || "dark"}>
     <div class="wrap">
+      <PageBack href={`/app/${slug}/dashboard`} />
       <div class="pagehead">
         <h1>Settings</h1>
         <p>Manage your personal account, this workspace, and HubSpot.</p>

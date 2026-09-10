@@ -1,0 +1,12 @@
+---
+interface Props {
+  href: string;
+}
+const { href } = Astro.props;
+---
+<a class="page-back" href={href}>
+  <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="m15 18-6-6 6-6"></path>
+  </svg>
+  Back
+</a>

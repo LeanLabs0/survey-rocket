@@ -2,6 +2,7 @@
 import Base from "../../../layouts/Base.astro";
 import AppShell from "../../../components/AppShell.astro";
 import ScanForm from "../../../components/ScanForm";
+import PageBack from "../../../components/PageBack.astro";
 import ViewTip from "../../../components/ViewTip";
 import { requireClientAccess } from "../../../lib/access";
 
@@ -15,6 +16,7 @@ if (!access.ok) {
 <Base title="Scan a page · Survey Rocket">
   <AppShell slug={slug} clientName={access.client.name} current="scan" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email}>
     <div class="wrap">
+      <PageBack href={`/app/${slug}/surveys`} />
       <div class="pagehead">
         <h1>Scan a page</h1>
         <p>The scan reads one page and drafts a survey for each claim on it with no proof behind it. Name a stat if you already know the one you want. Drafts land in the editor, and nothing goes live without your approval.</p>

@@ -868,36 +868,66 @@ body.lp-on .topbar{display:none}
   max-width:740px;
 }
 
-/* Footer */
+/* Footer — DesignRocket-style: product mark + slogan, then tools row */
 #view-landing .lp-foot{
-  padding:75px 0;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:24px;
-  flex-wrap:wrap;
   width:min(1120px, calc(100% - 48px));
   margin:0 auto;
+  padding:88px 0 56px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:72px;
   font-size:13px;
   color:rgba(255,255,255,.5);
 }
-#view-landing .lp-foot-brand{
+#view-landing .lp-foot-product{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:16px;
+}
+#view-landing .lp-foot-slogan{
+  margin:0;
+  font-size:14px;
+  line-height:1.5;
+  color:rgba(255,255,255,.5);
+}
+#view-landing .lp-foot-bar{
+  width:100%;
   display:flex;
   align-items:center;
-  gap:14px;
+  justify-content:space-between;
+  gap:28px 36px;
 }
-#view-landing .lp-foot-brand .ll{
+#view-landing .lp-foot .ll{
   width:122px;
   height:30px;
   display:block;
+  flex:0 0 auto;
 }
 #view-landing .lp-foot-links{
   display:flex;
-  gap:30px;
+  align-items:center;
+  justify-content:center;
+  gap:22px;
   flex-wrap:wrap;
+  flex:1 1 auto;
+}
+#view-landing .lp-foot-copy{
+  margin:0;
+  flex:0 0 auto;
+  white-space:nowrap;
 }
 #view-landing .lp-foot a{color:rgba(255,255,255,.5);text-decoration:none}
 #view-landing .lp-foot a:hover{color:#fff}
+@media (max-width:880px){
+  #view-landing .lp-foot{padding:64px 0 40px;gap:48px}
+  #view-landing .lp-foot-bar{
+    flex-direction:column;
+    text-align:center;
+  }
+}
 
 @media (max-width:767px){
   #view-landing .lp-ripple{

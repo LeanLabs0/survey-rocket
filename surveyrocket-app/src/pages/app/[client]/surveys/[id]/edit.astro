@@ -2,6 +2,7 @@
 import Base from "../../../../../layouts/Base.astro";
 import AppShell from "../../../../../components/AppShell.astro";
 import Editor from "../../../../../components/Editor";
+import PageBack from "../../../../../components/PageBack.astro";
 import ViewTip from "../../../../../components/ViewTip";
 import { requireClientAccess } from "../../../../../lib/access";
 import { db } from "../../../../../lib/db";
@@ -25,6 +26,7 @@ if (!sv) return Astro.redirect(`/app/${slug}/surveys`);
     <script is:inline src="/js/engine.js"></script>
     <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
     <div class="wrap">
+      <PageBack href={`/app/${slug}/surveys`} />
       <div class="pagehead">
         <h1>Editor</h1>
         <p>Write the questions. The chat asks these and nothing else, and the preview shows what a respondent sees.</p>

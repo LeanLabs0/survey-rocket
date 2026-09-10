@@ -344,15 +344,21 @@ export default function SurveysList({
                             <BarChart3 data-icon="inline-start" />
                             Results
                           </Button>
-                          <Button
-                            onClick={() => copyLink(s.publicId)}
-                            size="sm"
-                            type="button"
-                            variant="ghost"
+                          <span
+                            className="inline-flex"
+                            title={s.status === "Draft" ? "Publish the survey to copy its link" : undefined}
                           >
-                            <Link2 data-icon="inline-start" />
-                            {copied === s.publicId ? "Copied" : "Copy link"}
-                          </Button>
+                            <Button
+                              disabled={s.status === "Draft"}
+                              onClick={() => copyLink(s.publicId)}
+                              size="sm"
+                              type="button"
+                              variant="ghost"
+                            >
+                              <Link2 data-icon="inline-start" />
+                              {copied === s.publicId ? "Copied" : "Copy link"}
+                            </Button>
+                          </span>
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               render={

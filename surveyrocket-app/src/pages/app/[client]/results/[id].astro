@@ -2,6 +2,7 @@
 import Base from "../../../../layouts/Base.astro";
 import AppShell from "../../../../components/AppShell.astro";
 import Results from "../../../../components/Results";
+import PageBack from "../../../../components/PageBack.astro";
 import ViewTip from "../../../../components/ViewTip";
 import { requireClientAccess } from "../../../../lib/access";
 import { db } from "../../../../lib/db";
@@ -23,6 +24,7 @@ if (!sv) return Astro.redirect(`/app/${slug}/results`);
 <Base title={`${sv.name} · Results`}>
   <AppShell slug={slug} clientName={access.client.name} current="results" isSuperadmin={Astro.locals.isSuperadmin} email={Astro.locals.user?.email}>
     <div class="wrap">
+      <PageBack href={`/app/${slug}/surveys`} />
       <div class="pagehead" id="resultsHead">
         <h1>Results</h1>
         <p>Live results for every survey, newest answers first. Progress updates as people answer.</p>
