@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { isQuestionRequired } from "@/lib/definition";
 import { cn } from "@/lib/utils";
 import { Check, Eye, GripVertical, Link2, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
 
@@ -59,6 +60,7 @@ type Question = {
   min?: number;
   max?: number;
   optional?: boolean;
+  required?: boolean;
 };
 
 type Definition = {
@@ -121,8 +123,9 @@ function typeLabel(q: Question) {
 
 function fieldSummary(q: Question) {
   const label = typeLabel(q);
-  if (q.type === "number") return `${label} · ${q.min ?? 0} to ${q.max ?? 1000}`;
-  return label;
+  const need = isQuestionRequired(q) ? "Required" : "Optional";
+  if (q.type === "number") return `${label} · ${q.min ?? 0} to ${q.max ?? 1000} · ${need}`;
+  return `${label} · ${need}`;
 }
 
 class EditorErrorBoundary extends Component<{ children: ReactNode }, { err: string }> {
@@ -210,7 +213,7 @@ function EditorInner({
     } else if (value === "number") {
       updateQ(i, { type: "number", nps: false, min: 0, max: 1000, options: undefined });
     } else if (value === "text") {
-      updateQ(i, { type: "text", nps: false, optional: true, options: undefined });
+      updateQ(i, { type: "text", nps: false, options: undefined });
     } else {
       updateQ(i, { type: value as Question["type"], nps: false });
     }
@@ -548,6 +551,18 @@ function EditorInner({
                           />
                         </Field>
                       ) : null}
+                      <label className="flex items-center gap-2 text-sm font-medium">
+                        <input
+                          checked={isQuestionRequired(q)}
+                          className="size-4 accent-primary"
+                          id={"q-req-" + q.id}
+                          onChange={(e) =>
+                            updateQ(i, { required: e.target.checked, optional: !e.target.checked })
+                          }
+                          type="checkbox"
+                        />
+                        Required
+                      </label>
                       {q.type === "number" ? (
                         <div className="grid grid-cols-2 gap-3">
                           <Field>
@@ -631,7 +646,7 @@ function EditorInner({
                 const id = qid();
                 setDef((d) => ({
                   ...d,
-                  questions: [...d.questions, { id, type: "choice", q: "", options: [] }],
+                  questions: [...d.questions, { id, type: "choice", q: "", options: [], required: true }],
                 }));
                 setEditingId(id);
               }}
@@ -728,7 +743,13 @@ function EditorInner({
             <Link2 data-icon="inline-start" />
             Copy link
           </Button>
-          <Button nativeButton={false} render={<a href={shareUrl} rel="noopener" target="_blank" />} variant="ghost">
+          <Button
+            disabled={def.status === "Draft"}
+            nativeButton={false}
+            render={def.status === "Draft" ? undefined : <a href={shareUrl} rel="noopener" target="_blank" />}
+            title={def.status === "Draft" ? "Publish the survey to preview it" : undefined}
+            variant="ghost"
+          >
             <Eye data-icon="inline-start" />
             Preview
           </Button>

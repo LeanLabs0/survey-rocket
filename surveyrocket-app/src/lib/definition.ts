@@ -8,6 +8,7 @@ export type Question = {
   max?: number;
   unit?: string | null;
   optional?: boolean;
+  required?: boolean;
 };
 
 export type SurveyDefinition = {
@@ -59,6 +60,14 @@ export function blankDefinition(partial: Partial<SurveyDefinition> & { id: strin
     questions: partial.questions ?? [],
     provenance: { ...defaultProvenance(), ...(partial.provenance || {}) },
   };
+}
+
+export function isQuestionRequired(q: { type?: string; optional?: boolean; required?: boolean }) {
+  if (q.required === true) return true;
+  if (q.required === false) return false;
+  if (q.optional === true) return false;
+  if (q.optional === false) return true;
+  return q.type !== "text";
 }
 
 export function validateDefinition(s: SurveyDefinition) {

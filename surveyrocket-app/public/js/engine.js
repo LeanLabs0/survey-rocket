@@ -1,6 +1,7 @@
 /* SurveyChat: the Survey Rocket chat engine.
    Config-driven, asks only the questions it is given.
-   Question types: choice (options, nps flag), multi, number (min/max, validated), text (optional, skip exits).
+   Question types: choice (options, nps flag), multi, number (min/max, validated), text.
+   Required questions cannot be skipped. Optional text/number accept "skip"; optional choice/multi get a Skip chip.
    Optional closing quote flow with sentiment gate (negative answers stay private, no permission ask). */
 (function (global) {
   "use strict";
@@ -44,6 +45,15 @@
   var QUOTE_ATTR = "Thanks. What is your name, your role, and how long you have worked with us?";
 
   var COUNT_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  function questionRequired(q) {
+    if (!q) return false;
+    if (q.required === true) return true;
+    if (q.required === false) return false;
+    if (q.optional === true) return false;
+    if (q.optional === false) return true;
+    return q.type !== "text";
+  }
+
   function introLine(n, quote) {
     var count = n < COUNT_WORDS.length ? COUNT_WORDS[n] : String(n);
     count = count.charAt(0).toUpperCase() + count.slice(1);
@@ -239,19 +249,39 @@
     this._bot(q.q || "(empty question)", function () {
       if (noOpts) {
         self._bot("Type your answer for this one.", function () {
-          self.phase = "text"; self._curId = q.id; self._input(true, "Type your answer…");
+          self.phase = "text"; self._curId = q.id;
+          self._input(true, questionRequired(q) ? "Type your answer…" : "Type your answer, or skip…");
         });
       } else if (q.type === "choice") {
         self._input(false);
-        self._chips(q.options.map(function (o) { return { text: o }; }), function (o, b, box) {
+        var choiceOpts = q.options.map(function (o) { return { text: o }; });
+        if (!questionRequired(q)) choiceOpts.push({ text: "Skip", cls: "skip-chip" });
+        self._chips(choiceOpts, function (o, b, box) {
+          if (o.cls === "skip-chip") {
+            self._lock(box, [b]); self._me("Skip"); self._record(q.id, null); self._next();
+            return;
+          }
           self._lock(box, [b]); self._me(o.text); self._record(q.id, o.text); self._next();
         }, { nps: !!q.nps });
       } else if (q.type === "multi") {
         self._input(false); self.multi = [];
-        var box = self._chips(q.options.map(function (o) { return { text: o }; }).concat([{ text: "Done", cls: "done-chip" }]),
-          function (o, b) {
+        var multiOpts = q.options.map(function (o) { return { text: o }; });
+        if (!questionRequired(q)) multiOpts.push({ text: "Skip", cls: "skip-chip" });
+        multiOpts.push({ text: "Done", cls: "done-chip" });
+        var box = self._chips(multiOpts, function (o, b) {
+            if (o.cls === "skip-chip") {
+              self._lock(box, [b]); self._me("Skip"); self._record(q.id, null); self._next();
+              return;
+            }
             if (o.cls === "done-chip") {
-              if (self.multi.length === 0) { self._nag("Pick at least one, then tap Done."); return; }
+              if (self.multi.length === 0) {
+                if (!questionRequired(q)) {
+                  self._lock(box, [b]); self._me("Skip"); self._record(q.id, null); self._next();
+                  return;
+                }
+                self._nag("Pick at least one, then tap Done.");
+                return;
+              }
               self.multi.sort(function (a, c) { return q.options.indexOf(a.text) - q.options.indexOf(c.text); });
               var picked = self.multi.map(function (p) { return p.text; });
               self._lock(box, self.multi.map(function (p) { return p.btn; }));
@@ -266,9 +296,9 @@
             }
           });
       } else if (q.type === "number") {
-        self.phase = "number"; self._input(true, "Type a number…");
+        self.phase = "number"; self._input(true, questionRequired(q) ? "Type a number…" : "Type a number, or skip…");
       } else {
-        self.phase = "text"; self._input(true, q.optional ? "Type your answer, or skip…" : "Type your answer…");
+        self.phase = "text"; self._input(true, questionRequired(q) ? "Type your answer…" : "Type your answer, or skip…");
       }
     });
   };
@@ -289,6 +319,15 @@
     this._me(raw); this.o.input.value = "";
 
     if (this.phase === "number") {
+      if (raw.toLowerCase() === "skip") {
+        if (!questionRequired(q)) {
+          this._record(q && q.id, null); this._input(false);
+          this._bot("No problem.", function () { self._next(); });
+        } else {
+          this._nag("This one needs a number.");
+        }
+        return;
+      }
       var mn = (q && typeof q.min === "number" && !isNaN(q.min)) ? q.min : 0;
       var mx = (q && typeof q.max === "number" && !isNaN(q.max)) ? q.max : 100000;
       if (mn > mx) { var sw = mn; mn = mx; mx = sw; }
@@ -325,9 +364,13 @@
     } else if (this.phase === "text") {
       var id = this._curId || (q && q.id);
       this._curId = null;
-      if (raw.toLowerCase() === "skip" && (!q || q.optional !== false)) {
-        this._record(id, null); this._input(false);
-        this._bot("No problem.", function () { self._next(); });
+      if (raw.toLowerCase() === "skip") {
+        if (!questionRequired(q)) {
+          this._record(id, null); this._input(false);
+          this._bot("No problem.", function () { self._next(); });
+        } else {
+          this._nag("This one needs an answer.");
+        }
       } else {
         this._record(id, raw); this._input(false); this._next();
       }
