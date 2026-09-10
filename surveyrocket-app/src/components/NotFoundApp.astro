@@ -1,0 +1,81 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/styles-survey-intro.css";
+import { marketingOrigin } from "../lib/site";
+
+interface Props {
+  kind?: "survey" | "page";
+}
+const { kind = "page" } = Astro.props;
+const survey = kind === "survey";
+const homeHref = survey ? `${marketingOrigin()}/` : "/login";
+const title = "Page not found";
+---
+<Base title={title} bodyClass="rs-intro-page">
+  <Fragment slot="head">
+    <script is:inline>
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.classList.add("dark");
+    </script>
+  </Fragment>
+  <div class="rs-page nf-app">
+    <div class="rs-main">
+      <a class="rs-intro-brand" href={homeHref}>
+        <img src="/assets/landing/logo-mark.svg" width="48" height="55" alt="">
+        <span><b>Survey</b> <i>Rocket</i></span>
+      </a>
+      <p class="nf-app-code">404</p>
+      <h1>{survey ? (
+        <>This survey <span class="em">isn’t here</span></>
+      ) : (
+        <>This page <span class="em">isn’t here</span></>
+      )}</h1>
+      <p class="rs-sub">
+        {survey
+          ? "That link may be old, or the survey was taken down. Ask whoever sent it for a fresh one."
+          : "That link may be old, or the page was moved. Head to your workspace if you were looking for the app."}
+      </p>
+      <a class="rs-begin" href={homeHref}>Return to home <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt=""></a>
+    </div>
+    <footer class="rs-foot">
+      <div class="rs-foot-brand">
+        <img class="ll" src="/assets/images/ll-tools.svg" width="122" height="30" alt="Lean Labs Tools">
+      </div>
+      <div class="rs-copy">
+        <span>&copy; 2026 SurveyRocket.ai.</span>
+      </div>
+    </footer>
+  </div>
+</Base>
+<style>
+.nf-app{justify-content:center}
+.nf-app .rs-main{
+  text-align:center;
+  justify-content:center;
+}
+.nf-app-code{
+  margin:8px 0 12px;
+  font-family:var(--rs-serif);
+  font-size:clamp(72px, 16vw, 128px);
+  font-weight:400;
+  line-height:.9;
+  letter-spacing:-.04em;
+  color:var(--sr-text);
+}
+.nf-app h1{
+  margin:0 auto;
+  max-width:16ch;
+  font-size:clamp(32px, 5.4vw, 56px);
+  font-weight:400;
+  line-height:1.19;
+  letter-spacing:-1.12px;
+  color:var(--sr-text);
+}
+.nf-app h1 .em{
+  font-family:var(--rs-serif);
+  font-style:italic;
+  font-weight:400;
+}
+.nf-app .rs-sub{max-width:36ch;margin-left:auto;margin-right:auto}
+.nf-app .rs-begin{margin-top:8px;text-decoration:none}
+</style>

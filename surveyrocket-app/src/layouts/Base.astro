@@ -20,21 +20,36 @@ const { title = "Survey Rocket", bodyClass = "" } = Astro.props;
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <slot name="head" />
-  <script is:inline>
-    (function () {
-      try {
-        var t = localStorage.getItem("sr-theme") || "dark";
-        var resolved = t === "system"
-          ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
-          : (t === "light" ? "light" : "dark");
-        document.documentElement.setAttribute("data-theme", resolved);
-        document.documentElement.classList.toggle("dark", resolved === "dark");
-      } catch (e) {}
-    })();
-  </script>
+      <slot name="head" />
+      <script is:inline>
+        (function () {
+          try {
+            var t = localStorage.getItem("sr-theme") || "dark";
+            var resolved = t === "system"
+              ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+              : (t === "light" ? "light" : "dark");
+            document.documentElement.setAttribute("data-theme", resolved);
+            document.documentElement.classList.toggle("dark", resolved === "dark");
+          } catch (e) {}
+        })();
+      </script>
+      <!-- Start of HubSpot Embed Code -->
+      <script is:inline type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/275827.js"></script>
+      <!-- End of HubSpot Embed Code -->
 </head>
 <body class={bodyClass}>
   <slot />
+  <script is:inline>
+    document.addEventListener("submit", function (e) {
+      var form = e.target;
+      if (!form || form.nodeName !== "FORM") return;
+      var btn = e.submitter;
+      if (!btn || !btn.classList || !btn.classList.contains("btn")) {
+        btn = form.querySelector("button.btn[type='submit'], button.btn:not([type]), .btn[type='submit']");
+      }
+      if (!btn || !btn.classList || !btn.classList.contains("btn")) return;
+      btn.setAttribute("aria-busy", "true");
+    }, true);
+  </script>
 </body>
 </html>

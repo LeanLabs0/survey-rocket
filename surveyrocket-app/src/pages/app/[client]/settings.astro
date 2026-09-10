@@ -6,6 +6,7 @@ import { membersForClient, requireClientAccess } from "../../../lib/access";
 import { getConnection, publicConnection } from "../../../lib/hubspot/tokens";
 import { isHubSpotConfigured } from "../../../lib/hubspot/oauth";
 import { ensureClientSurveyLists } from "../../../lib/hubspot/lists";
+import { ensureClientSignInForm } from "../../../lib/hubspot/provision";
 import { supabasePublishableKey, supabaseUrl } from "../../../lib/supabase";
 
 const slug = Astro.params.client!;
@@ -21,6 +22,7 @@ const [connRaw, memberRows] = await Promise.all([
 const conn = publicConnection(connRaw);
 if (conn.connected) {
   ensureClientSurveyLists(access.client.id).catch((err) => console.error("hubspot lists", err));
+  ensureClientSignInForm(access.client.id).catch((err) => console.error("hubspot form", err));
 }
 const hs = Astro.url.searchParams.get("hs");
 const profile = Astro.locals.profile;

@@ -1,0 +1,40 @@
+---
+import "../styles/styles-shared.css";
+import NotFoundApp from "../components/NotFoundApp.astro";
+import NotFoundMarketing from "../components/NotFoundMarketing.astro";
+import { isMarketingNotFound } from "../lib/site";
+
+Astro.response.status = 404;
+const marketing = isMarketingNotFound(Astro.request, Astro.url);
+---
+{marketing ? (
+  <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Page not found</title>
+      <meta name="description" content="The page you’re looking for doesn’t exist.">
+      <link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+      <script is:inline type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/275827.js"></script>
+    </head>
+    <body class="nf-mkt">
+      <NotFoundMarketing />
+    </body>
+  </html>
+) : (
+  <NotFoundApp kind="page" />
+)}
+
+<style is:global>
+.nf-mkt{
+  min-height:100vh;
+  margin:0;
+  background:#000;
+  color:#fff;
+  font-family:Inter,var(--ll-font);
+}
+.nf-mkt a:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+</style>

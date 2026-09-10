@@ -1,0 +1,94 @@
+---
+---
+<a class="nf-brand" href="/">
+  <img src="/assets/landing/logo-mark.svg" width="36" height="41" alt="">
+  <span><b>Survey</b> <i>Rocket</i></span>
+</a>
+<main class="nf-main">
+  <p class="nf-code">404</p>
+  <h1>The page you’re looking for <span class="em">doesn’t exist</span></h1>
+  <a class="nf-home" href="/">Return to home</a>
+</main>
+
+<style>
+.nf-brand{
+  position:absolute;
+  top:28px;
+  left:32px;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-decoration:none;
+  color:#fff;
+}
+.nf-brand img{width:36px;height:41px;object-fit:contain;display:block}
+.nf-brand span{
+  font-family:var(--ll-font);
+  font-size:20px;
+  letter-spacing:-.5px;
+  line-height:1.25;
+}
+.nf-brand span b{font-weight:700}
+.nf-brand span i{font-style:normal;font-weight:300}
+.nf-main{
+  position:relative;
+  z-index:1;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:96px 24px 120px;
+}
+.nf-code{
+  margin:0;
+  font-family:var(--rs-serif);
+  font-weight:400;
+  font-style:normal;
+  font-size:clamp(7.5rem, 28vw, 17.5rem);
+  line-height:.85;
+  letter-spacing:-.04em;
+  color:#fff;
+}
+.nf-main h1{
+  margin:36px 0 28px;
+  max-width:22em;
+  font-family:Inter,var(--ll-font);
+  font-size:clamp(16px, 2.1vw, 20px);
+  font-weight:400;
+  line-height:1.45;
+  letter-spacing:0;
+  color:#fff;
+}
+.nf-main h1 .em{
+  font-family:var(--rs-serif);
+  font-style:italic;
+  font-weight:400;
+}
+.nf-home{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:180px;
+  min-height:48px;
+  padding:15px 25px;
+  border-radius:180px;
+  background:#fff;
+  color:var(--ll-page);
+  font-family:var(--ll-font);
+  font-size:var(--ll-text-sm);
+  font-weight:500;
+  letter-spacing:-.02em;
+  text-decoration:none;
+  box-shadow:var(--ll-btn-shadow-light), var(--ll-btn-shadow-inner);
+}
+.nf-home:hover{background:#e6e6e6}
+@media (max-width:560px){
+  .nf-brand{top:20px;left:20px}
+  .nf-brand span{font-size:17px}
+  .nf-main{padding:88px 20px 96px}
+  .nf-main h1{margin:28px 0 24px}
+}
+</style>

@@ -69,9 +69,9 @@ async function findListId(token: string, name: string) {
   }
 }
 
-async function createOrFindList(token: string, name: string) {
+async function createOrFindList(token: string, name: string): Promise<{ id: string; created: boolean }> {
   const existing = await findListId(token, name);
-  if (existing) return existing;
+  if (existing) return { id: existing, created: false };
   try {
     const created = await hs(token, "/crm/v3/lists", {
       method: "POST",
@@ -80,30 +80,68 @@ async function createOrFindList(token: string, name: string) {
     const list = created.data?.list as { listId?: string } | undefined;
     const id = list?.listId || (created.data?.listId as string | undefined);
     if (!id) throw new Error("HubSpot did not return a list id");
-    return String(id);
+    return { id: String(id), created: true };
   } catch (err) {
     const again = await findListId(token, name);
-    if (again) return again;
+    if (again) return { id: again, created: false };
     throw err;
   }
 }
 
+const listLocks = new Map<string, Promise<typeof surveys.$inferSelect>>();
+
 export async function ensureSurveyLists(survey: typeof surveys.$inferSelect) {
   if (survey.deletedAt) return survey;
+  const pending = listLocks.get(survey.id);
+  if (pending) return pending;
+  const run = ensureSurveyListsInner(survey).finally(() => {
+    if (listLocks.get(survey.id) === run) listLocks.delete(survey.id);
+  });
+  listLocks.set(survey.id, run);
+  return run;
+}
+
+async function ensureSurveyListsInner(survey: typeof surveys.$inferSelect) {
   const access = await resolveAccessToken(survey.clientId);
   if (!access) return survey;
-  const names = surveyListNames(survey.name);
-  let signedIn = survey.hsSignedInListId;
-  let completed = survey.hsCompletedListId;
-  if (!signedIn) signedIn = await createOrFindList(access.token, names.signedIn);
-  if (!completed) completed = await createOrFindList(access.token, names.completed);
-  if (signedIn === survey.hsSignedInListId && completed === survey.hsCompletedListId) return survey;
-  const [row] = await db
-    .update(surveys)
-    .set({ hsSignedInListId: signedIn, hsCompletedListId: completed })
-    .where(eq(surveys.id, survey.id))
-    .returning();
-  return row || { ...survey, hsSignedInListId: signedIn, hsCompletedListId: completed };
+  const [latest] = await db.select().from(surveys).where(eq(surveys.id, survey.id)).limit(1);
+  let current = latest || survey;
+  if (current.deletedAt) return current;
+  if (current.hsSignedInListId && current.hsCompletedListId) return current;
+
+  const names = surveyListNames(current.name);
+  const token = access.token;
+
+  async function claim(
+    field: "hsSignedInListId" | "hsCompletedListId",
+    name: string,
+  ) {
+    if (current[field]) return;
+    const made = await createOrFindList(token, name);
+    const filter = field === "hsSignedInListId" ? isNull(surveys.hsSignedInListId) : isNull(surveys.hsCompletedListId);
+    const patch = field === "hsSignedInListId" ? { hsSignedInListId: made.id } : { hsCompletedListId: made.id };
+    const [won] = await db
+      .update(surveys)
+      .set(patch)
+      .where(and(eq(surveys.id, current.id), filter))
+      .returning();
+    if (won) {
+      current = won;
+      return;
+    }
+    if (made.created) {
+      await hs(token, `/crm/v3/lists/${encodeURIComponent(made.id)}`, {
+        method: "DELETE",
+        allowStatuses: [404],
+      }).catch(() => null);
+    }
+    const [again] = await db.select().from(surveys).where(eq(surveys.id, current.id)).limit(1);
+    if (again) current = again;
+  }
+
+  await claim("hsSignedInListId", names.signedIn);
+  await claim("hsCompletedListId", names.completed);
+  return current;
 }
 
 export async function ensureClientSurveyLists(clientId: string) {

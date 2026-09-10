@@ -1,5 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
+import NotFoundApp from "../../components/NotFoundApp.astro";
 import "../../styles/styles-survey-intro.css";
 import { db } from "../../lib/db";
 import { clients, surveyPublications, surveys } from "../../lib/schema";
@@ -8,17 +9,24 @@ import { resolveSurveyBrand } from "../../lib/brand";
 import { getConnection } from "../../lib/hubspot/tokens";
 import { ensureClientSignInForm } from "../../lib/hubspot/provision";
 
+function hasQuestions(definition: unknown) {
+  if (!definition || typeof definition !== "object") return false;
+  const questions = (definition as { questions?: unknown }).questions;
+  return Array.isArray(questions) && questions.length > 0;
+}
+
 const publicId = Astro.params.publicId!;
 const [found] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
 const sv = found && !found.deletedAt ? found : null;
-if (!sv || sv.status === "Draft") {
-  // still render missing UI
-}
 const [client] = sv ? await db.select().from(clients).where(eq(clients.id, sv.clientId)).limit(1) : [null];
 const [pub] = sv
   ? await db.select().from(surveyPublications).where(eq(surveyPublications.surveyId, sv.id)).orderBy(desc(surveyPublications.version)).limit(1)
   : [null];
 const definition = pub?.definition || sv?.definition || null;
+const missing = !sv || sv.status === "Draft" || !hasQuestions(definition);
+if (missing) {
+  Astro.response.status = 404;
+}
 const clientName = client?.name || "Survey Rocket";
 const brand = resolveSurveyBrand(client?.brand, {
   logoUrl: client?.logoUrl,
@@ -30,14 +38,12 @@ const introText =
     ? definition.intro.trim()
     : "We'd love to capture what actually changed, so you and future clients can get a better experience with us.";
 const workspaceLogo = client?.logoUrl || null;
-const introVideo = client?.slug === "lean-labs"
-  ? {
-      src: "/assets/videos/Reputation%20Rocket%20Intro.mp4",
-      poster: "/assets/images/7c248b618a126294316f6a.gif",
-    }
-  : null;
+const introVideo = {
+  src: "/assets/videos/Reputation%20Rocket%20Intro.mp4",
+  poster: "/assets/images/7c248b618a126294316f6a.gif",
+};
 let hubspotForm: { portalId: string; formId: string } | null = null;
-if (client) {
+if (!missing && client) {
   const conn = await getConnection(client.id);
   if (conn?.status === "connected" && conn.portalId && conn.signinFormId) {
     hubspotForm = { portalId: conn.portalId, formId: conn.signinFormId };
@@ -53,6 +59,9 @@ if (client) {
   }
 }
 ---
+{missing ? (
+  <NotFoundApp kind="survey" />
+) : (
 <Base title={sv?.name || "Survey"} bodyClass="rs-intro-page">
   <Fragment slot="head">
     <script is:inline>
@@ -65,9 +74,7 @@ if (client) {
     <div class="rs-main">
       <a class="rs-intro-brand" href="/">
         <img class:list={[{ "rs-workspace-logo": !!workspaceLogo }]} src={workspaceLogo || brand.markUrl} width={workspaceLogo ? undefined : 48} height={workspaceLogo ? undefined : 55} alt={clientName}>
-        {workspaceLogo ? (
-          <span class="rs-client-name">{clientName}</span>
-        ) : (
+        {workspaceLogo ? null : (
           <span><b>Survey</b> <i>Rocket</i></span>
         )}
       </a>
@@ -107,21 +114,15 @@ if (client) {
       <div class="rs-welcome" id="welcome" style={`display:${definition ? "flex" : "none"}`}>
         <h1>Ready to <span class="em">share your results</span> with {clientName}?</h1>
         <p class="rs-sub" id="g-meta">{introText}</p>
-        {introVideo ? (
-          <div class="rs-video" id="rsVideo">
-            <img class="rs-video-thumb" src={introVideo.poster} width="736" height="379" alt="">
-            <video class="rs-video-el" id="rsWelcomeVideo" playsinline preload="metadata" poster={introVideo.poster}>
-              <source src={introVideo.src} type="video/mp4">
-            </video>
-            <button type="button" class="rs-play" id="rsVideoPlay" aria-label="Play welcome video">
-              <img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt="">
-            </button>
-          </div>
-        ) : (
-          <div class="rs-video" title="Welcome video placeholder">
-            <span class="rs-play"><img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt=""></span>
-          </div>
-        )}
+        <div class="rs-video" id="rsVideo">
+          <img class="rs-video-thumb" src={introVideo.poster} width="736" height="379" alt="">
+          <video class="rs-video-el" id="rsWelcomeVideo" playsinline preload="metadata" poster={introVideo.poster}>
+            <source src={introVideo.src} type="video/mp4">
+          </video>
+          <button type="button" class="rs-play" id="rsVideoPlay" aria-label="Play welcome video">
+            <img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt="">
+          </button>
+        </div>
         <div class="rs-heads">
           <span class="rs-heads-icon" aria-hidden="true"><img src="/assets/survey-intro/icon-smile.svg" width="18" height="18" alt=""></span>
           <p><b>Heads up:</b> this is a short check-in from {clientName}. Most answers take a single tap.</p>
@@ -178,8 +179,8 @@ if (client) {
       <div class="rs-lead-card" role="dialog" aria-modal="true" aria-labelledby="leadTitle">
         <h2 id="leadTitle">Before we begin</h2>
         <p class="rs-lead-copy">A few details so {clientName} can tie your answers to you.</p>
-        <div id="hsFormTarget" class="rs-hs-form"></div>
-        <form id="leadNative" class="rs-lead-native" hidden>
+        <div id="hsFormTarget" class="rs-hs-form rs-hs-form-hidden" aria-hidden="true"></div>
+        <div id="leadNative" class="rs-lead-native">
           <label class="flabel" for="g-first">First name</label>
           <input id="g-first" class="field" type="text" autocomplete="given-name" required>
           <label class="flabel" for="g-last">Last name</label>
@@ -190,8 +191,8 @@ if (client) {
           <input id="g-company" class="field" type="text" autocomplete="organization" required>
           <label class="flabel" for="g-website">Website URL</label>
           <input id="g-website" class="field" type="text" autocomplete="url" placeholder="https://" required>
-          <button class="rs-begin" type="submit" id="leadNativeGo">Continue</button>
-        </form>
+          <button class="rs-begin" type="button" id="leadNativeGo">Continue</button>
+        </div>
         <button class="rs-lead-close" type="button" id="leadClose">Cancel</button>
       </div>
     </div>
@@ -362,8 +363,7 @@ if (client) {
       document.getElementById("rs-restart").addEventListener("click",startRun);
       var welcome=document.getElementById("welcome"), chatWrap=document.getElementById("chatWrap");
       var modal=document.getElementById("leadModal");
-      var nativeForm=document.getElementById("leadNative");
-      var hsMounted=false;
+      var hsMounted=false, hsReady=false, hsFailed=false, leadBusy=false, startedFromLead=false;
       function fieldVal(data, name){
         if(!Array.isArray(data)) return "";
         var hit=data.find(function(f){
@@ -384,8 +384,12 @@ if (client) {
         modal.hidden=true;
         modal.classList.remove("open");
         document.getElementById("g-go").classList.remove("is-busy");
+        document.getElementById("leadNativeGo").classList.remove("is-busy");
+        leadBusy=false;
       }
       function enterChat(){
+        if(startedFromLead) return;
+        startedFromLead=true;
         closeLeadModal();
         welcome.style.display="none";
         var page=document.querySelector(".rs-page");
@@ -393,9 +397,47 @@ if (client) {
         chatWrap.style.display="flex";
         startRun();
       }
-      function showNativeLead(){
-        nativeForm.hidden=false;
-        document.getElementById("hsFormTarget").style.display="none";
+      function readLeadFields(){
+        return {
+          firstname: document.getElementById("g-first").value.trim(),
+          lastname: document.getElementById("g-last").value.trim(),
+          email: document.getElementById("g-email").value.trim(),
+          company: document.getElementById("g-company").value.trim(),
+          website: document.getElementById("g-website").value.trim()
+        };
+      }
+      function validateLead(){
+        var ids=["g-first","g-last","g-email","g-company","g-website"];
+        for(var i=0;i<ids.length;i++){
+          var el=document.getElementById(ids[i]);
+          if(el && !el.checkValidity()){
+            el.reportValidity();
+            return false;
+          }
+        }
+        return true;
+      }
+      function setHsField(form, name, value){
+        var el=form.querySelector('[name="'+name+'"]')
+          || form.querySelector('[name="0-1/'+name+'"]')
+          || form.querySelector('input[id*="'+name+'"]');
+        if(!el) return;
+        el.value=value;
+        el.dispatchEvent(new Event("input", { bubbles:true }));
+        el.dispatchEvent(new Event("change", { bubbles:true }));
+      }
+      function submitHiddenHsForm(vals){
+        var form=document.querySelector("#hsFormTarget form");
+        if(!form) return false;
+        setHsField(form, "firstname", vals.firstname);
+        setHsField(form, "lastname", vals.lastname);
+        setHsField(form, "email", vals.email);
+        setHsField(form, "company", vals.company);
+        setHsField(form, "website", vals.website);
+        var btn=form.querySelector('input[type="submit"], button[type="submit"], .hs-button');
+        if(btn) btn.click();
+        else form.dispatchEvent(new Event("submit", { bubbles:true, cancelable:true }));
+        return true;
       }
       function loadHsForms(){
         return new Promise(function(resolve, reject){
@@ -424,35 +466,60 @@ if (client) {
           formId: String(hubspotForm.formId),
           region: "na1",
           target: "#hsFormTarget",
-          cssRequired: false
+          cssRequired: false,
+          css: "",
+          onFormReady: function(){ hsReady=true; }
         });
         hsMounted=true;
       }
       window.addEventListener("message", function(event){
         if(!event.data || event.data.type!=="hsFormCallback") return;
-        if(event.data.eventName!=="onFormSubmit") return;
+        if(event.data.eventName!=="onFormSubmit" && event.data.eventName!=="onFormSubmitted") return;
         if(hubspotForm && event.data.id && event.data.id!==hubspotForm.formId) return;
         applyIdentity({
-          firstname: fieldVal(event.data.data, "firstname"),
-          lastname: fieldVal(event.data.data, "lastname"),
-          email: fieldVal(event.data.data, "email"),
-          company: fieldVal(event.data.data, "company"),
-          website: fieldVal(event.data.data, "website")
+          firstname: fieldVal(event.data.data, "firstname") || respondent.firstname,
+          lastname: fieldVal(event.data.data, "lastname") || respondent.lastname,
+          email: fieldVal(event.data.data, "email") || respondent.email,
+          company: fieldVal(event.data.data, "company") || respondent.company,
+          website: fieldVal(event.data.data, "website") || respondent.website
         });
         if(!respondent.email || respondent.email.indexOf("@")<1) return;
         enterChat();
       });
-      nativeForm.addEventListener("submit", function(e){
-        e.preventDefault();
-        applyIdentity({
-          firstname: document.getElementById("g-first").value.trim(),
-          lastname: document.getElementById("g-last").value.trim(),
-          email: document.getElementById("g-email").value.trim(),
-          company: document.getElementById("g-company").value.trim(),
-          website: document.getElementById("g-website").value.trim()
-        });
+      function finishLeadWithoutHs(){
+        var vals=readLeadFields();
+        applyIdentity(vals);
         if(!respondent.email || respondent.email.indexOf("@")<1) return;
         enterChat();
+      }
+      function waitForHs(cb){
+        if(!hubspotForm || hsFailed || hsReady) return cb();
+        var n=0;
+        var t=setInterval(function(){
+          n++;
+          if(hsReady || hsFailed || n>50){
+            clearInterval(t);
+            cb();
+          }
+        }, 100);
+      }
+      document.getElementById("leadNativeGo").addEventListener("click", function(){
+        if(leadBusy) return;
+        if(!validateLead()) return;
+        var vals=readLeadFields();
+        applyIdentity(vals);
+        var go=document.getElementById("leadNativeGo");
+        go.classList.add("is-busy");
+        leadBusy=true;
+        waitForHs(function(){
+          if(hubspotForm && !hsFailed && submitHiddenHsForm(vals)){
+            setTimeout(function(){
+              if(!startedFromLead) finishLeadWithoutHs();
+            }, 8000);
+            return;
+          }
+          finishLeadWithoutHs();
+        });
       });
       document.getElementById("leadClose").addEventListener("click", closeLeadModal);
       document.getElementById("g-go").addEventListener("click", function(){
@@ -461,9 +528,9 @@ if (client) {
         modal.hidden=false;
         modal.classList.add("open");
         if(hubspotForm && hubspotForm.portalId && hubspotForm.formId){
-          loadHsForms().then(mountHsForm).catch(showNativeLead);
+          loadHsForms().then(mountHsForm).catch(function(){ hsFailed=true; });
         } else {
-          showNativeLead();
+          hsFailed=true;
         }
       });
       document.getElementById("rs-copy").addEventListener("click",function(){
@@ -477,3 +544,4 @@ if (client) {
     })();
   </script>
 </Base>
+)}

@@ -95,7 +95,7 @@ function buildCreateFormBody() {
       recaptchaEnabled: false,
     },
     displayOptions: {
-      renderRawHtml: false,
+      renderRawHtml: true,
       theme: "default_style",
       submitButtonText: "Begin survey",
       style: {
@@ -136,10 +136,24 @@ async function listForms(accessToken: string) {
   return out;
 }
 
+async function ensureRawHtmlForm(accessToken: string, formId: string) {
+  const existing = (await hubspotFetch(accessToken, `https://api.hubapi.com/marketing/v3/forms/${formId}`, {
+    allowNotFound: true,
+  })) as { displayOptions?: Record<string, unknown> } | null;
+  if (!existing) return;
+  const display = existing.displayOptions || {};
+  if (display.renderRawHtml === true) return;
+  await hubspotFetch(accessToken, `https://api.hubapi.com/marketing/v3/forms/${formId}`, {
+    method: "PATCH",
+    body: { displayOptions: { ...display, renderRawHtml: true } },
+  });
+}
+
 export async function ensureLeadForm(accessToken: string) {
   const forms = await listForms(accessToken);
   const match = forms.find((f) => String(f.name || "").trim() === SIGNIN_FORM_NAME);
   if (match?.id) {
+    await ensureRawHtmlForm(accessToken, match.id).catch((err) => console.error("hubspot form raw html", err));
     return { status: "exists" as const, id: match.id, name: match.name || SIGNIN_FORM_NAME };
   }
   const created = (await hubspotFetch(accessToken, "https://api.hubapi.com/marketing/v3/forms/", {
