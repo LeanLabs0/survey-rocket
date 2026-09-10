@@ -4,7 +4,7 @@ import { jsonError, jsonOk, requireClientAccess } from "../../../../../lib/acces
 import { db } from "../../../../../lib/db";
 import { surveyPublications, surveys } from "../../../../../lib/schema";
 import { validateDefinition, type SurveyDefinition } from "../../../../../lib/definition";
-import { provisionSurveyLists } from "../../../../../lib/hubspot/lists";
+import { ensureSurveyLists } from "../../../../../lib/hubspot/lists";
 import { ownedLiveSurvey } from "../../../../../lib/survey-scope";
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
@@ -61,6 +61,12 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     })
     .where(eq(surveys.id, sv.id))
     .returning();
-  if (row) provisionSurveyLists(row);
+  if (row) {
+    try {
+      await ensureSurveyLists(row);
+    } catch (err) {
+      console.error("hubspot lists", err);
+    }
+  }
   return jsonOk({ survey: row, publication: pub });
 };

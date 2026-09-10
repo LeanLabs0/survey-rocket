@@ -9,7 +9,8 @@ const HUBSPOT_REQUIRED_SCOPES = [
   "crm.objects.contacts.read",
 ];
 
-const HUBSPOT_OPTIONAL_SCOPES: string[] = [];
+/** Needed to create a contact if the form has not indexed them yet. */
+const HUBSPOT_OPTIONAL_SCOPES = ["crm.objects.contacts.write"];
 
 const HUBSPOT_SCOPES = HUBSPOT_REQUIRED_SCOPES.join(" ");
 

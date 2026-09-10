@@ -195,34 +195,46 @@ async function getContactByEmail(token: string, email: string) {
   const path = `/crm/v3/objects/contacts/${encodeURIComponent(email)}?idProperty=email`;
   const got = await hs(token, path, { allowStatuses: [404] });
   if (got.ok && got.data?.id) return String(got.data.id);
-  return null;
+  const search = await hs(token, "/crm/v3/objects/contacts/search", {
+    method: "POST",
+    body: {
+      filterGroups: [{ filters: [{ propertyName: "email", operator: "EQ", value: email }] }],
+      properties: ["email"],
+      limit: 1,
+    },
+  });
+  const hit = (search.data?.results as { id?: string }[] | undefined)?.[0];
+  return hit?.id ? String(hit.id) : null;
 }
 
 async function getOrCreateContact(token: string, email: string, extras?: HubSpotContactProps) {
-  for (let attempt = 0; attempt < 6; attempt++) {
-    if (attempt) await new Promise((r) => setTimeout(r, 700));
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 400));
     const id = await getContactByEmail(token, email);
     if (id) return id;
   }
   const created = await hs(token, "/crm/v3/objects/contacts", {
     method: "POST",
     body: { properties: contactProperties(email, extras) },
-    allowStatuses: [409],
+    allowStatuses: [403, 409],
   });
   if (created.ok && created.data?.id) return String(created.data.id);
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (attempt) await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-    const id = await getContactByEmail(token, email);
-    if (id) return id;
+  if (created.status === 409) {
+    const again = await getContactByEmail(token, email);
+    if (again) return again;
   }
   return null;
 }
 
 async function addToList(token: string, listId: string, contactId: string) {
-  await hs(token, `/crm/v3/lists/${encodeURIComponent(listId)}/memberships/add`, {
+  const res = await hs(token, `/crm/v3/lists/${encodeURIComponent(listId)}/memberships/add`, {
     method: "PUT",
-    body: [contactId],
+    body: [String(contactId)],
   });
+  const missing = ((res.data?.recordIdsMissing as string[] | undefined) || []).map(String);
+  if (missing.includes(String(contactId))) {
+    throw new Error(`HubSpot list ${listId} did not accept contact ${contactId}`);
+  }
 }
 
 export async function addEmailToSurveyList(
@@ -233,9 +245,9 @@ export async function addEmailToSurveyList(
 ) {
   const fresh = await ensureSurveyLists(survey);
   const listId = which === "signedIn" ? fresh.hsSignedInListId : fresh.hsCompletedListId;
-  if (!listId) return;
+  if (!listId) throw new Error(`HubSpot ${which} list missing for survey ${survey.id}`);
   const access = await resolveAccessToken(survey.clientId);
-  if (!access) return;
+  if (!access) throw new Error("HubSpot not connected");
   const contactId = await getOrCreateContact(access.token, email, extras);
   if (!contactId) throw new Error("HubSpot contact not found for " + email);
   await addToList(access.token, listId, contactId);
