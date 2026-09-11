@@ -194,7 +194,8 @@ function EditorInner({
   const inputRef = useRef<HTMLInputElement>(null);
   const sendRef = useRef<HTMLButtonElement>(null);
   const progRef = useRef<HTMLSpanElement>(null);
-  const chatRef = useRef<{ start: () => void; stop?: () => void } | null>(null);
+  const chatRef = useRef<{ start: () => void; stop?: () => void; o?: Record<string, unknown> } | null>(null);
+  const committedQuestionsRef = useRef(def.questions);
   const shareUrl = `${siteUrl}/s/${survey.publicId}`;
   const statusLabel = def.status === "Active" ? "Published" : def.status || "Draft";
   const statusLive = def.status === "Active";
@@ -219,22 +220,35 @@ function EditorInner({
     }
   }
 
-  const previewKey = useMemo(() => JSON.stringify(def.questions), [def.questions]);
+  if (!editingId) committedQuestionsRef.current = def.questions;
+  const previewQuestions = editingId ? committedQuestionsRef.current : def.questions;
+  const previewKey = useMemo(
+    () => JSON.stringify({ questions: previewQuestions, intro: def.intro, outro: def.outro }),
+    [previewQuestions, def.intro, def.outro],
+  );
 
   useEffect(() => {
     const log = logRef.current;
     if (!log || !window.SurveyChat) return;
-    log.innerHTML = "";
+    const script = JSON.parse(previewKey).questions as Question[];
+    const intro = def.intro || undefined;
+    const outro = def.outro || "That is everything. Thank you.";
     try {
-      chatRef.current = new window.SurveyChat({
-        log,
-        input: inputRef.current || undefined,
-        sendBtn: sendRef.current || undefined,
-        progEl: progRef.current || undefined,
-        script: def.questions,
-        intro: def.intro || undefined,
-        outro: def.outro || "That is everything. Thank you.",
-      });
+      if (!chatRef.current) {
+        chatRef.current = new window.SurveyChat({
+          log,
+          input: inputRef.current || undefined,
+          sendBtn: sendRef.current || undefined,
+          progEl: progRef.current || undefined,
+          script,
+          intro,
+          outro,
+        });
+      } else if (chatRef.current.o) {
+        chatRef.current.o.script = script;
+        chatRef.current.o.intro = intro;
+        chatRef.current.o.outro = outro;
+      }
       chatRef.current.start();
     } catch {
       log.innerHTML =
@@ -348,7 +362,7 @@ function EditorInner({
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <CardTitle className="text-xl text-balance">Questions</CardTitle>
               <CardDescription className="text-pretty">
-                The chat asks exactly what you type here. The preview updates as you edit.
+                The chat asks exactly what you type here. The preview updates when you finish a question.
               </CardDescription>
             </div>
             <Badge

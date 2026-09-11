@@ -6,6 +6,7 @@ import { db } from "../../lib/db";
 import { clients, surveyPublications, surveys } from "../../lib/schema";
 import { desc, eq } from "drizzle-orm";
 import { resolveSurveyBrand } from "../../lib/brand";
+import { slugify } from "../../lib/ids";
 import { getConnection } from "../../lib/hubspot/tokens";
 import { ensureClientSignInForm } from "../../lib/hubspot/provision";
 
@@ -28,6 +29,7 @@ if (missing) {
   Astro.response.status = 404;
 }
 const clientName = client?.name || "Survey Rocket";
+const reputationRocketUrl = `https://reputationrocket.ai/${slugify(clientName)}`;
 const brand = resolveSurveyBrand(client?.brand, {
   logoUrl: client?.logoUrl,
   clientName,
@@ -102,11 +104,11 @@ if (!missing && client) {
         <span class="rs-step-line" aria-hidden="true"></span>
         <div class="rs-step" data-step="2">
           <span class="dot">
-            <img class="ico" src="/assets/survey-intro/icon-dash.svg" width="20" height="20" alt="">
+            <img class="ico" src="/assets/survey-intro/icon-star.svg" width="20" height="20" alt="">
             <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
           </span>
           <span class="idx">Step 3</span>
-          <span class="nm">Your Dashboard</span>
+          <span class="nm">Leave a review</span>
           <span class="pill">Pending</span>
         </div>
       </div>
@@ -172,6 +174,18 @@ if (!missing && client) {
       <div class="rs-missing" id="missing" style={`display:${definition ? "none" : "block"}`}>
         This survey link is not working.<br>
         Ask whoever sent it for a fresh link.
+      </div>
+    </div>
+
+    <div id="rrHandoff" class="rs-handoff" hidden>
+      <div class="rs-handoff-card" role="dialog" aria-modal="true" aria-labelledby="rrHandoffTitle">
+        <p class="rs-handoff-kicker">You’re all set</p>
+        <h2 id="rrHandoffTitle">Thanks — <span class="em">leave a review</span>?</h2>
+        <p class="rs-handoff-copy">{clientName} has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.</p>
+        <a class="rs-begin" href={reputationRocketUrl} id="rrHandoffGo" rel="noopener">
+          Leave a review <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt="">
+        </a>
+        <button class="rs-handoff-later" type="button" id="rrHandoffLater">Not now</button>
       </div>
     </div>
 
@@ -316,8 +330,26 @@ if (!missing && client) {
           return result;
         });
       }
+      var handoffTimer=null;
+      function hideHandoff(){
+        if(handoffTimer){ clearTimeout(handoffTimer); handoffTimer=null; }
+        var el=document.getElementById("rrHandoff");
+        if(!el) return;
+        el.classList.remove("open");
+        el.hidden=true;
+      }
+      function showHandoff(){
+        setStep(2);
+        var el=document.getElementById("rrHandoff");
+        if(!el) return;
+        el.hidden=false;
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){ el.classList.add("open"); });
+        });
+        var go=document.getElementById("rrHandoffGo");
+        if(go) go.focus();
+      }
       function showEnding(){
-        setStep(2, true);
         document.getElementById("after").style.display="flex";
         if(settings.show_results){
           SRHubSpot.results(publicId).then(function(res){
@@ -388,6 +420,8 @@ if (!missing && client) {
           });
           document.getElementById("rs-copy").style.display="inline-flex";
           showEnding();
+          if(handoffTimer) clearTimeout(handoffTimer);
+          handoffTimer=setTimeout(showHandoff, 700);
         }
       });
       function startRun(){
@@ -397,6 +431,7 @@ if (!missing && client) {
         document.getElementById("after").style.display="none";
         document.getElementById("afterResults").style.display="none";
         document.getElementById("afterReview").style.display="none";
+        hideHandoff();
         setStep(1);
         chat.start();
       }
@@ -588,6 +623,26 @@ if (!missing && client) {
         } else {
           hsFailed=true;
         }
+      });
+      document.getElementById("rrHandoffGo").addEventListener("click", function(){
+        sendRecord(true, "clicked");
+      });
+      document.getElementById("rrHandoffLater").addEventListener("click", function(){
+        hideHandoff();
+        setStep(2, true);
+      });
+      document.getElementById("rrHandoff").addEventListener("click", function(e){
+        if(e.target===this){
+          hideHandoff();
+          setStep(2, true);
+        }
+      });
+      document.addEventListener("keydown", function(e){
+        if(e.key!=="Escape") return;
+        var el=document.getElementById("rrHandoff");
+        if(!el || el.hidden) return;
+        hideHandoff();
+        setStep(2, true);
       });
       document.getElementById("rs-copy").addEventListener("click",function(){
         if(!lastAnswers) return;

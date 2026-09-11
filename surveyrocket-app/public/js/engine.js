@@ -130,6 +130,14 @@
     this._bot(this.o.intro || introLine(this.o.script.length, this.quotePending), function () { self._ask(); });
   };
 
+  SurveyChat.prototype.stop = function () {
+    this.gen++;
+    this.done = true;
+    this.nagPending = false;
+    this._nagEl = null;
+    this._input(false);
+  };
+
   SurveyChat.prototype._botRow = function () {
     var row = el("div", "chat-row bot");
     var av = el("span", "chat-av");

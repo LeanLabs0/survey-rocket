@@ -19,6 +19,7 @@ body.lp-on .topbar{display:none}
   --lp-border:var(--ll-border);
   --lp-gray:#bababa;
   --lp-muted:rgba(255,255,255,.7);
+  --lp-nav-h:96px;
   --ll-btn-radius:var(--lp-pill);
   background:var(--ll-black);
   color:var(--ll-white-60);
@@ -46,15 +47,17 @@ body.lp-on .topbar{display:none}
 
 /* Nav */
 #view-landing .lp-nav{
+  position:sticky;
+  top:0;
+  z-index:40;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:24px 0;
-  max-width:1120px;
-  margin:0 auto;
-  width:min(1120px, calc(100% - 48px));
-  position:relative;
-  z-index:2;
+  gap:16px;
+  width:100%;
+  margin:0;
+  padding:24px max(24px, calc((100% - 1120px) / 2));
+  background:#000;
 }
 #view-landing .lp-brand{
   display:flex;
@@ -63,16 +66,26 @@ body.lp-on .topbar{display:none}
   text-decoration:none;
   color:#fff;
 }
+#view-landing .lp-nav .lp-brand{
+  gap:8px;
+}
 #view-landing .lp-brand img{
   width:48px;
   height:55px;
   object-fit:contain;
+}
+#view-landing .lp-nav .lp-brand img{
+  width:38px;
+  height:44px;
 }
 #view-landing .lp-brand span{
   font-family:var(--lp-font);
   font-size:24.5px;
   letter-spacing:-.5px;
   line-height:1.25;
+}
+#view-landing .lp-nav .lp-brand span{
+  font-size:19.6px;
 }
 #view-landing .lp-brand span b{font-weight:700}
 #view-landing .lp-brand span i{font-style:normal;font-weight:300}
@@ -127,10 +140,11 @@ body.lp-on .topbar{display:none}
   position:absolute;
   left:50%;
   top:auto;
-  bottom:112px;
+  /* Figma 12968:3867 — 1852px ellipse, bottom: -1042px (−56.3% of its size) */
   width:min(1852px, 170vw);
   aspect-ratio:1;
-  transform:translate(-50%, 40%);
+  bottom:calc(min(1852px, 170vw) * -0.563);
+  transform:translateX(-50%);
   pointer-events:none;
   z-index:0;
   opacity:1;
@@ -325,7 +339,7 @@ body.lp-on .topbar{display:none}
 #view-landing .lp-cite-close{
   grid-column:7 / span 6;
   grid-row:4;
-  margin:48px 0 0;
+  margin:60px 0 0;
   font-size:24px;
   line-height:1.5;
   color:#fff;
@@ -571,14 +585,17 @@ body.lp-on .topbar{display:none}
 }
 #view-landing .lp-feat-stage-sticky{
   position:sticky;
-  top:72px;
+  top:var(--lp-nav-h, 96px);
   z-index:1;
+  display:flex;
+  align-items:center;
+  min-height:calc(100vh - var(--lp-nav-h, 96px));
 }
 #view-landing .lp-feat-stage-sticky img{
   display:block;
   width:100%;
   height:auto;
-  max-height:calc(100vh - 96px);
+  max-height:calc(100vh - var(--lp-nav-h, 96px) - 48px);
   object-fit:contain;
   border-radius:12px;
 }
@@ -931,10 +948,9 @@ body.lp-on .topbar{display:none}
 
 @media (max-width:767px){
   #view-landing .lp-ripple{
-    top:auto;
-    bottom:80px;
     width:min(1852px, 220vw);
-    transform:translate(-50%, 36%);
+    bottom:calc(min(1852px, 220vw) * -0.563);
+    transform:translateX(-50%);
   }
 }
 @media (max-width:980px){
@@ -948,9 +964,12 @@ body.lp-on .topbar{display:none}
   #view-landing .lp-cite-close,
   #view-landing .lp-gaps-copy,
   #view-landing .lp-gaps-top > .lp-quote{grid-column:1 / -1;grid-row:auto}
-  #view-landing .lp-cite-cards{padding-top:32px}
-  #view-landing .lp-cite-card{flex-wrap:wrap}
+  #view-landing .lp-cite-cards{padding-top:50px}
+  #view-landing .lp-cite-card{flex-wrap:wrap;gap:16px}
   #view-landing .lp-cite-card h3{flex:1 1 100%;width:auto}
+  #view-landing .lp-steps{padding-top:80px}
+  #view-landing .lp-steps h2{margin-bottom:24px}
+  #view-landing .lp-band{padding:50px 32px}
   #view-landing .lp-feat-pin{display:flex;flex-direction:column;gap:0}
   #view-landing .lp-feat-col{gap:100px}
   #view-landing .lp-feat{min-height:0;opacity:1;gap:32px}
@@ -967,10 +986,15 @@ body.lp-on .topbar{display:none}
   #view-landing .lp-band-cta{align-items:flex-start}
 }
 @media (max-width:560px){
-  #view-landing .lp-nav{width:calc(100% - 32px)}
-  #view-landing .lp-brand span{font-size:18px}
-  #view-landing .lp-brand img{width:36px;height:42px}
-  #view-landing .lp-band{padding:32px}
+  #view-landing{
+    --lp-nav-h:80px;
+  }
+  #view-landing .lp-nav{
+    padding:16px 16px;
+  }
+  #view-landing .lp-nav .lp-brand span{font-size:14.4px}
+  #view-landing .lp-nav .lp-brand img{width:29px;height:34px}
+  #view-landing .lp-band{padding:50px 32px}
 }
 
 /* Reveal: blur + rise. Section titles are slower than the first pass;

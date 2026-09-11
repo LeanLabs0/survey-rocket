@@ -339,6 +339,8 @@ html[data-theme="light"] body.rs-intro-page{
   font-weight:500;
   letter-spacing:-.02em;
   cursor:pointer;
+  text-decoration:none;
+  box-sizing:border-box;
   box-shadow:var(--ll-btn-shadow-light), var(--ll-btn-shadow-inner);
 }
 .rs-begin:hover{background:#e6e6e6}
@@ -580,6 +582,92 @@ html[data-theme="light"] body.rs-intro-page{
   clip:rect(0,0,0,0);
   white-space:nowrap;
   border:0;
+}
+
+.rs-handoff{
+  position:fixed;
+  inset:0;
+  z-index:110;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(0,0,0,0);
+  opacity:0;
+  pointer-events:none;
+  transition:background .45s ease, opacity .45s ease;
+}
+.rs-handoff.open{
+  background:rgba(0,0,0,.72);
+  opacity:1;
+  pointer-events:auto;
+}
+.rs-handoff[hidden]{display:none !important}
+.rs-handoff-card{
+  width:min(440px, 100%);
+  background:var(--sr-surface);
+  color:var(--sr-text);
+  border:1px solid var(--sr-border);
+  border-radius:20px;
+  padding:32px 28px 24px;
+  text-align:center;
+  box-shadow:0 24px 80px rgba(0,0,0,.5);
+  transform:translateY(28px);
+  opacity:0;
+  transition:transform .45s ease, opacity .45s ease;
+}
+.rs-handoff.open .rs-handoff-card{
+  transform:none;
+  opacity:1;
+}
+.rs-handoff-kicker{
+  margin:0 0 10px;
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--sr-accent);
+  font-weight:600;
+}
+.rs-handoff-card h2{
+  margin:0 0 12px;
+  font-size:clamp(24px, 4vw, 32px);
+  font-weight:400;
+  letter-spacing:-.04em;
+  line-height:1.2;
+  color:var(--sr-text);
+}
+.rs-handoff-card h2 .em{
+  font-family:var(--rs-serif);
+  font-style:italic;
+  font-weight:400;
+}
+.rs-handoff-copy{
+  margin:0 0 24px;
+  font-size:15px;
+  line-height:1.55;
+  color:var(--sr-muted);
+  text-wrap:pretty;
+}
+.rs-handoff-card .rs-begin{
+  width:100%;
+}
+.rs-handoff-later{
+  display:block;
+  margin:14px auto 0;
+  background:none;
+  border:0;
+  color:var(--sr-gray);
+  font-family:var(--ll-font);
+  font-size:13px;
+  cursor:pointer;
+}
+.rs-handoff-later:hover{color:var(--sr-text)}
+@media (prefers-reduced-motion: reduce){
+  .rs-handoff,
+  .rs-handoff-card{
+    transition:none;
+  }
+  .rs-handoff-card{transform:none}
 }
 
 @media (max-width:760px){

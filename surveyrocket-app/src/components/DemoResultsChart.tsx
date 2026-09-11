@@ -85,7 +85,7 @@ export default function DemoResultsChart() {
         />
         <ChartTooltip
           content={<ChartTooltipContent indicator="dashed" />}
-          cursor={{ fill: "color-mix(in oklab, var(--color-answers) 12%, transparent)" }}
+          cursor={{ fill: "color-mix(in oklab, var(--color-answers) 6%, transparent)" }}
           wrapperStyle={{ outline: "none" }}
         />
         <Bar

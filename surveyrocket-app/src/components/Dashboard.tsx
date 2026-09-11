@@ -134,8 +134,11 @@ function statusLabel(kind: string) {
   return "Waiting";
 }
 
-function readyPct(ready: number, total: number) {
-  return total ? Math.round((ready / total) * 100) : 0;
+const PROOF_ANSWERS = 3;
+
+function proofPct(answers: number) {
+  if (answers <= 0) return 0;
+  return Math.min(100, Math.round((answers / PROOF_ANSWERS) * 100));
 }
 
 function surveyLink(publicId: string) {
@@ -206,14 +209,14 @@ function ExpandButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function ProgressMeter({ ready, total }: { ready: number; total: number }) {
-  const pct = readyPct(ready, total);
+function ProgressMeter({ answers }: { answers: number }) {
+  const pct = proofPct(answers);
   return (
     <div className="flex items-center gap-2">
       <div className="relative h-1.5 w-16 overflow-hidden rounded-full bg-muted">
         <div className="h-full bg-chart-2" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-muted-foreground text-xs tabular-nums">{total ? `${pct}%` : "—"}</span>
+      <span className="text-muted-foreground text-xs tabular-nums">{pct}%</span>
     </div>
   );
 }
@@ -296,7 +299,7 @@ function SurveyBars({ items, className }: { items: Series["items"]; className?: 
   const data = items.map((row) => ({ name: row.name, answers: row.count }));
   return (
     <ChartContainer className={className ?? "aspect-auto h-60 w-full"} config={chartConfig}>
-      <BarChart accessibilityLayer data={data} margin={{ left: 8, right: 8, top: 12 }}>
+      <BarChart accessibilityLayer data={data} margin={{ left: 8, right: 8, top: 12, bottom: 4 }}>
         <defs>
           <linearGradient id={gradientId} x1="0" x2="0" y1="1" y2="0">
             <stop offset="0%" stopColor="var(--color-answers)" stopOpacity={0.12} />
@@ -305,17 +308,7 @@ function SurveyBars({ items, className }: { items: Series["items"]; className?: 
           </linearGradient>
         </defs>
         <CartesianGrid vertical={false} />
-        <XAxis
-          axisLine={false}
-          dataKey="name"
-          interval={0}
-          tickFormatter={(value) => {
-            const label = String(value);
-            return label.length > 14 ? `${label.slice(0, 14)}…` : label;
-          }}
-          tickLine={false}
-          tickMargin={8}
-        />
+        <XAxis axisLine={false} dataKey="name" height={0} tick={false} tickLine={false} />
         <YAxis
           allowDecimals={false}
           axisLine={false}
@@ -325,7 +318,7 @@ function SurveyBars({ items, className }: { items: Series["items"]; className?: 
         />
         <ChartTooltip
           content={<ChartTooltipContent indicator="dashed" />}
-          cursor={{ fill: "color-mix(in oklab, var(--color-answers) 12%, transparent)" }}
+          cursor={{ fill: "color-mix(in oklab, var(--color-answers) 6%, transparent)" }}
           wrapperStyle={{ outline: "none" }}
         />
         <Bar
@@ -680,7 +673,7 @@ export default function Dashboard({
                       {sv.agg.latest_at ? sv.agg.latest_at.slice(0, 10) : "—"}
                     </TableCell>
                     <TableCell>
-                      <ProgressMeter ready={sv.stats.ready} total={sv.stats.total} />
+                      <ProgressMeter answers={sv.agg.responses} />
                     </TableCell>
                     <TableCell className="pr-6">
                       <Badge variant={kind === "live" ? "default" : "outline"}>
@@ -796,7 +789,7 @@ export default function Dashboard({
                     <CardHeader className="gap-1">
                       <CardDescription>Publish-ready</CardDescription>
                       <CardTitle className="flex min-h-7 items-center">
-                        <ProgressMeter ready={open.stats.ready} total={open.stats.total} />
+                        <ProgressMeter answers={open.agg.responses} />
                       </CardTitle>
                     </CardHeader>
                   </Card>

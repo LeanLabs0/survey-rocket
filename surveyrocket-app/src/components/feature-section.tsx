@@ -41,7 +41,7 @@ export function FeatureCard({
 }) {
 	return (
 		<div
-			className={cn("group/feature relative overflow-hidden bg-background p-6", className)}
+			className={cn("group/feature relative h-full overflow-hidden bg-background p-6", className)}
 			{...props}
 		>
 			<div className="pointer-events-none absolute inset-0 origin-center transition-transform duration-500 ease-out group-hover/feature:scale-125 motion-reduce:transition-none motion-reduce:group-hover/feature:scale-100">

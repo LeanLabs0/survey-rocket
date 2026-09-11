@@ -70,7 +70,7 @@ function statusLabel(kind: string) {
   return "Waiting";
 }
 
-const taskCardClass = "h-full cursor-pointer text-left";
+const taskCardClass = "flex h-full flex-1 cursor-pointer flex-col text-left";
 
 export default function SurveysList({
   clientSlug,
@@ -198,7 +198,7 @@ export default function SurveysList({
   return (
     <div className="flex flex-col gap-4">
       {showFirstRun ? (
-        <Card className="dark:bg-transparent">
+        <Card className="gap-0 pb-0 dark:bg-transparent">
           <CardHeader className="flex flex-row items-start justify-between gap-3 border-b">
             <div className="flex min-w-0 flex-col gap-1">
               <CardTitle className="text-xl text-balance">Start here</CardTitle>
@@ -217,9 +217,9 @@ export default function SurveysList({
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-3">
+            <div className="grid grid-cols-1 items-stretch gap-px bg-border sm:grid-cols-3 sm:auto-rows-fr">
               <button
-                className="text-left"
+                className="flex h-full min-h-0 flex-col text-left"
                 onClick={() => setChooser(true)}
                 type="button"
               >
@@ -232,7 +232,7 @@ export default function SurveysList({
                   }}
                 />
               </button>
-              <a className="block" href={`/app/${clientSlug}/scan`}>
+              <a className="flex h-full min-h-0 flex-col" href={`/app/${clientSlug}/scan`}>
                 <FeatureCard
                   className={taskCardClass}
                   feature={{
@@ -243,7 +243,7 @@ export default function SurveysList({
                 />
               </a>
               {sample ? (
-                <a className="block" href={`/s/${sample.publicId}`} rel="noopener" target="_blank">
+                <a className="flex h-full min-h-0 flex-col" href={`/s/${sample.publicId}`} rel="noopener" target="_blank">
                   <FeatureCard
                     className={taskCardClass}
                     feature={{
