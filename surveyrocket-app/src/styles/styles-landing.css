@@ -587,17 +587,25 @@ body.lp-on .topbar{display:none}
   position:sticky;
   top:var(--lp-nav-h, 96px);
   z-index:1;
-  display:flex;
+  display:grid;
   align-items:center;
   min-height:calc(100vh - var(--lp-nav-h, 96px));
 }
 #view-landing .lp-feat-stage-sticky img{
+  grid-area:1 / 1;
   display:block;
   width:100%;
   height:auto;
   max-height:calc(100vh - var(--lp-nav-h, 96px) - 48px);
   object-fit:contain;
   border-radius:12px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 400ms ease;
+}
+#view-landing .lp-feat-stage-sticky img.is-on{
+  opacity:1;
+  pointer-events:auto;
 }
 
 /* Chat mock */

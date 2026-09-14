@@ -286,9 +286,13 @@
       var pin = document.querySelector("#view-landing .lp-feat-pin");
       if(!pin) return;
       var steps = pin.querySelectorAll(".lp-feat-col .lp-feat");
+      var visuals = pin.querySelectorAll(".lp-feat-stage-sticky img");
       var mq = window.matchMedia("(max-width:980px)");
       var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
       var last = -1;
+      function showVisual(i){
+        visuals.forEach(function(el, idx){ el.classList.toggle("is-on", idx === i); });
+      }
       function sync(){
         if(mq.matches || reduce.matches){
           steps.forEach(function(el){ el.classList.add("is-on"); });
@@ -305,6 +309,7 @@
         if(best === last) return;
         last = best;
         steps.forEach(function(el, i){ el.classList.toggle("is-on", i === best); });
+        showVisual(best);
       }
       var ticking = false;
       function onScroll(){
