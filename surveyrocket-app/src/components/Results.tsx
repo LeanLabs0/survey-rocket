@@ -668,7 +668,7 @@ export default function Results({
           id: q.id,
           title,
           kind: "bars" as const,
-          kindLabel: q.type === "multi" || a.type === "multi" ? "Pick several" : "Multiple choice",
+          kindLabel: q.type === "multi" || a.type === "multi" ? "Multiple choice" : "Single choice",
           answers: a.answers || answered,
           subtitle: plural(a.answers || answered, "answer"),
           items: options.map((name) => ({ name, answers: a.choices![name] || 0 })),

@@ -43,7 +43,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { isQuestionRequired } from "@/lib/definition";
 import { cn } from "@/lib/utils";
-import { Check, Eye, GripVertical, Link2, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { Check, Copy, Eye, GripVertical, Link2, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
 
 declare global {
   interface Window {
@@ -99,8 +99,8 @@ type SurveyRow = {
 };
 
 const TYPES: { value: Question["type"] | "choice+nps"; label: string }[] = [
-  { value: "choice", label: "Multiple choice" },
-  { value: "multi", label: "Pick several" },
+  { value: "choice", label: "Single choice" },
+  { value: "multi", label: "Multiple choice" },
   { value: "choice+nps", label: "Rating 0 to 10" },
   { value: "number", label: "Number" },
   { value: "text", label: "Open text" },
@@ -187,9 +187,12 @@ function EditorInner({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [optDragFrom, setOptDragFrom] = useState<number | null>(null);
   const { confirm, dialog } = useConfirm();
   const dragIndexRef = useRef<number | null>(null);
   const dropIndexRef = useRef<number | null>(null);
+  const optDragFromRef = useRef<number | null>(null);
+  const optDragToRef = useRef<number | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const sendRef = useRef<HTMLButtonElement>(null);
@@ -206,6 +209,76 @@ function EditorInner({
       questions[i] = { ...questions[i], ...patch };
       return { ...d, questions };
     });
+  }
+
+  function parseOptionParts(raw: string) {
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+
+  function addOptions(i: number, existing: string[] | undefined, raw: string) {
+    const parts = parseOptionParts(raw);
+    if (!parts.length) return false;
+    const next = (existing || []).slice();
+    const seen = new Set(next.map((x) => x.toLowerCase()));
+    let added = false;
+    for (const part of parts) {
+      const key = part.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      next.push(part);
+      added = true;
+    }
+    if (!added) return false;
+    updateQ(i, { options: next });
+    return true;
+  }
+
+  function commitOptDraft(i: number, questionId: string, existing?: string[]) {
+    const raw = (optDraft[questionId] || "").trim();
+    if (!raw) return;
+    addOptions(i, existing, raw);
+    setOptDraft((d) => ({ ...d, [questionId]: "" }));
+  }
+
+  function moveOption(qi: number, from: number, to: number) {
+    if (from === to || from < 0 || to < 0) return;
+    setDef((d) => {
+      const questions = d.questions.slice();
+      const q = questions[qi];
+      if (!q?.options) return d;
+      const options = q.options.slice();
+      if (from >= options.length) return d;
+      const [item] = options.splice(from, 1);
+      const dest = from < to ? to - 1 : to;
+      options.splice(Math.max(0, Math.min(dest, options.length)), 0, item);
+      questions[qi] = { ...q, options };
+      return { ...d, questions };
+    });
+  }
+
+  function finishOptDrag(qi: number) {
+    const from = optDragFromRef.current;
+    const to = optDragToRef.current;
+    if (from !== null && to !== null) moveOption(qi, from, to);
+    optDragFromRef.current = null;
+    optDragToRef.current = null;
+    setOptDragFrom(null);
+  }
+
+  function cloneQ(i: number) {
+    const id = qid();
+    setDef((d) => {
+      const source = d.questions[i];
+      if (!source) return d;
+      const questions = d.questions.slice();
+      questions.splice(i + 1, 0, {
+        ...source,
+        id,
+        options: source.options ? source.options.slice() : undefined,
+      });
+      return { ...d, questions };
+    });
+    setEditingId(id);
   }
 
   function setType(i: number, value: string) {
@@ -483,6 +556,15 @@ function EditorInner({
                           )}
                         </Button>
                         <Button
+                          aria-label="Clone question"
+                          onClick={() => cloneQ(i)}
+                          size="icon-sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <Copy />
+                        </Button>
+                        <Button
                           aria-label="Delete question"
                           onClick={async () => {
                             const ok = await confirm({
@@ -550,17 +632,39 @@ function EditorInner({
                           <Input
                             className={fieldInputClass}
                             id={"q-opt-" + q.id}
-                            onChange={(e) => setOptDraft({ ...optDraft, [q.id]: e.target.value })}
+                            onBlur={() => commitOptDraft(i, q.id, q.options)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v.includes(",")) {
+                                const parts = v.split(",");
+                                if (parts.length > 2) {
+                                  addOptions(i, q.options, v);
+                                  setOptDraft({ ...optDraft, [q.id]: "" });
+                                  return;
+                                }
+                                const rest = parts.pop() ?? "";
+                                const head = parts.join(",");
+                                if (parseOptionParts(head).length) addOptions(i, q.options, head);
+                                setOptDraft({ ...optDraft, [q.id]: rest });
+                                return;
+                              }
+                              setOptDraft({ ...optDraft, [q.id]: v });
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();
-                                const v = (optDraft[q.id] || "").trim();
-                                if (!v) return;
-                                updateQ(i, { options: [...(q.options || []), v] });
-                                setOptDraft({ ...optDraft, [q.id]: "" });
+                                commitOptDraft(i, q.id, q.options);
                               }
                             }}
-                            placeholder="Add option, press Enter"
+                            onPaste={(e) => {
+                              const text = e.clipboardData.getData("text");
+                              if (!text.includes(",")) return;
+                              e.preventDefault();
+                              const merged = [optDraft[q.id] || "", text].filter(Boolean).join(",");
+                              addOptions(i, q.options, merged);
+                              setOptDraft({ ...optDraft, [q.id]: "" });
+                            }}
+                            placeholder="Yes, No, Not sure — comma or Enter"
                             value={optDraft[q.id] || ""}
                           />
                         </Field>
@@ -602,18 +706,53 @@ function EditorInner({
                         </div>
                       ) : null}
                       {(q.type === "choice" || q.type === "multi") && !q.nps ? (
-                        <div className="flex flex-wrap gap-2">
-                          {(q.options || []).map((o) => (
-                            <Button
-                              key={o}
-                              onClick={() => updateQ(i, { options: (q.options || []).filter((x) => x !== o) })}
-                              size="sm"
-                              type="button"
-                              variant="outline"
+                        <div className="flex flex-wrap gap-2" role="list">
+                          {(q.options || []).map((o, oi) => (
+                            <div
+                              aria-label={o}
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-md border border-border bg-background px-1.5 py-1 text-sm",
+                                optDragFrom === oi && "opacity-40",
+                              )}
+                              draggable
+                              key={q.id + "-opt-" + oi}
+                              role="listitem"
+                              onDragEnd={() => finishOptDrag(i)}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                optDragToRef.current = e.clientX < rect.left + rect.width / 2 ? oi : oi + 1;
+                              }}
+                              onDragStart={(e) => {
+                                e.stopPropagation();
+                                optDragFromRef.current = oi;
+                                optDragToRef.current = oi;
+                                setOptDragFrom(oi);
+                                e.dataTransfer.effectAllowed = "move";
+                                e.dataTransfer.setData("text/plain", String(oi));
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                finishOptDrag(i);
+                              }}
                             >
-                              {o}
-                              <X data-icon="inline-end" />
-                            </Button>
+                              <span aria-hidden="true" className="cursor-grab text-muted-foreground active:cursor-grabbing">
+                                <GripVertical className="size-3.5" />
+                              </span>
+                              <span>{o}</span>
+                              <button
+                                aria-label={`Remove ${o}`}
+                                className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                                onClick={() =>
+                                  updateQ(i, { options: (q.options || []).filter((_, j) => j !== oi) })
+                                }
+                                type="button"
+                              >
+                                <X className="size-3.5" />
+                              </button>
+                            </div>
                           ))}
                         </div>
                       ) : null}
