@@ -43,7 +43,7 @@
 
   (function landingMotion(){
     if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-      document.querySelectorAll("#view-landing .lp-reveal").forEach(function(el){ el.classList.add("in"); });
+      document.querySelectorAll("#view-landing .lp-reveal, #view-landing .lp-shot-rise").forEach(function(el){ el.classList.add("in"); });
       return;
     }
     function playHero(){
@@ -83,6 +83,16 @@
     document.querySelectorAll("#view-landing h2.lp-reveal, #view-landing h3.lp-reveal").forEach(function(el){
       if(el.closest(".lp-hero")) return;
       io.observe(el);
+    });
+    var shotIo = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting) return;
+        entry.target.classList.add("in");
+        shotIo.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
+    document.querySelectorAll("#view-landing .lp-shot-rise").forEach(function(el){
+      shotIo.observe(el);
     });
     playHero();
     (function heroVideo(){
@@ -286,19 +296,38 @@
       var pin = document.querySelector("#view-landing .lp-feat-pin");
       if(!pin) return;
       var steps = pin.querySelectorAll(".lp-feat-col .lp-feat");
+      var sticky = pin.querySelector(".lp-feat-stage-sticky");
       var visuals = pin.querySelectorAll(".lp-feat-stage-sticky img");
+      var nav = document.querySelector("#view-landing .lp-nav");
       var mq = window.matchMedia("(max-width:980px)");
       var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
       var last = -1;
       function showVisual(i){
         visuals.forEach(function(el, idx){ el.classList.toggle("is-on", idx === i); });
       }
+      function pinTop(){
+        if(!sticky || !steps.length) return;
+        var navH = nav ? nav.getBoundingClientRect().height : 96;
+        var floor = navH + 16;
+        var mediaH = sticky.getBoundingClientRect().height;
+        var lastH = steps[steps.length - 1].offsetHeight;
+        var pinRect = pin.getBoundingClientRect();
+        var travel = Math.max(1, pinRect.height - (window.innerHeight - navH));
+        var t = (navH - pinRect.top) / travel;
+        if(t < 0) t = 0;
+        if(t > 1) t = 1;
+        var endTop = navH + Math.max(0, lastH - mediaH) / 2;
+        if(endTop < floor) endTop = floor;
+        sticky.style.top = (floor + (endTop - floor) * t) + "px";
+      }
       function sync(){
         if(mq.matches || reduce.matches){
           steps.forEach(function(el){ el.classList.add("is-on"); });
+          if(sticky) sticky.style.top = "";
           last = 0;
           return;
         }
+        pinTop();
         var mid = window.innerHeight * 0.5;
         var best = 0, bestDist = Infinity;
         steps.forEach(function(el, i){

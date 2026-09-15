@@ -141,6 +141,11 @@ html[data-theme="light"] .login-wordmark{
   box-shadow:var(--ll-btn-shadow-light), var(--ll-btn-shadow-inner);
 }
 .btn.primary:hover{background:#e6e6e6}
+html[data-theme="light"] .btn.primary{
+  background:var(--tx);color:var(--ll-white);
+  box-shadow:var(--ll-btn-shadow-light), var(--ll-btn-shadow-inner);
+}
+html[data-theme="light"] .btn.primary:hover{background:#1b1b1b}
 .btn.ghost{
   background:transparent;color:var(--tx);
   box-shadow:var(--inset), var(--ll-btn-shadow-dark);

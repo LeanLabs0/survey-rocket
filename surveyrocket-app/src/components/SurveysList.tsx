@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { loadOnboard, saveOnboard } from "../lib/onboard";
+import { useState } from "react";
 import type { ShelfSurvey } from "../lib/access";
 import { useConfirm } from "./ConfirmDialog";
 import { FeatureCard } from "@/components/feature-section";
@@ -87,28 +86,12 @@ export default function SurveysList({
 }) {
   const [chooser, setChooser] = useState(false);
   const [list, setList] = useState(surveys);
-  const [onb, setOnb] = useState(() => ({
-    v: 1 as const,
-    tourDone: false,
-    dismissedAt: null as string | null,
-    views: {} as Record<string, { tipDismissed?: boolean }>,
-  }));
   const [copied, setCopied] = useState<string | null>(null);
   const [copyModal, setCopyModal] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
   const sample = list.find((s) => s.slug === "client-outcomes") || list[0] || null;
-
-  useEffect(() => {
-    setOnb(loadOnboard());
-  }, []);
-
-  function persist(next: typeof onb) {
-    setOnb(next);
-    saveOnboard(next);
-    window.dispatchEvent(new CustomEvent("sr-onboard-changed"));
-  }
 
   async function createBlank() {
     if (creating) return;
@@ -183,22 +166,16 @@ export default function SurveysList({
     );
   }
 
-  function hideFirstRun() {
-    persist({ ...onb, dismissedAt: new Date().toISOString() });
-  }
-
   function startTour() {
     window.dispatchEvent(new CustomEvent("sr-start-tour"));
   }
 
-  const showFirstRun = !onb.dismissedAt;
   const liveCount = list.filter((s) => statusKind(s.status, s.answers) === "live").length;
   const waitingCount = list.length - liveCount;
 
   return (
     <div className="flex flex-col gap-4">
-      {showFirstRun ? (
-        <Card className="gap-0 pb-0 dark:bg-transparent">
+      <Card className="gap-0 pb-0 dark:bg-transparent">
           <CardHeader className="flex flex-row items-start justify-between gap-3 border-b">
             <div className="flex min-w-0 flex-col gap-1">
               <CardTitle className="text-xl text-balance">Start here</CardTitle>
@@ -210,9 +187,6 @@ export default function SurveysList({
               <Button onClick={startTour} size="sm" type="button" variant="ghost">
                 <Play data-icon="inline-start" />
                 Take the tour
-              </Button>
-              <Button onClick={hideFirstRun} size="sm" type="button" variant="ghost">
-                Hide this
               </Button>
             </div>
           </CardHeader>
@@ -266,7 +240,6 @@ export default function SurveysList({
             </div>
           </CardContent>
         </Card>
-      ) : null}
 
       <Card className="dark:bg-transparent">
         <CardHeader className="flex flex-row items-start justify-between gap-3">

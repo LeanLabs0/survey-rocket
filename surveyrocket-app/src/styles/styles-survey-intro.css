@@ -218,6 +218,9 @@ html[data-theme="light"] body.rs-intro-page{
   color:var(--sr-muted);
   text-wrap:pretty;
 }
+.rs-welcome .rs-sub{
+  margin-bottom:150px;
+}
 
 .rs-video{
   position:relative;
@@ -454,18 +457,34 @@ html[data-theme="light"] body.rs-intro-page{
 .rs-intro-page #rs-log{min-height:360px;max-height:none;flex:1 1 auto}
 .rs-intro-page .rs-note{text-align:center;font-size:12px;color:var(--sr-gray);margin-top:14px;line-height:2}
 .rs-intro-page .rs-missing{text-align:center;padding:48px 20px;color:var(--sr-gray)}
-.rs-intro-page .rs-after{margin-top:18px;display:none;flex-direction:column;gap:14px}
-.rs-intro-page .rs-results{background:var(--sr-card);border:1px solid var(--sr-border);border-radius:16px;padding:18px 20px}
-.rs-intro-page .rs-results h3{font-size:14px;margin:0 0 10px;color:var(--sr-text)}
-.rs-intro-page .rs-results .row{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--sr-gray);padding:5px 0;border-bottom:1px solid var(--sr-border)}
-.rs-intro-page .rs-results .row:last-child{border-bottom:0}
-.rs-intro-page .rs-results .row b{color:var(--sr-text);font-weight:600}
-.rs-intro-page .rs-review{background:var(--sr-card);border:1px solid var(--sr-border);border-radius:16px;padding:28px 24px 24px;text-align:center}
-.rs-intro-page .rs-review .brand{display:block;height:36px;width:auto;margin:0 auto 18px}
-.rs-intro-page .rs-review h2{font-size:20px;letter-spacing:-.03em;margin:0 0 8px;color:var(--sr-text)}
-.rs-intro-page .rs-review p{font-size:14px;color:var(--sr-gray);margin:0 0 20px;line-height:1.5}
-.rs-intro-page .rs-review .btns{display:flex;flex-direction:column;gap:10px;align-items:stretch;max-width:320px;margin:0 auto}
-.rs-intro-page .rs-review .btns .btn{width:100%}
+.rs-result-meta{
+  margin:0 0 10px;
+  font-size:12px;
+  line-height:1.4;
+  color:var(--sr-gray);
+}
+.rs-result{
+  padding:10px 0;
+  border-top:1px solid var(--sr-border);
+}
+.rs-result-q{
+  margin:0 0 4px;
+  font-size:13px;
+  line-height:1.4;
+  color:var(--sr-muted);
+  text-wrap:pretty;
+}
+.rs-result-a{
+  margin:0;
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:-.02em;
+  line-height:1.3;
+  color:var(--sr-text);
+}
+.rs-intro-page .rs-note .btn{
+  margin-top:4px;
+}
 
 .rs-foot{
   position:relative;
@@ -604,7 +623,9 @@ html[data-theme="light"] body.rs-intro-page{
 }
 .rs-handoff[hidden]{display:none !important}
 .rs-handoff-card{
-  width:min(440px, 100%);
+  width:min(520px, 100%);
+  max-height:min(88vh, 840px);
+  overflow:auto;
   background:var(--sr-surface);
   color:var(--sr-text);
   border:1px solid var(--sr-border);
@@ -642,7 +663,7 @@ html[data-theme="light"] body.rs-intro-page{
   font-weight:400;
 }
 .rs-handoff-copy{
-  margin:0 0 24px;
+  margin:0 0 20px;
   font-size:15px;
   line-height:1.55;
   color:var(--sr-muted);
@@ -651,17 +672,85 @@ html[data-theme="light"] body.rs-intro-page{
 .rs-handoff-card .rs-begin{
   width:100%;
 }
-.rs-handoff-later{
-  display:block;
-  margin:14px auto 0;
+.rs-handoff-card .rs-begin[hidden]{display:none !important}
+.rs-handoff-results{
+  text-align:left;
+  margin:18px 0 0;
+  padding:16px 18px 16px;
+  background:var(--sr-card);
+  border:1px solid var(--sr-border);
+  border-radius:14px;
+}
+.rs-handoff-results[hidden]{display:none !important}
+.rs-handoff-results h3{
+  font-size:16px;
+  font-weight:600;
+  letter-spacing:-.03em;
+  margin:0 0 4px;
+  color:var(--sr-text);
+}
+.rs-handoff-table-wrap{
+  position:relative;
+}
+.rs-handoff-table{
+  max-height:7.25rem;
+  overflow:hidden;
+}
+.rs-handoff-table-wrap::after{
+  content:"";
+  position:absolute;
+  inset-inline:0;
+  bottom:0;
+  height:58%;
+  pointer-events:none;
+  z-index:1;
+  background:linear-gradient(to bottom, transparent 0%, var(--sr-card) 72%);
+}
+.rs-handoff-view{
+  position:absolute;
+  inset-inline:0;
+  bottom:0;
+  height:44%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2;
+}
+.rs-view-all{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+  padding:0;
   background:none;
   border:0;
-  color:var(--sr-gray);
+  color:var(--sr-text);
   font-family:var(--ll-font);
-  font-size:13px;
+  font-size:14px;
+  font-weight:500;
+  letter-spacing:-.02em;
+  line-height:1;
   cursor:pointer;
 }
-.rs-handoff-later:hover{color:var(--sr-text)}
+.rs-view-all:hover{opacity:.8}
+.rs-view-all-ic{
+  width:16px;
+  height:16px;
+  display:block;
+  flex:none;
+}
+.rs-handoff-results.is-open .rs-handoff-table{
+  max-height:min(52vh, 480px);
+  overflow:auto;
+}
+.rs-handoff-results.is-open .rs-handoff-table-wrap::after{
+  display:none;
+}
+.rs-handoff-results.is-open .rs-handoff-view{
+  position:static;
+  height:auto;
+  margin-top:12px;
+}
 @media (prefers-reduced-motion: reduce){
   .rs-handoff,
   .rs-handoff-card{

@@ -31,7 +31,7 @@ export default function ViewTip() {
         return;
       }
       const onb = loadOnboard();
-      if (view === "surveys" && !onb.dismissedAt && !force) {
+      if (view === "surveys" && !force) {
         setText(null);
         return;
       }

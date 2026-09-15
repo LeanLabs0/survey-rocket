@@ -40,10 +40,6 @@ const introText =
     ? definition.intro.trim()
     : "We'd love to capture what actually changed, so you and future clients can get a better experience with us.";
 const workspaceLogo = client?.logoUrl || null;
-const introVideo = {
-  src: "/assets/videos/Reputation%20Rocket%20Intro.mp4",
-  poster: "/assets/images/7c248b618a126294316f6a.gif",
-};
 let hubspotForm: { portalId: string; formId: string } | null = null;
 if (!missing && client) {
   const conn = await getConnection(client.id);
@@ -116,15 +112,6 @@ if (!missing && client) {
       <div class="rs-welcome" id="welcome" style={`display:${definition ? "flex" : "none"}`}>
         <h1>Ready to <span class="em">share your results</span> with {clientName}?</h1>
         <p class="rs-sub" id="g-meta">{introText}</p>
-        <div class="rs-video" id="rsVideo">
-          <img class="rs-video-thumb" src={introVideo.poster} width="736" height="379" alt="">
-          <video class="rs-video-el" id="rsWelcomeVideo" playsinline preload="metadata" poster={introVideo.poster}>
-            <source src={introVideo.src} type="video/mp4">
-          </video>
-          <button type="button" class="rs-play" id="rsVideoPlay" aria-label="Play welcome video">
-            <img src="/assets/survey-intro/icon-play.svg" width="19" height="19" alt="">
-          </button>
-        </div>
         <div class="rs-heads">
           <span class="rs-heads-icon" aria-hidden="true"><img src="/assets/survey-intro/icon-smile.svg" width="18" height="18" alt=""></span>
           <p><b>Heads up:</b> this is a short check-in from {clientName}. Most answers take a single tap.</p>
@@ -155,19 +142,7 @@ if (!missing && client) {
           </div>
         </div>
         <div class="rs-note" id="note">
-          <button class="btn ghost small" id="rs-copy" style="margin-left:4px;display:none">Copy my answers</button>
-        </div>
-        <div class="rs-after" id="after">
-          <div class="rs-results" id="afterResults" style="display:none">
-            <h3>How your answers compare</h3>
-            <div id="afterRows"></div>
-          </div>
-          <div class="rs-review" id="afterReview" style="display:none">
-            <img class="brand" src="/assets/landing/survey-rocket.svg" width="160" height="40" alt="Survey Rocket" />
-            <h2>Thanks for your answers</h2>
-            <p>Would you be open to leaving a public review? It helps others find the work.</p>
-            <div class="btns" id="reviewBtns"></div>
-          </div>
+          <button class="btn primary small" id="rs-review" type="button" hidden>Leave a review</button>
         </div>
       </div>
 
@@ -181,11 +156,25 @@ if (!missing && client) {
       <div class="rs-handoff-card" role="dialog" aria-modal="true" aria-labelledby="rrHandoffTitle">
         <p class="rs-handoff-kicker">You’re all set</p>
         <h2 id="rrHandoffTitle">Thanks — <span class="em">leave a review</span>?</h2>
-        <p class="rs-handoff-copy">{clientName} has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.</p>
-        <a class="rs-begin" href={reputationRocketUrl} id="rrHandoffGo" rel="noopener">
+        <p class="rs-handoff-copy" id="rrHandoffCopy">{clientName} has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.</p>
+        <a class="rs-begin" href={reputationRocketUrl} id="rrHandoffGo" rel="noopener" target="_blank">
           Leave a review <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt="">
         </a>
-        <button class="rs-handoff-later" type="button" id="rrHandoffLater">Not now</button>
+        <div class="rs-handoff-results" id="rrHandoffResults" hidden>
+          <h3>How your answers compare</h3>
+          <p class="rs-result-meta" id="rrHandoffMeta"></p>
+          <div class="rs-handoff-table-wrap">
+            <div class="rs-handoff-table" id="rrHandoffRows"></div>
+            <div class="rs-handoff-view">
+              <button class="rs-view-all" type="button" id="rrHandoffView">
+                <span id="rrHandoffViewLabel">View All</span>
+                <svg class="rs-view-all-ic" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3.333 8h9.334M8 3.333 12.667 8 8 12.667" stroke="currentColor" stroke-width="1.667" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -223,25 +212,6 @@ if (!missing && client) {
   <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
   <script is:inline src="/js/engine.js"></script>
   <script is:inline src="/js/transport.js"></script>
-  <script is:inline>
-    (function(){
-      var box = document.getElementById("rsVideo");
-      var vid = document.getElementById("rsWelcomeVideo");
-      if (!box || !vid) return;
-      function start(){
-        if (box.classList.contains("is-playing")) return;
-        box.classList.add("is-playing");
-        vid.setAttribute("controls", "");
-        var play = vid.play();
-        if (play && play.catch) play.catch(function(){});
-      }
-      box.addEventListener("click", function(e){
-        if (box.classList.contains("is-playing")) return;
-        e.preventDefault();
-        start();
-      });
-    })();
-  </script>
   <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm }}>
     (function(){
       if(!definition || !definition.questions || !definition.questions.length){
@@ -257,6 +227,12 @@ if (!missing && client) {
       var settings = survey.settings || {};
       var lastAnswers=null, respondent={name:null,firstname:null,lastname:null,email:null,company:null,website:null};
       var run={id:SRHubSpot.uuid(), startedAt:null};
+      var reviewStep=document.querySelector('#steps .rs-step[data-step="2"]');
+      var reviewLine=reviewStep && reviewStep.previousElementSibling;
+      if(!settings.review_ask){
+        if(reviewStep) reviewStep.hidden=true;
+        if(reviewLine && reviewLine.classList.contains("rs-step-line")) reviewLine.hidden=true;
+      }
       function setStep(i, allDone){
         var steps=document.querySelectorAll("#steps .rs-step");
         steps.forEach(function(el, idx){
@@ -331,76 +307,120 @@ if (!missing && client) {
         });
       }
       var handoffTimer=null;
+      var resultsOpen=false;
       function hideHandoff(){
         if(handoffTimer){ clearTimeout(handoffTimer); handoffTimer=null; }
         var el=document.getElementById("rrHandoff");
         if(!el) return;
         el.classList.remove("open");
         el.hidden=true;
+        setResultsOpen(false);
+      }
+      function answersLabel(n){
+        if(!n) return "No answers yet";
+        return n===1 ? "1 answer so far" : n+" answers so far";
+      }
+      function setResultsOpen(open){
+        resultsOpen=!!open;
+        var box=document.getElementById("rrHandoffResults");
+        var label=document.getElementById("rrHandoffViewLabel");
+        if(box) box.classList.toggle("is-open", resultsOpen);
+        if(label) label.textContent=resultsOpen ? "Show less" : "View All";
       }
       function showHandoff(){
-        setStep(2);
+        if(!settings.review_ask && !settings.show_results) return;
+        if(settings.review_ask) setStep(2);
         var el=document.getElementById("rrHandoff");
         if(!el) return;
+        setResultsOpen(false);
         el.hidden=false;
         requestAnimationFrame(function(){
           requestAnimationFrame(function(){ el.classList.add("open"); });
         });
         var go=document.getElementById("rrHandoffGo");
-        if(go) go.focus();
+        if(go && !go.hidden) go.focus();
+      }
+      function resultValue(q){
+        if(q.average!==null && q.average!==undefined) return String(q.average);
+        if(q.choices){
+          var top=null;
+          Object.keys(q.choices).forEach(function(c){
+            if(!top || q.choices[c]>q.choices[top]) top=c;
+          });
+          if(top) return top;
+        }
+        return null;
+      }
+      function renderResults(box, res){
+        box.innerHTML="";
+        if(!res || !res.questions) return;
+        var seen={};
+        var ids=(survey.questions||[]).map(function(q){ return q.id; });
+        Object.keys(res.questions).forEach(function(id){
+          if(ids.indexOf(id)<0) ids.push(id);
+        });
+        ids.forEach(function(qid){
+          if(seen[qid]) return;
+          seen[qid]=true;
+          var q=res.questions[qid];
+          if(!q) return;
+          var val=resultValue(q);
+          if(val===null) return;
+          var row=document.createElement("div");
+          row.className="rs-result";
+          var label=document.createElement("p");
+          label.className="rs-result-q";
+          label.textContent=q.question||qid;
+          var strong=document.createElement("p");
+          strong.className="rs-result-a";
+          strong.textContent=val;
+          row.appendChild(label);
+          row.appendChild(strong);
+          box.appendChild(row);
+        });
+      }
+      function firstReviewUrl(){
+        var links=settings.review_links||{};
+        var keys=Object.keys(links).filter(function(p){ return (links[p]||"").trim(); });
+        return keys.length ? links[keys[0]].trim() : "";
       }
       function showEnding(){
-        document.getElementById("after").style.display="flex";
-        if(settings.show_results){
-          SRHubSpot.results(publicId).then(function(res){
-            if(!res || !res.responses) return;
-            var box=document.getElementById("afterRows");
-            box.innerHTML="";
-            var head=document.createElement("div");
-            head.className="row";
-            head.innerHTML="<span>Answers so far</span><b>"+res.responses+"</b>";
-            box.appendChild(head);
-            Object.keys(res.questions||{}).forEach(function(qid){
-              var q=res.questions[qid];
-              var val=null;
-              if(q.average!==null && q.average!==undefined) val=String(q.average);
-              else if(q.choices){
-                var top=null; Object.keys(q.choices).forEach(function(c){ if(!top||q.choices[c]>q.choices[top]) top=c; });
-                if(top) val=top;
-              }
-              if(val===null) return;
-              var row=document.createElement("div");
-              row.className="row";
-              var label=document.createElement("span"); label.textContent=q.question||qid;
-              var strong=document.createElement("b"); strong.textContent=val;
-              row.appendChild(label); row.appendChild(strong);
-              box.appendChild(row);
-            });
-            document.getElementById("afterResults").style.display="block";
-          });
+        var reviewBtn=document.getElementById("rs-review");
+        var go=document.getElementById("rrHandoffGo");
+        var title=document.getElementById("rrHandoffTitle");
+        var copy=document.getElementById("rrHandoffCopy");
+        var modalResults=document.getElementById("rrHandoffResults");
+        var customUrl=firstReviewUrl();
+        if(go && customUrl) go.href=customUrl;
+        if(go) go.hidden=!settings.review_ask;
+        if(title){
+          title.innerHTML=settings.review_ask
+            ? "Thanks — <span class=\"em\">leave a review</span>?"
+            : "Thanks for your <span class=\"em\">answers</span>";
         }
-        var links=settings.review_links||{};
-        var platforms=Object.keys(links).filter(function(p){ return (links[p]||"").trim(); });
-        if(settings.review_ask && platforms.length){
-          var btns=document.getElementById("reviewBtns");
-          btns.innerHTML="";
-          platforms.forEach(function(p){
-            var url=links[p];
-            var a=document.createElement("a");
-            a.className="btn primary"; a.target="_blank"; a.rel="noopener";
-            a.href=url;
-            a.textContent=/google|g\.page|maps\.app\.goo/i.test(url) || p==="google" ? "Leave a Google review" : "Leave a review";
-            a.addEventListener("click",function(){ sendRecord(true,"clicked"); });
-            btns.appendChild(a);
+        if(copy){
+          copy.textContent=settings.review_ask
+            ? (clientName+" has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.")
+            : "Here's how your answers sit next to everyone else's so far.";
+        }
+        if(reviewBtn){
+          var showBtn=!!(settings.review_ask || settings.show_results);
+          reviewBtn.hidden=!showBtn;
+          reviewBtn.textContent=settings.review_ask ? "Leave a review" : "See your answers";
+        }
+        if(settings.show_results){
+          if(modalResults) modalResults.hidden=false;
+          setResultsOpen(false);
+          var meta=document.getElementById("rrHandoffMeta");
+          var rows=document.getElementById("rrHandoffRows");
+          if(meta) meta.textContent="Loading the latest numbers…";
+          if(rows) rows.innerHTML="<p class=\"rs-result-meta\">Loading the latest numbers…</p>";
+          SRHubSpot.results(publicId).then(function(res){
+            if(meta) meta.textContent=answersLabel(res && res.responses);
+            if(rows) renderResults(rows, res||{});
           });
-          var later=document.createElement("button");
-          later.className="btn ghost"; later.textContent="Maybe later";
-          later.addEventListener("click",function(){
-            document.getElementById("afterReview").style.display="none";
-            sendRecord(true,"dismissed");
-          });
-          btns.appendChild(later);
-          document.getElementById("afterReview").style.display="block";
+        } else if(modalResults){
+          modalResults.hidden=true;
         }
       }
       var chat=new SurveyChat({
@@ -416,21 +436,28 @@ if (!missing && client) {
         onComplete:function(answers){
           lastAnswers=answers;
           enrollHubSpot("completed").finally(function(){
-            sendRecord(false,"not_asked");
+            sendRecord(!!settings.review_ask, settings.review_ask ? "shown" : "not_asked");
           });
-          document.getElementById("rs-copy").style.display="inline-flex";
           showEnding();
-          if(handoffTimer) clearTimeout(handoffTimer);
-          handoffTimer=setTimeout(showHandoff, 700);
+          if(settings.review_ask || settings.show_results){
+            if(handoffTimer) clearTimeout(handoffTimer);
+            handoffTimer=setTimeout(showHandoff, 600);
+          } else {
+            setStep(1, true);
+          }
         }
       });
       function startRun(){
         run.id=SRHubSpot.uuid();
         run.startedAt=new Date().toISOString();
         sendStart();
-        document.getElementById("after").style.display="none";
-        document.getElementById("afterResults").style.display="none";
-        document.getElementById("afterReview").style.display="none";
+        var reviewBtn=document.getElementById("rs-review");
+        if(reviewBtn) reviewBtn.hidden=true;
+        var modalResults=document.getElementById("rrHandoffResults");
+        if(modalResults){
+          modalResults.hidden=true;
+          modalResults.classList.remove("is-open");
+        }
         hideHandoff();
         setStep(1);
         chat.start();
@@ -627,10 +654,6 @@ if (!missing && client) {
       document.getElementById("rrHandoffGo").addEventListener("click", function(){
         sendRecord(true, "clicked");
       });
-      document.getElementById("rrHandoffLater").addEventListener("click", function(){
-        hideHandoff();
-        setStep(2, true);
-      });
       document.getElementById("rrHandoff").addEventListener("click", function(e){
         if(e.target===this){
           hideHandoff();
@@ -644,13 +667,11 @@ if (!missing && client) {
         hideHandoff();
         setStep(2, true);
       });
-      document.getElementById("rs-copy").addEventListener("click",function(){
-        if(!lastAnswers) return;
-        var text=JSON.stringify({survey:survey.name, answers:lastAnswers}, null, 2);
-        navigator.clipboard.writeText(text).then(function(){
-          document.getElementById("rs-copy").textContent="Copied";
-          setTimeout(function(){ document.getElementById("rs-copy").textContent="Copy my answers"; },2000);
-        });
+      document.getElementById("rs-review").addEventListener("click",function(){
+        showHandoff();
+      });
+      document.getElementById("rrHandoffView").addEventListener("click", function(){
+        setResultsOpen(!resultsOpen);
       });
     })();
   </script>

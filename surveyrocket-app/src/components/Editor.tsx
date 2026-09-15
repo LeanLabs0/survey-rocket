@@ -685,7 +685,7 @@ function EditorInner({
               <Field orientation="horizontal">
                 <FieldContent>
                   <FieldTitle>Show results on completion</FieldTitle>
-                  <FieldDescription>Respondents see the running averages when they finish.</FieldDescription>
+                  <FieldDescription>Respondents see the running averages when they finish, including in the review prompt.</FieldDescription>
                 </FieldContent>
                 <Switch
                   aria-label="Show results on completion"
@@ -699,7 +699,7 @@ function EditorInner({
                 <FieldContent>
                   <FieldTitle>Ask for a review</FieldTitle>
                   <FieldDescription>
-                    Shows your review link after the last question, with a maybe later option.
+                    Opens a leave-a-review prompt when they finish.
                   </FieldDescription>
                 </FieldContent>
                 <Switch
