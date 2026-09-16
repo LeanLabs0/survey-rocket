@@ -19,7 +19,7 @@
       el.classList.toggle("on", on);
       el.classList.toggle("done", done && !on);
       var pill=el.querySelector(".pill");
-      if(pill) pill.textContent=done && !on ? "Completed" : (on ? "In Progress" : "Pending");
+      if(pill) pill.textContent=done && !on ? "Completed" : (on ? "In progress" : "Pending");
     });
     document.querySelectorAll("#steps .rs-step-line").forEach(function(line, idx){
       line.classList.toggle("fill", !!allDone || idx<i);

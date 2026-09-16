@@ -62,12 +62,8 @@ if (!missing && client) {
 ) : (
 <Base title={sv?.name || "Survey"} bodyClass="rs-intro-page">
   <Fragment slot="head">
-    <script is:inline>
-      document.documentElement.setAttribute("data-theme", "dark");
-      document.documentElement.classList.add("dark");
-    </script>
     {brand.googleFontsHref ? <link rel="stylesheet" href={brand.googleFontsHref} /> : null}
-    <style is:inline>{`body.rs-intro-page{${brand.cssVars}}`}</style>
+    <style set:html={`html,body.rs-intro-page{${brand.cssVars}}`}></style>
   </Fragment>
   <div class="rs-page" style={brand.cssVars} data-bot-avatar={brand.botAvatar}>
     <div class="rs-glow" aria-hidden="true"></div>
@@ -81,32 +77,30 @@ if (!missing && client) {
 
       <div class="rs-steps" id="steps" style={`display:${definition ? "flex" : "none"}`}>
         <div class="rs-step on" data-step="0">
-          <span class="dot">
-            <img class="ico" src="/assets/survey-intro/icon-hand.svg" width="20" height="20" alt="">
-            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
-          </span>
+          <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
           <span class="idx">Step 1</span>
           <span class="nm">Welcome</span>
-          <span class="pill">In Progress</span>
+          <span class="pill">In progress</span>
         </div>
         <span class="rs-step-line partial" aria-hidden="true"></span>
         <div class="rs-step" data-step="1">
-          <span class="dot">
-            <img class="ico" src="/assets/survey-intro/icon-chat.svg" width="20" height="20" alt="">
-            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
-          </span>
+          <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
           <span class="idx">Step 2</span>
           <span class="nm">Quick Chat</span>
           <span class="pill">Pending</span>
         </div>
         <span class="rs-step-line" aria-hidden="true"></span>
         <div class="rs-step" data-step="2">
-          <span class="dot">
-            <img class="ico" src="/assets/survey-intro/icon-star.svg" width="20" height="20" alt="">
-            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
-          </span>
+          <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
           <span class="idx">Step 3</span>
-          <span class="nm">Leave a review</span>
+          <span class="nm">Your Review</span>
+          <span class="pill">Pending</span>
+        </div>
+        <span class="rs-step-line" aria-hidden="true"></span>
+        <div class="rs-step" data-step="3">
+          <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
+          <span class="idx">Step 4</span>
+          <span class="nm">Post It</span>
           <span class="pill">Pending</span>
         </div>
       </div>
@@ -119,7 +113,7 @@ if (!missing && client) {
           <p><b>Heads up:</b> this is a short check-in from {clientName}. Most answers take a single tap.</p>
         </div>
         <div class="rs-contact" id="g-contact" hidden></div>
-        <button class="rs-begin" type="button" id="g-go">Begin <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt=""></button>
+        <button class="rs-begin" type="button" id="g-go">Begin <span class="rs-btn-icon" aria-hidden="true"></span></button>
         <p class="rs-micro"><img src="/assets/landing/icon-clock.svg" width="16" height="16" alt="">Takes about two minutes.</p>
       </div>
 
@@ -160,7 +154,7 @@ if (!missing && client) {
         <h2 id="rrHandoffTitle">Thanks — <span class="em">leave a review</span>?</h2>
         <p class="rs-handoff-copy" id="rrHandoffCopy">{clientName} has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.</p>
         <a class="rs-begin" href={reputationRocketUrl} id="rrHandoffGo" rel="noopener" target="_blank">
-          Leave a review <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt="">
+          Leave a review <span class="rs-btn-icon" aria-hidden="true"></span>
         </a>
         <div class="rs-handoff-results" id="rrHandoffResults" hidden>
           <h3>How your answers compare</h3>
@@ -230,10 +224,16 @@ if (!missing && client) {
       var lastAnswers=null, respondent={name:null,firstname:null,lastname:null,email:null,company:null,website:null};
       var run={id:SRHubSpot.uuid(), startedAt:null};
       var reviewStep=document.querySelector('#steps .rs-step[data-step="2"]');
-      var reviewLine=reviewStep && reviewStep.previousElementSibling;
+      var postStep=document.querySelector('#steps .rs-step[data-step="3"]');
+      function hideStep(el){
+        if(!el) return;
+        el.hidden=true;
+        var line=el.previousElementSibling;
+        if(line && line.classList.contains("rs-step-line")) line.hidden=true;
+      }
       if(!settings.review_ask){
-        if(reviewStep) reviewStep.hidden=true;
-        if(reviewLine && reviewLine.classList.contains("rs-step-line")) reviewLine.hidden=true;
+        hideStep(reviewStep);
+        hideStep(postStep);
       }
       function setStep(i, allDone){
         var steps=document.querySelectorAll("#steps .rs-step");
@@ -243,7 +243,7 @@ if (!missing && client) {
           el.classList.toggle("on", on);
           el.classList.toggle("done", done && !on);
           var pill=el.querySelector(".pill");
-          if(pill) pill.textContent=done && !on ? "Completed" : (on ? "In Progress" : "Pending");
+          if(pill) pill.textContent=done && !on ? "Completed" : (on ? "In progress" : "Pending");
         });
         document.querySelectorAll("#steps .rs-step-line").forEach(function(line, idx){
           line.classList.toggle("fill", !!allDone || idx<i);
@@ -655,6 +655,7 @@ if (!missing && client) {
       });
       document.getElementById("rrHandoffGo").addEventListener("click", function(){
         sendRecord(true, "clicked");
+        setStep(3);
       });
       document.getElementById("rrHandoff").addEventListener("click", function(e){
         if(e.target===this){

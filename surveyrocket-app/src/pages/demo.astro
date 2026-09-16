@@ -9,11 +9,8 @@ const brand = resolveSurveyBrand(null, { clientName: "Lean Labs", surveyName: "C
 ---
 <Base title="Survey Rocket demo" bodyClass="rs-intro-page sr-demo">
   <Fragment slot="head">
-    <script is:inline>
-      document.documentElement.setAttribute("data-theme", "dark");
-      document.documentElement.classList.add("dark");
-    </script>
-    <style is:inline>{`body.rs-intro-page{${brand.cssVars}}`}</style>
+    {brand.googleFontsHref ? <link rel="stylesheet" href={brand.googleFontsHref} /> : null}
+    <style set:html={`html,body.rs-intro-page{${brand.cssVars}}`}></style>
   </Fragment>
 
   <div class="sr-demo-banner" id="sr-demo-banner">
@@ -35,30 +32,21 @@ const brand = resolveSurveyBrand(null, { clientName: "Lean Labs", surveyName: "C
 
       <div class="rs-steps" id="steps">
         <div class="rs-step on" data-step="0">
-          <span class="dot">
-            <img class="ico" src="/assets/survey-intro/icon-hand.svg" width="20" height="20" alt="">
-            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
-          </span>
+          <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
           <span class="idx">Step 1</span>
           <span class="nm">Welcome</span>
-          <span class="pill">In Progress</span>
+          <span class="pill">In progress</span>
         </div>
         <span class="rs-step-line partial" aria-hidden="true"></span>
         <div class="rs-step" data-step="1">
-          <span class="dot">
-            <img class="ico" src="/assets/survey-intro/icon-chat.svg" width="20" height="20" alt="">
-            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
-          </span>
+          <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
           <span class="idx">Step 2</span>
           <span class="nm">Quick Chat</span>
           <span class="pill">Pending</span>
         </div>
         <span class="rs-step-line" aria-hidden="true"></span>
-        <div class="rs-step" data-step="2">
-          <span class="dot">
-            <img class="ico" src="/assets/survey-intro/icon-dash.svg" width="20" height="20" alt="">
-            <img class="check" src="/assets/survey-intro/icon-check.svg" width="36" height="36" alt="">
-          </span>
+        <div class="rs-step" data-step="2" data-icon="dash">
+          <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
           <span class="idx">Step 3</span>
           <span class="nm">Your Dashboard</span>
           <span class="pill">Pending</span>
@@ -72,7 +60,7 @@ const brand = resolveSurveyBrand(null, { clientName: "Lean Labs", surveyName: "C
           <span class="rs-heads-icon" aria-hidden="true"><img src="/assets/survey-intro/icon-smile.svg" width="18" height="18" alt=""></span>
           <p><b>Heads up:</b> you are playing a Lean Labs client. Most answers take a single tap, and nothing you type is stored.</p>
         </div>
-        <button class="rs-begin" type="button" id="g-go">Begin <img src="/assets/survey-intro/icon-arrow.svg" width="16" height="16" alt=""></button>
+        <button class="rs-begin" type="button" id="g-go">Begin <span class="rs-btn-icon" aria-hidden="true"></span></button>
         <p class="rs-micro"><img src="/assets/landing/icon-clock.svg" width="16" height="16" alt="">Takes about two minutes.</p>
       </div>
 
