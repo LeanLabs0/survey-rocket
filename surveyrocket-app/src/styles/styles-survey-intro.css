@@ -507,6 +507,7 @@ html[data-theme="light"] body.rs-intro-page{
 }
 .rs-intro-page .opt:hover{
   background:var(--sr-chip-hover);
+  color:var(--sr-chip-hover-text, var(--sr-chat-text));
 }
 .rs-intro-page .opt.on,
 .rs-intro-page .opts.locked .opt.picked{

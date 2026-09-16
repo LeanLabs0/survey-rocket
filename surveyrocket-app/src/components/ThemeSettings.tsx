@@ -27,6 +27,7 @@ type ColorKey =
   | "glow"
   | "chip"
   | "chipHover"
+  | "chipHoverText"
   | "button"
   | "buttonText"
   | "buttonHover"
@@ -87,6 +88,7 @@ function toDraft(brand: Record<string, unknown> | null | undefined, clientName: 
     glow: r.glow,
     chip: r.chip,
     chipHover: r.chipHover,
+    chipHoverText: r.chipHoverText,
     button: r.button,
     buttonText: r.buttonText,
     buttonHover: r.buttonHover,

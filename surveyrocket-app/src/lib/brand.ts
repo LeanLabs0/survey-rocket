@@ -13,7 +13,7 @@
  *    muted      subtitles
  *    gray       secondary labels
  *    glow       magenta wash behind the column
- *    chip / chipHover
+ *    chip / chipHover / chipHoverText
  *    button / buttonText / buttonHover / buttonBorder / buttonBorderHover / buttonRadius
  *    buttonDisabled / buttonDisabledText / buttonDisabledBorder
  *    button2 / button2Text / button2Hover / button2Border / button2BorderHover  (secondary — Restart, etc.)
@@ -44,6 +44,7 @@ export type ClientBrand = {
   glow?: string;
   chip?: string;
   chipHover?: string;
+  chipHoverText?: string;
   button?: string;
   buttonText?: string;
   buttonHover?: string;
@@ -178,6 +179,7 @@ export const DEFAULT_SURVEY_BRAND = {
   glow: "#F00090",
   chip: "rgba(255,255,255,.1)",
   chipHover: "rgba(255,255,255,.2)",
+  chipHoverText: "#ffffff",
   button: "#ffffff",
   buttonText: "#000000",
   buttonHover: "#e6e6e6",
@@ -258,6 +260,7 @@ export const THEME_COLOR_GROUPS = [
       { key: "glow", label: "Background glow" },
       { key: "chip", label: "Choice chips" },
       { key: "chipHover", label: "Chip hover" },
+      { key: "chipHoverText", label: "Chip hover text" },
     ],
   },
   {
@@ -361,6 +364,7 @@ const COLOR_KEYS = [
   "glow",
   "chip",
   "chipHover",
+  "chipHoverText",
   "button",
   "buttonText",
   "buttonHover",
@@ -483,6 +487,7 @@ export type ResolvedSurveyBrand = {
   glow: string;
   chip: string;
   chipHover: string;
+  chipHoverText: string;
   button: string;
   buttonText: string;
   buttonHover: string;
@@ -587,6 +592,7 @@ export function resolveSurveyBrand(
     glow: asColor(b.glow, DEFAULT_SURVEY_BRAND.glow),
     chip: asColor(b.chip, DEFAULT_SURVEY_BRAND.chip),
     chipHover: asColor(b.chipHover, DEFAULT_SURVEY_BRAND.chipHover),
+    chipHoverText: asColor(b.chipHoverText, asColor(b.chatText, DEFAULT_SURVEY_BRAND.chipHoverText)),
     button: asColor(b.button, DEFAULT_SURVEY_BRAND.button),
     buttonText: asColor(b.buttonText, DEFAULT_SURVEY_BRAND.buttonText),
     buttonHover: asColor(b.buttonHover, DEFAULT_SURVEY_BRAND.buttonHover),
@@ -675,6 +681,7 @@ export function resolveSurveyBrand(
     "--sr-glow": resolved.glow,
     "--sr-chip": resolved.chip,
     "--sr-chip-hover": resolved.chipHover,
+    "--sr-chip-hover-text": resolved.chipHoverText,
     "--sr-btn": resolved.button,
     "--sr-btn-text": resolved.buttonText,
     "--sr-btn-hover": resolved.buttonHover,
