@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { jsonError, jsonOk, membersForClient, requireClientAccess } from "../../../lib/access";
+import { jsonError, jsonOk, invalidatePortalsCache, membersForClient, requireClientAccess } from "../../../lib/access";
 import { deletePendingInvite, inviteUserToClient, isPasswordSet, resendInviteEmail } from "../../../lib/invite";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
 
@@ -51,5 +51,6 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     .delete()
     .eq("client_id", access.client.id)
     .eq("user_id", userId);
+  invalidatePortalsCache(userId);
   return jsonOk({ ok: true });
 };

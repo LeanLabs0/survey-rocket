@@ -8,11 +8,14 @@
  *    card       bubbles + avatar fill
  *    border
  *    text
+ *    chatText   bot bubbles + chips inside the chat window
+ *    bubMe / bubMeText   respondent (.bub.me) fill + type
  *    muted      subtitles
  *    gray       secondary labels
  *    glow       magenta wash behind the column
  *    chip / chipHover
  *    button / buttonText / buttonHover / buttonBorder / buttonBorderHover / buttonRadius
+ *    buttonDisabled / buttonDisabledText / buttonDisabledBorder
  *    button2 / button2Text / button2Hover / button2Border / button2BorderHover  (secondary — Restart, etc.)
  *    fieldRadius
  *    pageImage   optional full-bleed background photo
@@ -32,6 +35,9 @@ export type ClientBrand = {
   card?: string;
   border?: string;
   text?: string;
+  chatText?: string;
+  bubMe?: string;
+  bubMeText?: string;
   muted?: string;
   gray?: string;
   glow?: string;
@@ -42,6 +48,9 @@ export type ClientBrand = {
   buttonHover?: string;
   buttonBorder?: string;
   buttonBorderHover?: string;
+  buttonDisabled?: string;
+  buttonDisabledText?: string;
+  buttonDisabledBorder?: string;
   button2?: string;
   button2Text?: string;
   button2Hover?: string;
@@ -157,6 +166,9 @@ export const DEFAULT_SURVEY_BRAND = {
   card: "#141414",
   border: "#2b2b2b",
   text: "#ffffff",
+  chatText: "#ffffff",
+  bubMe: "#121212",
+  bubMeText: "#ffffff",
   muted: "rgba(255,255,255,.7)",
   gray: "#949494",
   glow: "#F00090",
@@ -167,6 +179,9 @@ export const DEFAULT_SURVEY_BRAND = {
   buttonHover: "#e6e6e6",
   buttonBorder: "transparent",
   buttonBorderHover: "transparent",
+  buttonDisabled: "rgba(255,255,255,.03)",
+  buttonDisabledText: "#949494",
+  buttonDisabledBorder: "transparent",
   button2: "#121212",
   button2Text: "#ffffff",
   button2Hover: "#1b1b1b",
@@ -236,6 +251,14 @@ export const THEME_COLOR_GROUPS = [
       { key: "glow", label: "Background glow" },
       { key: "chip", label: "Choice chips" },
       { key: "chipHover", label: "Chip hover" },
+    ],
+  },
+  {
+    title: "Chat",
+    items: [
+      { key: "chatText", label: "Chat text" },
+      { key: "bubMe", label: "Your reply fill" },
+      { key: "bubMeText", label: "Your reply text" },
     ],
   },
 ] as const;
@@ -320,6 +343,9 @@ const COLOR_KEYS = [
   "card",
   "border",
   "text",
+  "chatText",
+  "bubMe",
+  "bubMeText",
   "muted",
   "gray",
   "glow",
@@ -330,6 +356,9 @@ const COLOR_KEYS = [
   "buttonHover",
   "buttonBorder",
   "buttonBorderHover",
+  "buttonDisabled",
+  "buttonDisabledText",
+  "buttonDisabledBorder",
   "button2",
   "button2Text",
   "button2Hover",
@@ -433,6 +462,9 @@ export type ResolvedSurveyBrand = {
   card: string;
   border: string;
   text: string;
+  chatText: string;
+  bubMe: string;
+  bubMeText: string;
   muted: string;
   gray: string;
   glow: string;
@@ -443,6 +475,9 @@ export type ResolvedSurveyBrand = {
   buttonHover: string;
   buttonBorder: string;
   buttonBorderHover: string;
+  buttonDisabled: string;
+  buttonDisabledText: string;
+  buttonDisabledBorder: string;
   button2: string;
   button2Text: string;
   button2Hover: string;
@@ -528,6 +563,9 @@ export function resolveSurveyBrand(
     card: asColor(b.card, DEFAULT_SURVEY_BRAND.card),
     border: asColor(b.border, DEFAULT_SURVEY_BRAND.border),
     text: asColor(b.text, DEFAULT_SURVEY_BRAND.text),
+    chatText: asColor(b.chatText, asColor(b.text, DEFAULT_SURVEY_BRAND.chatText)),
+    bubMe: asColor(b.bubMe, DEFAULT_SURVEY_BRAND.bubMe),
+    bubMeText: asColor(b.bubMeText, DEFAULT_SURVEY_BRAND.bubMeText),
     muted: asColor(b.muted, DEFAULT_SURVEY_BRAND.muted),
     gray: asColor(b.gray, DEFAULT_SURVEY_BRAND.gray),
     glow: asColor(b.glow, DEFAULT_SURVEY_BRAND.glow),
@@ -540,6 +578,15 @@ export function resolveSurveyBrand(
     buttonBorderHover: asColor(
       b.buttonBorderHover,
       asColor(b.buttonBorder, DEFAULT_SURVEY_BRAND.buttonBorderHover),
+    ),
+    buttonDisabled: asColor(b.buttonDisabled, DEFAULT_SURVEY_BRAND.buttonDisabled),
+    buttonDisabledText: asColor(
+      b.buttonDisabledText,
+      asColor(b.gray, DEFAULT_SURVEY_BRAND.buttonDisabledText),
+    ),
+    buttonDisabledBorder: asColor(
+      b.buttonDisabledBorder,
+      asColor(b.buttonBorder, DEFAULT_SURVEY_BRAND.buttonDisabledBorder),
     ),
     button2: asColor(b.button2, DEFAULT_SURVEY_BRAND.button2),
     button2Text: asColor(b.button2Text, DEFAULT_SURVEY_BRAND.button2Text),
@@ -601,6 +648,9 @@ export function resolveSurveyBrand(
     "--sr-card": resolved.card,
     "--sr-border": resolved.border,
     "--sr-text": resolved.text,
+    "--sr-chat-text": resolved.chatText,
+    "--sr-bub-me": resolved.bubMe,
+    "--sr-bub-me-text": resolved.bubMeText,
     "--sr-muted": resolved.muted,
     "--sr-gray": resolved.gray,
     "--sr-glow": resolved.glow,
@@ -611,6 +661,9 @@ export function resolveSurveyBrand(
     "--sr-btn-hover": resolved.buttonHover,
     "--sr-btn-border": resolved.buttonBorder,
     "--sr-btn-border-hover": resolved.buttonBorderHover,
+    "--sr-btn-disabled": resolved.buttonDisabled,
+    "--sr-btn-disabled-text": resolved.buttonDisabledText,
+    "--sr-btn-disabled-border": resolved.buttonDisabledBorder,
     "--sr-btn-2": resolved.button2,
     "--sr-btn-2-text": resolved.button2Text,
     "--sr-btn-2-hover": resolved.button2Hover,

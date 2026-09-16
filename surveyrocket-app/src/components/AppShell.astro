@@ -1,6 +1,7 @@
 ---
 import { AppShell as AppChrome } from "./app-shell";
 import Tour from "./Tour";
+import { clientsForUser } from "../lib/access";
 
 interface Props {
   slug: string;
@@ -15,6 +16,8 @@ interface Props {
 const { slug, clientName, current, isSuperadmin, email } = Astro.props;
 const fullName = Astro.props.fullName ?? Astro.locals.profile?.fullName ?? null;
 const avatarUrl = Astro.props.avatarUrl ?? Astro.locals.profile?.avatarUrl ?? null;
+const superadmin = Boolean(isSuperadmin ?? Astro.locals.isSuperadmin);
+const portals = Astro.locals.user ? await clientsForUser(Astro.locals.user.id, superadmin) : [];
 ---
 
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -51,6 +54,7 @@ const avatarUrl = Astro.props.avatarUrl ?? Astro.locals.profile?.avatarUrl ?? nu
   email={email}
   fullName={fullName}
   avatarUrl={avatarUrl}
+  portals={portals}
 >
   {isSuperadmin && (
     <div class="impersonate">

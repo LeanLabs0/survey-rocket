@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { databaseUrl, db } from "./db";
 import { clientMembers, clients, hubspotConnections, profiles, responses, surveys } from "./schema";
 import { supabaseAdmin } from "./supabase-admin";
@@ -85,6 +85,58 @@ function mapClient(row: {
 
 export function invalidateProfileCache(userId: string) {
   cacheDelete(`profile:${userId}`);
+}
+
+export type PortalOption = {
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+};
+
+export function invalidatePortalsCache(userId?: string) {
+  if (userId) {
+    cacheDelete(`portals:${userId}:sa`);
+    cacheDelete(`portals:${userId}:m`);
+  } else {
+    cacheDeletePrefix("portals:");
+  }
+}
+
+function toPortal(row: { slug: string; name: string; logoUrl?: string | null }): PortalOption {
+  return { slug: row.slug, name: row.name, logoUrl: row.logoUrl ?? null };
+}
+
+/** Portals this user can open. Superadmins get every client. */
+export async function clientsForUser(userId: string, isSuperadmin: boolean): Promise<PortalOption[]> {
+  const key = `portals:${userId}:${isSuperadmin ? "sa" : "m"}`;
+  return cacheGetOrSet(key, 30_000, async () => {
+    if (isSuperadmin) {
+      const list = await listClients();
+      return list.map(toPortal).sort((a, b) => a.name.localeCompare(b.name));
+    }
+    const rows = await withDb(
+      async () =>
+        db
+          .select({ slug: clients.slug, name: clients.name, logoUrl: clients.logoUrl })
+          .from(clientMembers)
+          .innerJoin(clients, eq(clientMembers.clientId, clients.id))
+          .where(eq(clientMembers.userId, userId))
+          .orderBy(asc(clients.name)),
+      async () => {
+        const admin = supabaseAdmin();
+        const { data: memberships } = await admin.from("client_members").select("client_id").eq("user_id", userId);
+        const ids = (memberships || []).map((m) => m.client_id as string);
+        if (!ids.length) return [];
+        const { data } = await admin.from("clients").select("slug,name,logo_url").in("id", ids);
+        return (data || []).map((c) => ({
+          slug: c.slug as string,
+          name: c.name as string,
+          logoUrl: (c.logo_url as string) || null,
+        }));
+      },
+    );
+    return rows.map(toPortal).sort((a, b) => a.name.localeCompare(b.name));
+  });
 }
 
 export async function loadProfile(userId: string) {
@@ -211,7 +263,10 @@ export async function createClientRecord(input: {
       if (error || !data) throw new Error(error?.message || "Could not create client");
       return mapClient(data);
     },
-  );
+  ).then((row) => {
+    invalidatePortalsCache();
+    return row;
+  });
 }
 
 export async function updateClientBrand(slug: string, brand: Record<string, unknown>) {
@@ -229,6 +284,7 @@ export async function updateClientBrand(slug: string, brand: Record<string, unkn
     },
   );
   cacheDelete(`client:${slug}`);
+  invalidatePortalsCache();
   return row;
 }
 

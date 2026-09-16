@@ -19,6 +19,9 @@ type ColorKey =
   | "card"
   | "border"
   | "text"
+  | "chatText"
+  | "bubMe"
+  | "bubMeText"
   | "muted"
   | "gray"
   | "glow"
@@ -29,6 +32,9 @@ type ColorKey =
   | "buttonHover"
   | "buttonBorder"
   | "buttonBorderHover"
+  | "buttonDisabled"
+  | "buttonDisabledText"
+  | "buttonDisabledBorder"
   | "button2"
   | "button2Text"
   | "button2Hover"
@@ -70,6 +76,9 @@ function toDraft(brand: Record<string, unknown> | null | undefined, clientName: 
     card: r.card,
     border: r.border,
     text: r.text,
+    chatText: r.chatText,
+    bubMe: r.bubMe,
+    bubMeText: r.bubMeText,
     muted: r.muted,
     gray: r.gray,
     glow: r.glow,
@@ -80,6 +89,9 @@ function toDraft(brand: Record<string, unknown> | null | undefined, clientName: 
     buttonHover: r.buttonHover,
     buttonBorder: r.buttonBorder,
     buttonBorderHover: r.buttonBorderHover,
+    buttonDisabled: r.buttonDisabled,
+    buttonDisabledText: r.buttonDisabledText,
+    buttonDisabledBorder: r.buttonDisabledBorder,
     button2: r.button2,
     button2Text: r.button2Text,
     button2Hover: r.button2Hover,
@@ -470,7 +482,7 @@ export default function ThemeSettings({ slug, clientName, brand }: Props) {
 
       <section id="sg-buttons" className="sg-section">
         <h2>Buttons</h2>
-        <p className="lede">Primary (Send, Begin) and secondary (Restart) fills, type, hover, and border. Radius is shared.</p>
+        <p className="lede">Primary (Send, Begin) and secondary (Restart) fills, type, hover, border, and disabled. Radius is shared.</p>
         <h3>Primary</h3>
         <div className="sg-controls">
           <ColorRow label="Primary fill" value={draft.button} onChange={(v) => set("button", v)} />
@@ -478,6 +490,9 @@ export default function ThemeSettings({ slug, clientName, brand }: Props) {
           <ColorRow label="Primary hover" value={draft.buttonHover} onChange={(v) => set("buttonHover", v)} />
           <ColorRow label="Primary border" value={draft.buttonBorder} onChange={(v) => set("buttonBorder", v)} />
           <ColorRow label="Primary border hover" value={draft.buttonBorderHover} onChange={(v) => set("buttonBorderHover", v)} />
+          <ColorRow label="Primary disabled fill" value={draft.buttonDisabled} onChange={(v) => set("buttonDisabled", v)} />
+          <ColorRow label="Primary disabled text" value={draft.buttonDisabledText} onChange={(v) => set("buttonDisabledText", v)} />
+          <ColorRow label="Primary disabled border" value={draft.buttonDisabledBorder} onChange={(v) => set("buttonDisabledBorder", v)} />
         </div>
         <h3>Secondary</h3>
         <div className="sg-controls">

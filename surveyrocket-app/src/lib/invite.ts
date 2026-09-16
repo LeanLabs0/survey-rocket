@@ -29,15 +29,17 @@ async function rememberMembership(userId: string, email: string, clientId: strin
   const rest = await admin.from("profiles").upsert(profile);
   if (!rest.error) {
     await admin.from("client_members").upsert(member);
-    return;
+  } else {
+    const { db } = await import("./db");
+    const { clientMembers, profiles } = await import("./schema");
+    await db.insert(profiles).values({ id: userId, email, isSuperadmin: false }).onConflictDoNothing();
+    await db
+      .insert(clientMembers)
+      .values({ userId, clientId, role: "owner" })
+      .onConflictDoNothing();
   }
-  const { db } = await import("./db");
-  const { clientMembers, profiles } = await import("./schema");
-  await db.insert(profiles).values({ id: userId, email, isSuperadmin: false }).onConflictDoNothing();
-  await db
-    .insert(clientMembers)
-    .values({ userId, clientId, role: "owner" })
-    .onConflictDoNothing();
+  const { invalidatePortalsCache } = await import("./access");
+  invalidatePortalsCache(userId);
 }
 
 function inviteMailError(message: string) {
@@ -68,6 +70,8 @@ export async function deletePendingInvite(userId: string) {
   await admin.from("user_passkeys").delete().eq("user_id", userId);
   await admin.from("client_members").delete().eq("user_id", userId);
   await admin.from("profiles").delete().eq("id", userId);
+  const { invalidatePortalsCache } = await import("./access");
+  invalidatePortalsCache(userId);
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error && !/not (found|exist)/i.test(error.message)) throw new Error(inviteMailError(error.message));
 }

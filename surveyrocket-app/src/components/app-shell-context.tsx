@@ -1,5 +1,11 @@
 import { createContext, useContext } from "react";
 
+export type AppPortal = {
+  slug: string;
+  name: string;
+  logoUrl?: string | null;
+};
+
 export type AppShellData = {
   slug: string;
   clientName: string;
@@ -8,6 +14,7 @@ export type AppShellData = {
   email?: string | null;
   fullName?: string | null;
   avatarUrl?: string | null;
+  portals?: AppPortal[];
 };
 
 const AppShellContext = createContext<AppShellData | null>(null);
