@@ -14,6 +14,7 @@ const HUBSPOT_SCOPES = HUBSPOT_REQUIRED_SCOPES.join(" ");
 
 const CONTACT_READ = "crm.objects.contacts.read";
 const CONTACT_WRITE = "crm.objects.contacts.write";
+const WRITE_ALIASES = new Set([CONTACT_WRITE, "contacts"]);
 
 function trimEnv(name: string) {
   return envVar(name);
@@ -35,11 +36,14 @@ export function missingHubSpotScopes(raw: string | string[] | null | undefined) 
 
 export function missingContactScopes(raw: string | string[] | null | undefined) {
   const have = grantedScopeSet(raw);
-  return [CONTACT_READ, CONTACT_WRITE].filter((scope) => !have.has(scope));
+  const missing: string[] = [];
+  if (!have.has(CONTACT_READ) && !have.has("contacts")) missing.push(CONTACT_READ);
+  if (![...have].some((scope) => WRITE_ALIASES.has(scope))) missing.push(CONTACT_WRITE);
+  return missing;
 }
 
 export function hasContactWrite(raw: string | string[] | null | undefined) {
-  return grantedScopeSet(raw).has(CONTACT_WRITE);
+  return [...grantedScopeSet(raw)].some((scope) => WRITE_ALIASES.has(scope));
 }
 
 export function hasContactRead(raw: string | string[] | null | undefined) {
@@ -69,6 +73,7 @@ export function buildInstallUrl(state: string) {
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: HUBSPOT_REQUIRED_SCOPES.join(" "),
+    optional_scope: CONTACT_WRITE,
     state,
   });
   return `https://app.hubspot.com/oauth/authorize?${params.toString()}`;
