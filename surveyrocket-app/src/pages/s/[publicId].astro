@@ -80,7 +80,7 @@ if (!missing && client) {
           <span class="dot" aria-hidden="true"><span class="ico"></span><span class="check"></span></span>
           <span class="idx">Step 1</span>
           <span class="nm">Welcome</span>
-          <span class="pill">In progress</span>
+          <span class="pill">In Progress</span>
         </div>
         <span class="rs-step-line partial" aria-hidden="true"></span>
         <div class="rs-step" data-step="1">
@@ -157,7 +157,7 @@ if (!missing && client) {
           Leave a review <span class="rs-btn-icon" aria-hidden="true"></span>
         </a>
         <div class="rs-handoff-results" id="rrHandoffResults" hidden>
-          <h3>How your answers compare</h3>
+          <h3>The summary of your answers</h3>
           <p class="rs-result-meta" id="rrHandoffMeta"></p>
           <div class="rs-handoff-table-wrap">
             <div class="rs-handoff-table" id="rrHandoffRows"></div>
@@ -243,7 +243,7 @@ if (!missing && client) {
           el.classList.toggle("on", on);
           el.classList.toggle("done", done && !on);
           var pill=el.querySelector(".pill");
-          if(pill) pill.textContent=done && !on ? "Completed" : (on ? "In progress" : "Pending");
+          if(pill) pill.textContent=done && !on ? "Completed" : (on ? "In Progress" : "Pending");
         });
         document.querySelectorAll("#steps .rs-step-line").forEach(function(line, idx){
           line.classList.toggle("fill", !!allDone || idx<i);
@@ -318,9 +318,10 @@ if (!missing && client) {
         el.hidden=true;
         setResultsOpen(false);
       }
-      function answersLabel(n){
-        if(!n) return "No answers yet";
-        return n===1 ? "1 answer so far" : n+" answers so far";
+      function formatAnswer(v){
+        if(v===null || v===undefined || v==="") return null;
+        if(Array.isArray(v)) return v.length ? v.join(", ") : null;
+        return String(v);
       }
       function setResultsOpen(open){
         resultsOpen=!!open;
@@ -342,37 +343,16 @@ if (!missing && client) {
         var go=document.getElementById("rrHandoffGo");
         if(go && !go.hidden) go.focus();
       }
-      function resultValue(q){
-        if(q.average!==null && q.average!==undefined) return String(q.average);
-        if(q.choices){
-          var top=null;
-          Object.keys(q.choices).forEach(function(c){
-            if(!top || q.choices[c]>q.choices[top]) top=c;
-          });
-          if(top) return top;
-        }
-        return null;
-      }
-      function renderResults(box, res){
+      function renderAnswerSummary(box){
         box.innerHTML="";
-        if(!res || !res.questions) return;
-        var seen={};
-        var ids=(survey.questions||[]).map(function(q){ return q.id; });
-        Object.keys(res.questions).forEach(function(id){
-          if(ids.indexOf(id)<0) ids.push(id);
-        });
-        ids.forEach(function(qid){
-          if(seen[qid]) return;
-          seen[qid]=true;
-          var q=res.questions[qid];
-          if(!q) return;
-          var val=resultValue(q);
+        (survey.questions||[]).forEach(function(q){
+          var val=formatAnswer(lastAnswers && lastAnswers[q.id]);
           if(val===null) return;
           var row=document.createElement("div");
           row.className="rs-result";
           var label=document.createElement("p");
           label.className="rs-result-q";
-          label.textContent=q.question||qid;
+          label.textContent=q.q||q.id;
           var strong=document.createElement("p");
           strong.className="rs-result-a";
           strong.textContent=val;
@@ -424,7 +404,7 @@ if (!missing && client) {
         if(copy){
           copy.textContent=settings.review_ask
             ? (clientName+" has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.")
-            : "Here's how your answers sit next to everyone else's so far.";
+            : "Here's a summary of what you told us.";
         }
         if(reviewBtn){
           var showBtn=!!(settings.review_ask || settings.show_results);
@@ -436,12 +416,8 @@ if (!missing && client) {
           setResultsOpen(false);
           var meta=document.getElementById("rrHandoffMeta");
           var rows=document.getElementById("rrHandoffRows");
-          if(meta) meta.textContent="Loading the latest numbers…";
-          if(rows) rows.innerHTML="<p class=\"rs-result-meta\">Loading the latest numbers…</p>";
-          SRHubSpot.results(publicId).then(function(res){
-            if(meta) meta.textContent=answersLabel(res && res.responses);
-            if(rows) renderResults(rows, res||{});
-          });
+          if(meta) meta.textContent="";
+          if(rows) renderAnswerSummary(rows);
         } else if(modalResults){
           modalResults.hidden=true;
         }

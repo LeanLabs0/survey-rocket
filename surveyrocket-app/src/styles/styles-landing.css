@@ -442,11 +442,14 @@ body.lp-on .topbar{display:none}
   background:#0d0d0d;
   min-height:0;
 }
-#view-landing .lp-shot img{
+#view-landing .lp-shot img,
+#view-landing .lp-shot object{
   width:100%;
   height:auto;
   display:block;
   object-fit:contain;
+  aspect-ratio:1120 / 813;
+  border:0;
 }
 #view-landing .lp-shot-rise{
   opacity:0;

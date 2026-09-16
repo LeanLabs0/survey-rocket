@@ -21,7 +21,8 @@
  *    pageImage   optional full-bleed background photo
  *    font / serif   body + italic heading stacks (see SURVEY_FONTS)
  *    h1–h6, textLg–textXs and matching *Weight keys (300–800)
- *    steps / stepOn / stepOnText / stepPending / stepDoneText
+ *    steps / stepOn / stepOnInner / stepOnText / stepOnPill / stepOnPillText
+ *    stepPending / stepDoneText
  *    iconWelcome, iconChat, iconReview, iconPost, iconCheck
  *    chatTitle, poweredBy, chatLede, chatSub
  *    markUrl    product mark in the header (defaults to Survey Rocket)
@@ -84,7 +85,10 @@ export type ClientBrand = {
   textXsWeight?: number;
   steps?: string;
   stepOn?: string;
+  stepOnInner?: string;
   stepOnText?: string;
+  stepOnPill?: string;
+  stepOnPillText?: string;
   stepPending?: string;
   stepDoneText?: string;
   iconWelcome?: string;
@@ -214,11 +218,14 @@ export const DEFAULT_SURVEY_BRAND = {
   textRgWeight: 400,
   textSmWeight: 500,
   textXsWeight: 500,
-  steps: "#ffffff",
-  stepOn: "#1b365d",
+  steps: "#000000",
+  stepOn: "#ffffff",
+  stepOnInner: "#000000",
   stepOnText: "#ffffff",
-  stepPending: "#1b365d",
-  stepDoneText: "#1b365d",
+  stepOnPill: "#1c1c1c",
+  stepOnPillText: "#ffffff",
+  stepPending: "rgba(64,65,68,0.9)",
+  stepDoneText: "#000000",
   iconWelcome: "/assets/survey-intro/icon-hand.svg",
   iconChat: "/assets/survey-intro/icon-chat.svg",
   iconReview: "/assets/survey-intro/icon-star.svg",
@@ -265,9 +272,12 @@ export const THEME_COLOR_GROUPS = [
 
 export const THEME_PROGRESS_COLORS = [
   { key: "steps", label: "Progress card" },
-  { key: "stepOn", label: "In-progress fill" },
+  { key: "stepOn", label: "In-progress ring" },
+  { key: "stepOnInner", label: "In-progress inner" },
   { key: "stepOnText", label: "In-progress icon & label" },
-  { key: "stepPending", label: "Pending icon" },
+  { key: "stepOnPill", label: "In-progress pill fill" },
+  { key: "stepOnPillText", label: "In-progress pill text" },
+  { key: "stepPending", label: "Pending" },
   { key: "stepDoneText", label: "Completed check & label" },
   { key: "color", label: "Completed fill (accent)" },
 ] as const;
@@ -366,7 +376,10 @@ const COLOR_KEYS = [
   "button2BorderHover",
   "steps",
   "stepOn",
+  "stepOnInner",
   "stepOnText",
+  "stepOnPill",
+  "stepOnPillText",
   "stepPending",
   "stepDoneText",
 ] as const;
@@ -512,7 +525,10 @@ export type ResolvedSurveyBrand = {
   textXsWeight: number;
   steps: string;
   stepOn: string;
+  stepOnInner: string;
   stepOnText: string;
+  stepOnPill: string;
+  stepOnPillText: string;
   stepPending: string;
   stepDoneText: string;
   iconWelcome: string;
@@ -625,7 +641,10 @@ export function resolveSurveyBrand(
     textXsWeight: asWeight(b.textXsWeight, DEFAULT_SURVEY_BRAND.textXsWeight),
     steps: asColor(b.steps, DEFAULT_SURVEY_BRAND.steps),
     stepOn: asColor(b.stepOn, DEFAULT_SURVEY_BRAND.stepOn),
+    stepOnInner: asColor(b.stepOnInner, asColor(b.steps, DEFAULT_SURVEY_BRAND.stepOnInner)),
     stepOnText: asColor(b.stepOnText, DEFAULT_SURVEY_BRAND.stepOnText),
+    stepOnPill: asColor(b.stepOnPill, DEFAULT_SURVEY_BRAND.stepOnPill),
+    stepOnPillText: asColor(b.stepOnPillText, asColor(b.stepOnText, DEFAULT_SURVEY_BRAND.stepOnPillText)),
     stepPending: asColor(b.stepPending, DEFAULT_SURVEY_BRAND.stepPending),
     stepDoneText: asColor(b.stepDoneText, DEFAULT_SURVEY_BRAND.stepDoneText),
     iconWelcome: asUrl(b.iconWelcome, DEFAULT_SURVEY_BRAND.iconWelcome),
@@ -696,7 +715,10 @@ export function resolveSurveyBrand(
     "--sr-text-xs-w": String(resolved.textXsWeight),
     "--sr-steps": resolved.steps,
     "--sr-step-on": resolved.stepOn,
+    "--sr-step-on-inner": resolved.stepOnInner,
     "--sr-step-on-text": resolved.stepOnText,
+    "--sr-step-on-pill": resolved.stepOnPill,
+    "--sr-step-on-pill-text": resolved.stepOnPillText,
     "--sr-step-pending": resolved.stepPending,
     "--sr-step-done-text": resolved.stepDoneText,
     "--sr-icon-welcome": `url("${resolved.iconWelcome}")`,

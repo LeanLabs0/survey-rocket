@@ -42,7 +42,10 @@ type ColorKey =
   | "button2BorderHover"
   | "steps"
   | "stepOn"
+  | "stepOnInner"
   | "stepOnText"
+  | "stepOnPill"
+  | "stepOnPillText"
   | "stepPending"
   | "stepDoneText";
 
@@ -99,7 +102,10 @@ function toDraft(brand: Record<string, unknown> | null | undefined, clientName: 
     button2BorderHover: r.button2BorderHover,
     steps: r.steps,
     stepOn: r.stepOn,
+    stepOnInner: r.stepOnInner,
     stepOnText: r.stepOnText,
+    stepOnPill: r.stepOnPill,
+    stepOnPillText: r.stepOnPillText,
     stepPending: r.stepPending,
     stepDoneText: r.stepDoneText,
     pageImage: typeof brand?.pageImage === "string" ? brand.pageImage : r.pageImage,
@@ -398,7 +404,7 @@ export default function ThemeSettings({ slug, clientName, brand }: Props) {
       <section id="sg-progress" className="sg-section">
         <h2>Progress</h2>
         <p className="lede">
-          The stepper on the questionnaire. In-progress uses its own fill so it can sit next to the accent used for completed steps. Icons are masks, so they pick up the fill color.
+          The stepper on the questionnaire. In-progress is a ring with its own inner fill and a separate pill. Completed steps use the accent. Icons are masks, so they pick up the icon color.
         </p>
         <div className="sg-controls">
           {THEME_PROGRESS_COLORS.map((item) => (
@@ -418,7 +424,7 @@ export default function ThemeSettings({ slug, clientName, brand }: Props) {
               <span className="dot"><span className="ico" /><span className="check" /></span>
               <span className="idx">Step 2</span>
               <span className="nm">Quick Chat</span>
-              <span className="pill">In progress</span>
+              <span className="pill">In Progress</span>
             </div>
             <span className="rs-step-line partial" />
             <div className="rs-step" data-step="2">
