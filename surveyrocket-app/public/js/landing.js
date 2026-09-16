@@ -297,7 +297,7 @@
       if(!pin) return;
       var steps = pin.querySelectorAll(".lp-feat-col .lp-feat");
       var sticky = pin.querySelector(".lp-feat-stage-sticky");
-      var visuals = pin.querySelectorAll(".lp-feat-stage-sticky img");
+      var visuals = pin.querySelectorAll(".lp-feat-stage-sticky img, .lp-feat-stage-sticky object");
       var nav = document.querySelector("#view-landing .lp-nav");
       var mq = window.matchMedia("(max-width:980px)");
       var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");

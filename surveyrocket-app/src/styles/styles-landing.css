@@ -576,18 +576,24 @@ body.lp-on .topbar{display:none}
   display:grid;
   align-items:start;
 }
-#view-landing .lp-feat-stage-sticky img{
+#view-landing .lp-feat-stage-sticky img,
+#view-landing .lp-feat-stage-sticky object{
   grid-area:1 / 1;
   display:block;
   width:100%;
   height:auto;
+  aspect-ratio:560 / 562;
   align-self:start;
+  border:0;
   border-radius:12px;
+  overflow:hidden;
+  background:transparent;
   opacity:0;
   pointer-events:none;
   transition:opacity 450ms ease;
 }
-#view-landing .lp-feat-stage-sticky img.is-on{
+#view-landing .lp-feat-stage-sticky img.is-on,
+#view-landing .lp-feat-stage-sticky object.is-on{
   opacity:1;
   pointer-events:auto;
 }
@@ -1006,8 +1012,12 @@ body.lp-on .topbar{display:none}
     order:-1;
     width:100%;
     height:auto;
+    aspect-ratio:560 / 562;
     margin:0;
+    border:0;
     border-radius:12px;
+    overflow:hidden;
+    background:transparent;
   }
   #view-landing .lp-band-cta{align-items:flex-start}
 }

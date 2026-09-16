@@ -26,7 +26,10 @@ const hubspotConnected = hubspotLabel === "connected";
             </span>
           </div>
         </div>
-        <a class="btn primary" href={`/app/${client.slug}/dashboard`}>Open portal</a>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <a class="btn ghost" href={`/admin/clients/${client.slug}/theme`}>Edit theme</a>
+          <a class="btn primary" href={`/app/${client.slug}/dashboard`}>Open portal</a>
+        </div>
       </div>
 
       <div class="admin-card">

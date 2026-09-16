@@ -1,0 +1,29 @@
+---
+import Base from "../../../../layouts/Base.astro";
+import AdminShell from "../../../../components/AdminShell.astro";
+import ThemeSettings from "../../../../components/ThemeSettings";
+import { clientBySlug } from "../../../../lib/access";
+
+const slug = Astro.params.slug!;
+const client = await clientBySlug(slug);
+if (!client) return Astro.redirect("/admin/clients");
+---
+<Base title={`Theme · ${client.name}`}>
+  <Fragment slot="head">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" />
+  </Fragment>
+  <AdminShell current="clients" email={Astro.locals.user?.email}>
+    <div class="wrap theme-wrap">
+      <a class="admin-back" href={`/admin/clients/${client.slug}`}>← {client.name}</a>
+      <div class="admin-head">
+        <div class="pagehead">
+          <p class="eyebrow">Theme</p>
+          <h1>{client.name}</h1>
+          <p>Color, buttons, forms, and type for this client’s questionnaires — the same structure as the Lean Labs style guide.</p>
+        </div>
+        <a class="btn ghost" href={`/app/${client.slug}/dashboard`}>Open portal</a>
+      </div>
+      <ThemeSettings client:load slug={client.slug} clientName={client.name} brand={client.brand || {}} />
+    </div>
+  </AdminShell>
+</Base>

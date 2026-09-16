@@ -27,6 +27,7 @@ const { clients } = await adminWorkspaceOverview();
               <td>{c.hubspot}</td>
               <td>
                 <a href={`/admin/clients/${c.slug}`}>Manage access</a>
+                · <a href={`/admin/clients/${c.slug}/theme`}>Edit theme</a>
                 · <a href={`/app/${c.slug}/dashboard`}>Open portal</a>
               </td>
             </tr>

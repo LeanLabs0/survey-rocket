@@ -25,6 +25,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await db.update(clients).set({ logoUrl: url }).where(eq(clients.id, access.client.id));
       return jsonOk({ url, kind });
     }
+    if (kind === "brand") {
+      const slug = String(form.get("client") || "");
+      const access = await requireClientAccess(locals.user, locals.isSuperadmin, slug);
+      if (!access.ok) return jsonError(access.status, access.error);
+      const slot = String(form.get("slot") || "asset").replace(/[^a-z0-9_-]/gi, "") || "asset";
+      const url = await uploadPublicImage(`brand/${access.client.id}/${slot}`, file);
+      return jsonOk({ url, kind, slot });
+    }
   } catch (err) {
     return jsonError(400, err instanceof Error ? err.message : "Could not upload that file.");
   }

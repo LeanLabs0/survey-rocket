@@ -13,6 +13,7 @@ const brand = resolveSurveyBrand(null, { clientName: "Lean Labs", surveyName: "C
       document.documentElement.setAttribute("data-theme", "dark");
       document.documentElement.classList.add("dark");
     </script>
+    <style is:inline>{`body.rs-intro-page{${brand.cssVars}}`}</style>
   </Fragment>
 
   <div class="sr-demo-banner" id="sr-demo-banner">

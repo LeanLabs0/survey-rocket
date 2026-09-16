@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
-import { createClientRecord, hubspotStatusByClient, jsonError, jsonOk, listClients } from "../../../lib/access";
+import { createClientRecord, hubspotStatusByClient, jsonError, jsonOk, listClients, updateClientBrand } from "../../../lib/access";
+import { sanitizeClientBrand } from "../../../lib/brand";
 import { inviteUserToClient } from "../../../lib/invite";
 import { slugify } from "../../../lib/ids";
 
@@ -25,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
       slug,
       name: body.name,
       logoUrl: null,
-      brand: body.brand || {},
+      brand: sanitizeClientBrand(body.brand || {}),
     });
   } catch (err) {
     return jsonError(400, err instanceof Error ? err.message : "Could not create client");
@@ -38,4 +39,21 @@ export const POST: APIRoute = async ({ request }) => {
     }
   }
   return jsonOk({ client: row }, 201);
+};
+
+export const PATCH: APIRoute = async ({ request, locals }) => {
+  if (!locals.isSuperadmin) return jsonError(403, "Superadmin only");
+  const body = await request.json().catch(() => null);
+  const slug = String(body?.slug || "").trim();
+  if (!slug) return jsonError(400, "slug required");
+  if (!body || !("brand" in body)) return jsonError(400, "brand required");
+  const brand = sanitizeClientBrand(body.brand);
+  let row;
+  try {
+    row = await updateClientBrand(slug, brand);
+  } catch (err) {
+    return jsonError(400, err instanceof Error ? err.message : "Could not save theme");
+  }
+  if (!row) return jsonError(404, "Client not found");
+  return jsonOk({ client: row });
 };

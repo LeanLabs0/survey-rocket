@@ -214,6 +214,24 @@ export async function createClientRecord(input: {
   );
 }
 
+export async function updateClientBrand(slug: string, brand: Record<string, unknown>) {
+  const client = await clientBySlug(slug);
+  if (!client) return null;
+  const row = await withDb(
+    async () => {
+      const [updated] = await db.update(clients).set({ brand }).where(eq(clients.id, client.id)).returning();
+      return updated ?? null;
+    },
+    async () => {
+      const { data, error } = await supabaseAdmin().from("clients").update({ brand }).eq("id", client.id).select("*").maybeSingle();
+      if (error) throw new Error(error.message);
+      return data ? mapClient(data) : null;
+    },
+  );
+  cacheDelete(`client:${slug}`);
+  return row;
+}
+
 export async function hubspotStatusByClient() {
   return withDb(
     async () => {

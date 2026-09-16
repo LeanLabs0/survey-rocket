@@ -66,6 +66,8 @@ if (!missing && client) {
       document.documentElement.setAttribute("data-theme", "dark");
       document.documentElement.classList.add("dark");
     </script>
+    {brand.googleFontsHref ? <link rel="stylesheet" href={brand.googleFontsHref} /> : null}
+    <style is:inline>{`body.rs-intro-page{${brand.cssVars}}`}</style>
   </Fragment>
   <div class="rs-page" style={brand.cssVars} data-bot-avatar={brand.botAvatar}>
     <div class="rs-glow" aria-hidden="true"></div>
