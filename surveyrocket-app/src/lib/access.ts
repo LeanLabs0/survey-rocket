@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { databaseUrl, db } from "./db";
 import { clientMembers, clients, hubspotConnections, profiles, responses, surveys } from "./schema";
 import { supabaseAdmin } from "./supabase-admin";
-import { cacheDelete, cacheGetOrSet } from "./ttl-cache";
+import { cacheDelete, cacheDeletePrefix, cacheGetOrSet } from "./ttl-cache";
 
 export type SessionUser = {
   id: string;
