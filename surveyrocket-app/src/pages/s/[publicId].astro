@@ -208,7 +208,7 @@ if (!missing && client) {
   <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
   <script is:inline src="/js/engine.js"></script>
   <script is:inline src="/js/transport.js"></script>
-  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm }}>
+  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm, reputationRocketUrl }}>
     (function(){
       if(!definition || !definition.questions || !definition.questions.length){
         document.getElementById("frame").style.display="none";
@@ -386,14 +386,35 @@ if (!missing && client) {
         var keys=Object.keys(links).filter(function(p){ return (links[p]||"").trim(); });
         return keys.length ? links[keys[0]].trim() : "";
       }
+      function appendContactParams(url){
+        if(!url) return url;
+        try{
+          var u=new URL(url, window.location.origin);
+          [
+            ["firstname", respondent.firstname],
+            ["lastname", respondent.lastname],
+            ["email", respondent.email],
+            ["company", respondent.company],
+            ["website", respondent.website]
+          ].forEach(function(pair){
+            var value=pair[1] && String(pair[1]).trim();
+            if(value) u.searchParams.set(pair[0], value);
+          });
+          return u.toString();
+        }catch(e){
+          return url;
+        }
+      }
+      function reviewHandoffUrl(){
+        return appendContactParams(firstReviewUrl() || reputationRocketUrl);
+      }
       function showEnding(){
         var reviewBtn=document.getElementById("rs-review");
         var go=document.getElementById("rrHandoffGo");
         var title=document.getElementById("rrHandoffTitle");
         var copy=document.getElementById("rrHandoffCopy");
         var modalResults=document.getElementById("rrHandoffResults");
-        var customUrl=firstReviewUrl();
-        if(go && customUrl) go.href=customUrl;
+        if(go) go.href=reviewHandoffUrl();
         if(go) go.hidden=!settings.review_ask;
         if(title){
           title.innerHTML=settings.review_ask
@@ -654,6 +675,7 @@ if (!missing && client) {
         }
       });
       document.getElementById("rrHandoffGo").addEventListener("click", function(){
+        this.href=reviewHandoffUrl();
         sendRecord(true, "clicked");
         setStep(3);
       });
