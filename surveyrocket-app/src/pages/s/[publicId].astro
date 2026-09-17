@@ -152,10 +152,16 @@ if (!missing && client) {
       <div class="rs-handoff-card" role="dialog" aria-modal="true" aria-labelledby="rrHandoffTitle">
         <p class="rs-handoff-kicker">You’re all set</p>
         <h2 id="rrHandoffTitle">Thanks — <span class="em">leave a review</span>?</h2>
-        <p class="rs-handoff-copy" id="rrHandoffCopy">{clientName} has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.</p>
+        <p class="rs-handoff-copy" id="rrHandoffCopy">
+          <span id="rrHandoffLead">{clientName} has your answers.</span>
+          <span id="rrHandoffRest">Reputation Rocket will draft a public review from them and walk you through posting it.</span>
+        </p>
         <a class="rs-begin" href={reputationRocketUrl} id="rrHandoffGo" rel="noopener" target="_blank">
           Leave a review <span class="rs-btn-icon" aria-hidden="true"></span>
         </a>
+        <div class="rs-handoff-alts" id="rrHandoffAlts">
+          <button class="rs-handoff-skip" type="button" id="rrHandoffAlready">I already did</button>
+        </div>
         <div class="rs-handoff-results" id="rrHandoffResults" hidden>
           <h3>The summary of your answers</h3>
           <p class="rs-result-meta" id="rrHandoffMeta"></p>
@@ -392,20 +398,24 @@ if (!missing && client) {
         var reviewBtn=document.getElementById("rs-review");
         var go=document.getElementById("rrHandoffGo");
         var title=document.getElementById("rrHandoffTitle");
-        var copy=document.getElementById("rrHandoffCopy");
+        var lead=document.getElementById("rrHandoffLead");
+        var rest=document.getElementById("rrHandoffRest");
+        var alts=document.getElementById("rrHandoffAlts");
         var modalResults=document.getElementById("rrHandoffResults");
         if(go) go.href=reviewHandoffUrl();
         if(go) go.hidden=!settings.review_ask;
+        if(alts) alts.hidden=!settings.review_ask;
         if(title){
           title.innerHTML=settings.review_ask
             ? "Thanks — <span class=\"em\">leave a review</span>?"
             : "Thanks for your <span class=\"em\">answers</span>";
         }
-        if(copy){
-          copy.textContent=settings.review_ask
-            ? (clientName+" has your answers. Reputation Rocket will draft a public review from them and walk you through posting it.")
+        if(lead){
+          lead.textContent=settings.review_ask
+            ? (clientName+" has your answers.")
             : "Here's a summary of what you told us.";
         }
+        if(rest) rest.hidden=!settings.review_ask;
         if(reviewBtn){
           var showBtn=!!(settings.review_ask || settings.show_results);
           reviewBtn.hidden=!showBtn;
@@ -650,23 +660,27 @@ if (!missing && client) {
           hsFailed=true;
         }
       });
+      function skipReview(outcome){
+        sendRecord(true, outcome);
+        hideHandoff();
+        setStep(2, true);
+      }
       document.getElementById("rrHandoffGo").addEventListener("click", function(){
         this.href=reviewHandoffUrl();
         sendRecord(true, "clicked");
         setStep(3);
       });
+      document.getElementById("rrHandoffAlready").addEventListener("click", function(){
+        skipReview("dismissed");
+      });
       document.getElementById("rrHandoff").addEventListener("click", function(e){
-        if(e.target===this){
-          hideHandoff();
-          setStep(2, true);
-        }
+        if(e.target===this) skipReview("dismissed");
       });
       document.addEventListener("keydown", function(e){
         if(e.key!=="Escape") return;
         var el=document.getElementById("rrHandoff");
         if(!el || el.hidden) return;
-        hideHandoff();
-        setStep(2, true);
+        skipReview("dismissed");
       });
       document.getElementById("rs-review").addEventListener("click",function(){
         showHandoff();
