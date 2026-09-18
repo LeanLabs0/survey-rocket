@@ -25,6 +25,7 @@
  *    stepPending / stepDoneText
  *    iconWelcome, iconChat, iconReview, iconPost, iconCheck
  *    chatTitle, poweredBy, chatLede, chatSub
+ *    website    client site for the post-survey “Visit …” CTA
  *    markUrl    product mark in the header (defaults to Survey Rocket)
  *    botIcon    chat avatar when the client has no logo
  */
@@ -101,6 +102,7 @@ export type ClientBrand = {
   poweredBy?: string;
   chatLede?: string;
   chatSub?: string;
+  website?: string;
   markUrl?: string;
   botIcon?: string;
 };

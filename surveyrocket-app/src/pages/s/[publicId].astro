@@ -16,6 +16,22 @@ function hasQuestions(definition: unknown) {
   return Array.isArray(questions) && questions.length > 0;
 }
 
+function absHttpUrl(value: unknown) {
+  if (typeof value !== "string") return "";
+  const t = value.trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^[a-z0-9][a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(t)) return `https://${t}`;
+  return "";
+}
+
+function visitCtaLabel(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const keep = words.filter((w) => !/^(the|of|and|a|for)$/i.test(w));
+  if (keep.length >= 3) return `Visit ${keep.map((w) => w.charAt(0).toUpperCase()).join("")}`;
+  return `Visit ${name}`;
+}
+
 const publicId = Astro.params.publicId!;
 const [found] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
 const sv = found && !found.deletedAt ? found : null;
@@ -30,6 +46,12 @@ if (missing) {
 }
 const clientName = client?.name || "Survey Rocket";
 const reputationRocketUrl = `https://reputationrocket.ai/${slugify(clientName)}`;
+const brandRecord = client?.brand && typeof client.brand === "object" ? (client.brand as Record<string, unknown>) : {};
+const clientWebsite =
+  absHttpUrl(brandRecord.website) ||
+  absHttpUrl(brandRecord.siteUrl) ||
+  (client?.slug === "fatherhood" ? "https://www.fatherhood.org" : "");
+const visitLabel = visitCtaLabel(clientName);
 const brand = resolveSurveyBrand(client?.brand, {
   logoUrl: client?.logoUrl,
   clientName,
@@ -150,17 +172,39 @@ if (!missing && client) {
 
     <div id="rrHandoff" class="rs-handoff" hidden>
       <div class="rs-handoff-card" role="dialog" aria-modal="true" aria-labelledby="rrHandoffTitle">
-        <p class="rs-handoff-kicker">You’re all set</p>
-        <h2 id="rrHandoffTitle">Thanks — <span class="em">leave a review</span>?</h2>
-        <p class="rs-handoff-copy" id="rrHandoffCopy">
-          <span id="rrHandoffLead">{clientName} has your answers.</span>
-          <span id="rrHandoffRest">Reputation Rocket will draft a public review from them and walk you through posting it.</span>
-        </p>
-        <a class="rs-begin" href={reputationRocketUrl} id="rrHandoffGo" rel="noopener" target="_blank">
-          Leave a review <span class="rs-btn-icon" aria-hidden="true"></span>
-        </a>
-        <div class="rs-handoff-alts" id="rrHandoffAlts">
-          <button class="rs-handoff-skip" type="button" id="rrHandoffAlready">I already did</button>
+        <div id="rrHandoffAsk">
+          <p class="rs-handoff-kicker" id="rrHandoffKicker">You’re all set</p>
+          <h2 id="rrHandoffTitle">Thank you for your <span class="em">time</span>!</h2>
+          <p class="rs-handoff-copy" id="rrHandoffLead">{clientName} has your answers.</p>
+          <div class="rs-handoff-ask-block" id="rrHandoffAskBlock">
+            <hr class="rs-handoff-rule">
+            <h3 id="rrHandoffAskTitle">Would you mind leaving a <span class="em">review</span>?</h3>
+            <p class="rs-handoff-copy" id="rrHandoffRest">Reputation Rocket will draft a public review from your answers and walk you through posting it — it only takes a minute.</p>
+            <a class="rs-begin" href={reputationRocketUrl} id="rrHandoffGo" rel="noopener" target="_blank">
+              Leave a review <span class="rs-btn-icon" aria-hidden="true"></span>
+            </a>
+            <button class="rs-handoff-already" type="button" id="rrHandoffAlready">I already left a review</button>
+            <button class="rs-handoff-now" type="button" id="rrHandoffSkip">Skip for now</button>
+          </div>
+        </div>
+        <div class="rs-handoff-follow" id="rrHandoffFollow" hidden>
+          <div class="rs-handoff-confetti" id="rrHandoffConfetti" hidden aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div class="rs-handoff-check" id="rrHandoffCheck" hidden>
+            <span></span>
+          </div>
+          <h2 id="rrHandoffFollowTitle">No problem, <span class="em">thank you</span></h2>
+          <p class="rs-handoff-copy" id="rrHandoffFollowCopy">{clientName} has your answers.</p>
+          {clientWebsite ? (
+            <a class="rs-handoff-visit" href={clientWebsite} id="rrHandoffVisit" rel="noopener" target="_blank">
+              {visitLabel} <span class="rs-btn-icon" aria-hidden="true"></span>
+            </a>
+          ) : (
+            <a class="rs-handoff-visit" href="#" id="rrHandoffVisit" hidden>
+              {visitLabel} <span class="rs-btn-icon" aria-hidden="true"></span>
+            </a>
+          )}
         </div>
         <div class="rs-handoff-results" id="rrHandoffResults" hidden>
           <h3>The summary of your answers</h3>
@@ -214,7 +258,7 @@ if (!missing && client) {
   <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
   <script is:inline src="/js/engine.js"></script>
   <script is:inline src="/js/transport.js"></script>
-  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm, reputationRocketUrl }}>
+  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm, reputationRocketUrl, clientWebsite }}>
     (function(){
       if(!definition || !definition.questions || !definition.questions.length){
         document.getElementById("frame").style.display="none";
@@ -316,6 +360,7 @@ if (!missing && client) {
       }
       var handoffTimer=null;
       var resultsOpen=false;
+      var handoffView="ask";
       function hideHandoff(){
         if(handoffTimer){ clearTimeout(handoffTimer); handoffTimer=null; }
         var el=document.getElementById("rrHandoff");
@@ -336,9 +381,44 @@ if (!missing && client) {
         if(box) box.classList.toggle("is-open", resultsOpen);
         if(label) label.textContent=resultsOpen ? "Show less" : "View All";
       }
+      function setHandoffView(view){
+        handoffView=view;
+        var ask=document.getElementById("rrHandoffAsk");
+        var follow=document.getElementById("rrHandoffFollow");
+        var check=document.getElementById("rrHandoffCheck");
+        var confetti=document.getElementById("rrHandoffConfetti");
+        var followTitle=document.getElementById("rrHandoffFollowTitle");
+        var followCopy=document.getElementById("rrHandoffFollowCopy");
+        var visit=document.getElementById("rrHandoffVisit");
+        var isFollow=view==="already" || view==="skip";
+        if(ask) ask.hidden=isFollow;
+        if(follow) follow.hidden=!isFollow;
+        if(!isFollow) return;
+        var celebrate=view==="skip";
+        if(check) check.hidden=!celebrate;
+        if(confetti) confetti.hidden=!celebrate;
+        if(followTitle){
+          followTitle.innerHTML=celebrate
+            ? "You just made our day — <span class=\"em\">thank you</span>!"
+            : "No problem, <span class=\"em\">thank you</span>";
+        }
+        if(followCopy){
+          followCopy.textContent=celebrate
+            ? ("We really appreciate you sharing your feedback with "+clientName+".")
+            : (clientName+" has your answers.");
+        }
+        if(visit){
+          if(clientWebsite){
+            visit.hidden=false;
+            visit.href=clientWebsite;
+          } else {
+            visit.hidden=true;
+          }
+        }
+      }
       function showHandoff(){
         if(!settings.review_ask && !settings.show_results) return;
-        if(settings.review_ask) setStep(2);
+        if(settings.review_ask && handoffView==="ask") setStep(2);
         var el=document.getElementById("rrHandoff");
         if(!el) return;
         setResultsOpen(false);
@@ -347,7 +427,9 @@ if (!missing && client) {
           requestAnimationFrame(function(){ el.classList.add("open"); });
         });
         var go=document.getElementById("rrHandoffGo");
-        if(go && !go.hidden) go.focus();
+        var visit=document.getElementById("rrHandoffVisit");
+        if(handoffView==="ask" && go && !go.hidden) go.focus();
+        else if(visit && !visit.hidden) visit.focus();
       }
       function renderAnswerSummary(box){
         box.innerHTML="";
@@ -399,15 +481,15 @@ if (!missing && client) {
         var go=document.getElementById("rrHandoffGo");
         var title=document.getElementById("rrHandoffTitle");
         var lead=document.getElementById("rrHandoffLead");
-        var rest=document.getElementById("rrHandoffRest");
-        var alts=document.getElementById("rrHandoffAlts");
+        var askBlock=document.getElementById("rrHandoffAskBlock");
+        var kicker=document.getElementById("rrHandoffKicker");
         var modalResults=document.getElementById("rrHandoffResults");
         if(go) go.href=reviewHandoffUrl();
-        if(go) go.hidden=!settings.review_ask;
-        if(alts) alts.hidden=!settings.review_ask;
+        if(askBlock) askBlock.hidden=!settings.review_ask;
+        if(kicker) kicker.hidden=!settings.review_ask;
         if(title){
           title.innerHTML=settings.review_ask
-            ? "Thanks — <span class=\"em\">leave a review</span>?"
+            ? "Thank you for your <span class=\"em\">time</span>!"
             : "Thanks for your <span class=\"em\">answers</span>";
         }
         if(lead){
@@ -415,7 +497,7 @@ if (!missing && client) {
             ? (clientName+" has your answers.")
             : "Here's a summary of what you told us.";
         }
-        if(rest) rest.hidden=!settings.review_ask;
+        setHandoffView("ask");
         if(reviewBtn){
           var showBtn=!!(settings.review_ask || settings.show_results);
           reviewBtn.hidden=!showBtn;
@@ -468,6 +550,7 @@ if (!missing && client) {
           modalResults.classList.remove("is-open");
         }
         hideHandoff();
+        setHandoffView("ask");
         setStep(1);
         chat.start();
       }
@@ -660,9 +743,9 @@ if (!missing && client) {
           hsFailed=true;
         }
       });
-      function skipReview(outcome){
+      function finishReview(outcome, view){
         sendRecord(true, outcome);
-        hideHandoff();
+        setHandoffView(view);
         setStep(2, true);
       }
       document.getElementById("rrHandoffGo").addEventListener("click", function(){
@@ -671,16 +754,22 @@ if (!missing && client) {
         setStep(3);
       });
       document.getElementById("rrHandoffAlready").addEventListener("click", function(){
-        skipReview("dismissed");
+        finishReview("dismissed", "already");
+      });
+      document.getElementById("rrHandoffSkip").addEventListener("click", function(){
+        finishReview("declined", "skip");
       });
       document.getElementById("rrHandoff").addEventListener("click", function(e){
-        if(e.target===this) skipReview("dismissed");
+        if(e.target!==this) return;
+        if(handoffView==="ask" && settings.review_ask) finishReview("declined", "skip");
+        else hideHandoff();
       });
       document.addEventListener("keydown", function(e){
         if(e.key!=="Escape") return;
         var el=document.getElementById("rrHandoff");
         if(!el || el.hidden) return;
-        skipReview("dismissed");
+        if(handoffView==="ask" && settings.review_ask) finishReview("declined", "skip");
+        else hideHandoff();
       });
       document.getElementById("rs-review").addEventListener("click",function(){
         showHandoff();
