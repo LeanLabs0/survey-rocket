@@ -13,18 +13,24 @@ const clients = await listClients();
         <h1>Users</h1>
         <p>Who can sign in, and which portals they belong to. An invite creates a pending account so we can email them — they cannot open a portal until they set a password from that email.</p>
       </div>
-      {clients.length > 0 ? (
       <div class="admin-card">
         <h2>Invite a user</h2>
-        <p class="lede">They get access to one portal. You can add them to others from that client’s page.</p>
+        <p class="lede">Client users get one portal (add more from that client’s page). Superadmins can open every portal and the admin area.</p>
         <form id="invite">
           <div class="admin-field">
             <label for="invite-email">Email</label>
             <input id="invite-email" name="email" type="email" required placeholder="colleague@company.com" />
           </div>
           <div class="admin-field">
+            <label for="invite-role">Role</label>
+            <select id="invite-role" name="role">
+              {clients.length > 0 ? <option value="member">Client user</option> : null}
+              <option value="superadmin">Superadmin</option>
+            </select>
+          </div>
+          <div class="admin-field" id="invite-client-field">
             <label for="invite-client">Client portal</label>
-            <select id="invite-client" name="client" required>
+            <select id="invite-client" name="client">
               {clients.map((c) => (
                 <option value={c.slug}>{c.name}</option>
               ))}
@@ -34,9 +40,6 @@ const clients = await listClients();
           <p id="invite-msg" hidden style="margin-top:10px;font-size:14px"></p>
         </form>
       </div>
-      ) : (
-        <p class="emptystate" style="margin-bottom:22px">Create a client before inviting users.</p>
-      )}
       <div class="admin-card users-table" style="max-width:none">
         <table class="raw">
           <thead><tr><th>Email</th><th>Status</th><th>Superadmin</th><th>Portals</th><th></th></tr></thead>
@@ -57,10 +60,19 @@ const clients = await listClients();
                 <td>{u.isSuperadmin ? "yes" : ""}</td>
                 <td>{u.clients.map((c) => c.name).join(", ") || "—"}</td>
                 <td>
-                  {u.inviteStatus !== "signed_in" && u.clients[0]?.slug ? (
+                  {u.inviteStatus !== "signed_in" && (u.isSuperadmin || u.clients[0]?.slug) ? (
                     <div class="row-actions">
-                      <button class="btn ghost small" type="button" data-resend={u.email} data-client={u.clients[0].slug}>Resend invite</button>
-                      <button class="btn ghost small" type="button" data-remove={u.id} data-client={u.clients[0].slug} data-email={u.email}>Remove invite</button>
+                      {u.isSuperadmin ? (
+                        <>
+                          <button class="btn ghost small" type="button" data-resend={u.email} data-superadmin="1">Resend invite</button>
+                          <button class="btn ghost small" type="button" data-remove={u.id} data-superadmin="1" data-email={u.email}>Remove invite</button>
+                        </>
+                      ) : (
+                        <>
+                          <button class="btn ghost small" type="button" data-resend={u.email} data-client={u.clients[0].slug}>Resend invite</button>
+                          <button class="btn ghost small" type="button" data-remove={u.id} data-client={u.clients[0].slug} data-email={u.email}>Remove invite</button>
+                        </>
+                      )}
                     </div>
                   ) : null}
                 </td>
@@ -79,16 +91,26 @@ const clients = await listClients();
       msg.style.color = ok ? "" : "var(--red)";
       msg.textContent = text;
     }
-    async function postInvite(client, email, resend, btn) {
+    const role = document.getElementById("invite-role");
+    const clientField = document.getElementById("invite-client-field");
+    const clientSelect = document.getElementById("invite-client");
+    function syncRole() {
+      const superadmin = role?.value === "superadmin";
+      if (clientField) clientField.hidden = superadmin;
+      if (clientSelect) clientSelect.required = !superadmin;
+    }
+    role?.addEventListener("change", syncRole);
+    syncRole();
+    async function postInvite({ client, email, resend, superadmin, btn }) {
       if (btn) {
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
       }
       try {
-        const res = await fetch("/api/app/members", {
+        const res = await fetch(superadmin ? "/api/admin/users" : "/api/app/members", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ client, email, resend: !!resend }),
+          body: JSON.stringify(superadmin ? { email, resend: !!resend } : { client, email, resend: !!resend }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -107,12 +129,29 @@ const clients = await listClients();
       e.preventDefault();
       const fd = new FormData(e.target);
       const btn = e.target.querySelector("[type=submit]");
-      const ok = await postInvite(fd.get("client"), fd.get("email"), false, btn);
+      const superadmin = fd.get("role") === "superadmin";
+      if (!superadmin && !fd.get("client")) {
+        showMsg("Create a client before inviting a portal user.", false);
+        return;
+      }
+      const ok = await postInvite({
+        client: fd.get("client"),
+        email: fd.get("email"),
+        resend: false,
+        superadmin,
+        btn,
+      });
       if (ok) location.reload();
     });
     document.querySelectorAll("[data-resend]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const ok = await postInvite(btn.getAttribute("data-client"), btn.getAttribute("data-resend"), true, btn);
+        const ok = await postInvite({
+          client: btn.getAttribute("data-client"),
+          email: btn.getAttribute("data-resend"),
+          resend: true,
+          superadmin: btn.hasAttribute("data-superadmin"),
+          btn,
+        });
         if (ok) showMsg("Invite resent. They will get a fresh email to set a password.", true);
       });
     });
@@ -122,11 +161,16 @@ const clients = await listClients();
         if (!confirm(`Delete the invite for ${email}? They will disappear from this list until you send a new one.`)) return;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
+        const superadmin = btn.hasAttribute("data-superadmin");
         try {
-          const res = await fetch("/api/app/members", {
+          const res = await fetch(superadmin ? "/api/admin/users" : "/api/app/members", {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ client: btn.getAttribute("data-client"), userId: btn.getAttribute("data-remove") }),
+            body: JSON.stringify(
+              superadmin
+                ? { userId: btn.getAttribute("data-remove") }
+                : { client: btn.getAttribute("data-client"), userId: btn.getAttribute("data-remove") },
+            ),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {

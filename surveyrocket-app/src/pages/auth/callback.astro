@@ -1,21 +1,24 @@
 ---
 import type { EmailOtpType } from "@supabase/supabase-js";
 import Base from "../../layouts/Base.astro";
+import { isSetupAuthType } from "../../lib/auth-handoff";
 import { passwordSetupPath } from "../../lib/auth-messages";
+import { isPendingInviteEmail } from "../../lib/invite";
 import { persistSessionCookies, plainAuthClient, safeNextPath, supabaseFromCookies } from "../../lib/supabase";
 import { touchSession } from "../../lib/sessions";
 
-const SETUP_TYPES = new Set(["invite", "recovery", "signup"]);
 const next = safeNextPath(Astro.url.searchParams.get("next"));
 const code = Astro.url.searchParams.get("code");
-const token = Astro.url.searchParams.get("token_hash");
-const type = Astro.url.searchParams.get("type") as EmailOtpType | null;
+const token = Astro.url.searchParams.get("token_hash") || Astro.url.searchParams.get("token");
+const type = (Astro.url.searchParams.get("type") as EmailOtpType | null) || (token ? "invite" : null);
 const auth = plainAuthClient();
 let established = false;
+let sessionEmail: string | null = null;
 
-async function keep(session: { user?: { id?: string } | null } | null) {
+async function keep(session: { user?: { id?: string; email?: string | null } | null } | null) {
   if (!session) return false;
   persistSessionCookies(Astro.cookies, session as Parameters<typeof persistSessionCookies>[1]);
+  sessionEmail = session.user?.email ?? sessionEmail;
   if (session.user?.id) {
     await touchSession(session.user.id, Astro.cookies, Astro.request).catch(() => null);
   }
@@ -38,7 +41,8 @@ if (token && type) {
   }
 }
 
-const setup = SETUP_TYPES.has(type || "") || next === passwordSetupPath();
+const pending = sessionEmail ? await isPendingInviteEmail(sessionEmail).catch(() => false) : false;
+const setup = isSetupAuthType(type) || next === passwordSetupPath() || pending;
 if (established) {
   return Astro.redirect(setup ? passwordSetupPath() : next);
 }
@@ -78,8 +82,12 @@ const dest = setup ? passwordSetupPath() : next;
     const access_token = hash.get("access_token");
     const refresh_token = hash.get("refresh_token");
     const hashType = hash.get("type") || "";
+    if (hash.get("error") || hash.get("error_description")) {
+      if (status) status.textContent = "This invite link is no longer valid. Ask your admin to resend it, then open the new email.";
+      return;
+    }
     if (!access_token || !refresh_token) {
-      if (status) status.textContent = "This link is missing a sign-in token. Ask your admin to resend the invite.";
+      if (status) status.textContent = "This invite link is no longer valid. Ask your admin to resend it, then open the new email.";
       return;
     }
     const res = await fetch("/api/auth/session", {
@@ -87,11 +95,12 @@ const dest = setup ? passwordSetupPath() : next;
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ access_token, refresh_token }),
     });
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      if (status) status.textContent = "This link expired. Ask your admin to resend the invite.";
+      if (status) status.textContent = "This invite link expired. Ask your admin to resend it, then open the new email.";
       return;
     }
-    const setup = hashType === "invite" || hashType === "recovery" || hashType === "signup";
+    const setup = hashType === "invite" || hashType === "recovery" || hashType === "signup" || dest === "/auth/set-password" || body.needsPassword;
     location.replace(setup ? "/auth/set-password" : dest);
   })();
 </script>

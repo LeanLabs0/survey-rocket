@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { jsonError, jsonOk } from "../../../lib/access";
+import { isPendingInviteEmail } from "../../../lib/invite";
 import { persistSessionCookies, plainAuthClient } from "../../../lib/supabase";
 import { touchSession } from "../../../lib/sessions";
 
@@ -18,5 +19,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (data.session.user?.id) {
     await touchSession(data.session.user.id, cookies, request).catch(() => null);
   }
-  return jsonOk({ ok: true });
+  const needsPassword = data.session.user?.email
+    ? await isPendingInviteEmail(data.session.user.email).catch(() => false)
+    : false;
+  return jsonOk({ ok: true, needsPassword });
 };

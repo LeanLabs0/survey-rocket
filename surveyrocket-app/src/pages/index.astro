@@ -10,6 +10,21 @@ const demo = `${appOrigin()}/demo`;
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script is:inline>
+(function () {
+  var hash = location.hash || "";
+  var search = location.search || "";
+  var hp = new URLSearchParams(hash.replace(/^#/, ""));
+  var sp = new URLSearchParams(search);
+  if (!(hp.get("access_token") || hp.get("error") || hp.get("error_description") || sp.get("code") || sp.get("token_hash") || sp.get("token"))) return;
+  var host = location.hostname;
+  var app = host === "surveyrocket.ai" || host === "www.surveyrocket.ai" ? "https://beta.surveyrocket.ai" : location.origin;
+  var dest = new URL("/auth/callback", app);
+  sp.forEach(function (value, key) { dest.searchParams.set(key, value); });
+  if (!dest.searchParams.get("next")) dest.searchParams.set("next", "/auth/set-password");
+  location.replace(app + dest.pathname + dest.search + hash);
+})();
+</script>
 <title>Survey Rocket</title>
 <meta name="description" content="Turn customer surveys into stats you can publish. Survey Rocket asks your questions in a chat and turns results into numbers for your website.">
 <link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">

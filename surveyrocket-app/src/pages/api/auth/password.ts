@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { publicAuthMessage } from "../../../lib/auth-messages";
 import { persistSessionCookies, safeNextPath, signInWithPasswordDirect, supabasePublishableKey, supabaseUrl } from "../../../lib/supabase";
 import { markPasswordSet } from "../../../lib/access";
+import { isPendingInviteEmail } from "../../../lib/invite";
 import { touchSession } from "../../../lib/sessions";
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
@@ -38,6 +39,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not sign in.";
     console.error("password sign-in failed", message);
+    if (await isPendingInviteEmail(email).catch(() => false)) {
+      return back("This account still needs the invite email. Open that link to set a password, or ask an admin to resend it.");
+    }
     return back(message);
   }
   if (json) {

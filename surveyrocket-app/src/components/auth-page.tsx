@@ -101,6 +101,47 @@ export function AuthPage({
 	}, [emailPrefill, waitParam]);
 
 	useEffect(() => {
+		const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+		const search = new URLSearchParams(window.location.search);
+		if (hash.get("error_description") || hash.get("error")) {
+			setError((hash.get("error_description") || hash.get("error") || "").replace(/\+/g, " "));
+			history.replaceState(null, "", window.location.pathname + window.location.search);
+			return;
+		}
+		if (search.get("code") || search.get("token_hash") || search.get("token")) {
+			const dest = new URL("/auth/callback", window.location.origin);
+			search.forEach((value, key) => dest.searchParams.set(key, value));
+			if (!search.get("next")) dest.searchParams.set("next", "/auth/set-password");
+			window.location.replace(dest.pathname + dest.search);
+			return;
+		}
+		const access_token = hash.get("access_token");
+		const refresh_token = hash.get("refresh_token");
+		if (!access_token || !refresh_token) return;
+		setOk("Opening your invite…");
+		void (async () => {
+			const res = await fetch("/api/auth/session", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ access_token, refresh_token }),
+			});
+			const data = (await res.json().catch(() => ({}))) as { needsPassword?: boolean };
+			if (!res.ok) {
+				setError("This invite link expired. Ask your admin to resend it.");
+				setOk("");
+				return;
+			}
+			const type = hash.get("type") || "";
+			const setup =
+				type === "invite" ||
+				type === "recovery" ||
+				type === "signup" ||
+				data.needsPassword;
+			window.location.replace(setup ? "/auth/set-password" : next || "/app");
+		})();
+	}, [next]);
+
+	useEffect(() => {
 		if (waitLeft <= 0) return;
 		const t = window.setInterval(() => {
 			const email =

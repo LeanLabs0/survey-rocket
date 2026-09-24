@@ -1,18 +1,29 @@
 import { defineMiddleware } from "astro:middleware";
+import { authCallbackLocation, authHandoffHtml, crossHostHandoffHtml, shouldHandoffAuth } from "./lib/auth-handoff";
 import { restoreSession, supabaseFromCookies } from "./lib/supabase";
 import { loadProfile } from "./lib/access";
 import { sessionIsRevoked } from "./lib/sessions";
-import { hostSplitRedirect } from "./lib/site";
+import { APP_ORIGIN, hostSplitRedirect, isMarketingHost, requestHost } from "./lib/site";
 
 const PROTECTED = [/^\/app(?:\/|$)/, /^\/admin(?:\/|$)/, /^\/api\/app(?:\/|$)/, /^\/api\/admin(?:\/|$)/, /^\/api\/hubspot\/oauth\/start/];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { cookies, url, locals, request } = context;
+  if (shouldHandoffAuth(url)) {
+    return context.redirect(authCallbackLocation(url), 303);
+  }
   const split = hostSplitRedirect(url, request);
   if (split) {
     const method = request.method.toUpperCase();
     const status = method === "GET" || method === "HEAD" ? 308 : 303;
     return context.redirect(split, status);
+  }
+  const handoffHeaders = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" };
+  if (isMarketingHost(request, url) && (url.pathname === "/login" || url.pathname.startsWith("/auth"))) {
+    return new Response(crossHostHandoffHtml(APP_ORIGIN), { status: 200, headers: handoffHeaders });
+  }
+  if (requestHost(request, url) === "beta.surveyrocket.ai" && (url.pathname === "/" || url.pathname === "")) {
+    return new Response(authHandoffHtml(), { status: 200, headers: handoffHeaders });
   }
   locals.user = null;
   locals.profile = null;

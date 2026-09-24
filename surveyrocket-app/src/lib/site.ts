@@ -53,15 +53,14 @@ export function hostSplitRedirect(url: URL, request: Request): string | null {
   if (MARKETING_HOSTS.has(host)) {
     if (isAppPath(url.pathname)) {
       if (!safeRedirect) return `${APP_ORIGIN}/login`;
+      // /login and /auth keep hash tokens (invite / recovery). Middleware serves a client hop.
+      if (url.pathname === "/login" || url.pathname.startsWith("/auth")) return null;
       return `${APP_ORIGIN}${url.pathname}${url.search}`;
     }
     if (host === "www.surveyrocket.ai" && isMarketingAsset(url.pathname)) {
       return `${MARKETING_ORIGIN}${url.pathname}${url.search}`;
     }
     return null;
-  }
-  if (host === "beta.surveyrocket.ai" && (url.pathname === "/" || url.pathname === "")) {
-    return `${APP_ORIGIN}/app`;
   }
   return null;
 }

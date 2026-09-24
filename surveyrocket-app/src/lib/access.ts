@@ -61,6 +61,25 @@ export async function markPasswordSet(userId: string) {
     },
   );
   invalidateProfileCache(userId);
+  await syncAuthRole(userId).catch(() => null);
+}
+
+/** Copy profiles.is_superadmin onto the Auth user after they have a live session.
+ *  Doing this during inviteUserByEmail invalidates the setup link. */
+export async function syncAuthRole(userId: string) {
+  const profile = await loadProfile(userId);
+  if (!profile) return;
+  const admin = supabaseAdmin();
+  const { data } = await admin.auth.admin.getUserById(userId);
+  const prev = (data.user?.app_metadata || {}) as Record<string, unknown>;
+  if (Boolean(prev.is_superadmin) === profile.isSuperadmin) return;
+  await admin.auth.admin.updateUserById(userId, {
+    app_metadata: {
+      ...prev,
+      is_superadmin: profile.isSuperadmin,
+      sr_role: profile.isSuperadmin ? "superadmin" : null,
+    },
+  });
 }
 
 function mapClient(row: {
