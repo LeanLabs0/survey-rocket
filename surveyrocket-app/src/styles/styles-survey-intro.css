@@ -789,6 +789,11 @@ html[data-theme="light"] body.rs-intro-page{
   line-height:1.2;
   color:var(--sr-text);
 }
+.rs-handoff-card h2.is-balance{
+  max-width:12em;
+  margin-inline:auto;
+  text-wrap:balance;
+}
 .rs-handoff-card h2 .em{
   font-family:var(--sr-serif);
   font-style:italic;
@@ -800,6 +805,11 @@ html[data-theme="light"] body.rs-intro-page{
   line-height:1.55;
   color:var(--sr-muted);
   text-wrap:pretty;
+}
+.rs-handoff-copy.is-balance{
+  max-width:36ch;
+  margin-inline:auto;
+  text-wrap:balance;
 }
 .rs-handoff-card h3{
   margin:0 0 10px;
@@ -936,25 +946,34 @@ html[data-theme="light"] body.rs-intro-page{
 .rs-handoff-confetti[hidden]{display:none !important}
 .rs-handoff-confetti i{
   position:absolute;
-  width:7px;
-  height:12px;
+  left:50%;
+  top:28px;
+  width:8px;
+  height:14px;
+  margin-left:-4px;
   border-radius:2px;
-  opacity:.88;
+  opacity:0;
+  --x:0px;
+  --y:0px;
   --rot:0deg;
-  transform:rotate(var(--rot));
-  animation:rsConfetti .9s ease-out both;
+  transform:translate(0, 6px) rotate(0deg) scale(.4);
 }
-.rs-handoff-confetti i:nth-child(1){ left:10%; top:18%; background:var(--sr-accent); --rot:22deg; animation-delay:.02s }
-.rs-handoff-confetti i:nth-child(2){ left:22%; top:4%; background:var(--sr-text); --rot:-18deg; animation-delay:.08s }
-.rs-handoff-confetti i:nth-child(3){ left:38%; top:14%; background:color-mix(in srgb, var(--sr-accent) 70%, var(--sr-text)); --rot:40deg; animation-delay:.12s }
-.rs-handoff-confetti i:nth-child(4){ left:58%; top:2%; background:var(--sr-accent); --rot:-28deg; animation-delay:.05s }
-.rs-handoff-confetti i:nth-child(5){ left:74%; top:16%; background:var(--sr-text); --rot:16deg; animation-delay:.16s }
-.rs-handoff-confetti i:nth-child(6){ left:86%; top:8%; background:var(--sr-accent); --rot:-8deg; animation-delay:.1s }
-.rs-handoff-confetti i:nth-child(7){ left:6%; top:48%; background:var(--sr-text); --rot:50deg; animation-delay:.2s }
-.rs-handoff-confetti i:nth-child(8){ left:90%; top:42%; background:var(--sr-accent); --rot:-42deg; animation-delay:.18s }
+.rs-handoff-confetti.is-on i{
+  animation:rsConfetti 1.05s cubic-bezier(.16,.8,.28,1) both;
+}
+.rs-handoff-confetti i:nth-child(1){ background:var(--sr-accent); --x:-148px; --y:-6px; --rot:28deg; animation-delay:.02s }
+.rs-handoff-confetti i:nth-child(2){ width:6px; height:11px; background:var(--sr-text); --x:-96px; --y:-34px; --rot:-22deg; animation-delay:.06s }
+.rs-handoff-confetti i:nth-child(3){ background:color-mix(in srgb, var(--sr-accent) 70%, var(--sr-text)); --x:-42px; --y:-18px; --rot:46deg; animation-delay:.1s }
+.rs-handoff-confetti i:nth-child(4){ width:6px; height:10px; background:var(--sr-accent); --x:34px; --y:-38px; --rot:-34deg; animation-delay:.04s }
+.rs-handoff-confetti i:nth-child(5){ background:var(--sr-text); --x:92px; --y:-10px; --rot:18deg; animation-delay:.12s }
+.rs-handoff-confetti i:nth-child(6){ width:7px; height:12px; background:var(--sr-accent); --x:148px; --y:-26px; --rot:-12deg; animation-delay:.08s }
+.rs-handoff-confetti i:nth-child(7){ background:var(--sr-text); --x:-162px; --y:22px; --rot:54deg; animation-delay:.16s }
+.rs-handoff-confetti i:nth-child(8){ width:6px; height:11px; background:var(--sr-accent); --x:158px; --y:16px; --rot:-48deg; animation-delay:.14s }
 @keyframes rsConfetti{
-  from{ opacity:0; translate:0 10px; scale:.7 }
-  to{ opacity:.88; translate:0 0; scale:1 }
+  0%{ opacity:0; transform:translate(0, 8px) rotate(0deg) scale(.35) }
+  16%{ opacity:1 }
+  72%{ opacity:.95; transform:translate(var(--x), var(--y)) rotate(var(--rot)) scale(1) }
+  100%{ opacity:.9; transform:translate(var(--x), calc(var(--y) + 14px)) rotate(calc(var(--rot) + 28deg)) scale(1) }
 }
 .rs-handoff-results{
   text-align:left;
