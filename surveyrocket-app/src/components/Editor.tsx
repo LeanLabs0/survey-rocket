@@ -184,6 +184,8 @@ function EditorInner({
   const [busy, setBusy] = useState<"draft" | "publish" | "delete" | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [optDraft, setOptDraft] = useState<Record<string, string>>({});
+  const [bulkOptions, setBulkOptions] = useState<{ index: number; text: string } | null>(null);
+  const [draftNotice, setDraftNotice] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -211,26 +213,39 @@ function EditorInner({
     });
   }
 
-  function parseOptionParts(raw: string) {
-    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  function addOptions(i: number, existing: string[] | undefined, raw: string) {
+    const part = raw.trim();
+    if (!part) return false;
+    const next = (existing || []).slice();
+    if (next.some((x) => x.toLowerCase() === part.toLowerCase())) return false;
+    next.push(part);
+    updateQ(i, { options: next });
+    return true;
   }
 
-  function addOptions(i: number, existing: string[] | undefined, raw: string) {
-    const parts = parseOptionParts(raw);
-    if (!parts.length) return false;
-    const next = (existing || []).slice();
-    const seen = new Set(next.map((x) => x.toLowerCase()));
-    let added = false;
-    for (const part of parts) {
+  function openBulkOptions(i: number, questionId: string, existing?: string[]) {
+    const pending = (optDraft[questionId] || "").trim();
+    const lines = [...(existing || [])];
+    if (pending && !lines.some((x) => x.toLowerCase() === pending.toLowerCase())) lines.push(pending);
+    setBulkOptions({ index: i, text: lines.join("\n") });
+  }
+
+  function applyBulkOptions() {
+    if (!bulkOptions) return;
+    const next: string[] = [];
+    const seen = new Set<string>();
+    for (const line of bulkOptions.text.split(/\r?\n/)) {
+      const part = line.trim();
+      if (!part) continue;
       const key = part.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
       next.push(part);
-      added = true;
     }
-    if (!added) return false;
-    updateQ(i, { options: next });
-    return true;
+    updateQ(bulkOptions.index, { options: next });
+    const questionId = def.questions[bulkOptions.index]?.id;
+    if (questionId) setOptDraft((d) => ({ ...d, [questionId]: "" }));
+    setBulkOptions(null);
   }
 
   function commitOptDraft(i: number, questionId: string, existing?: string[]) {
@@ -292,6 +307,12 @@ function EditorInner({
       updateQ(i, { type: value as Question["type"], nps: false });
     }
   }
+
+  useEffect(() => {
+    if (!draftNotice) return;
+    const timer = window.setTimeout(() => setDraftNotice(0), 5000);
+    return () => window.clearTimeout(timer);
+  }, [draftNotice]);
 
   if (!editingId) committedQuestionsRef.current = def.questions;
   const previewQuestions = editingId ? committedQuestionsRef.current : def.questions;
@@ -355,8 +376,13 @@ function EditorInner({
         ...data.survey.definition,
         status: data.survey.status || data.survey.definition.status,
       });
-      setMsg(publish ? "Published" : "Draft saved");
-      if (publish) setShareOpen(true);
+      if (publish) {
+        setMsg("Published");
+        setShareOpen(true);
+      } else {
+        setMsg("");
+        setDraftNotice((n) => n + 1);
+      }
     } finally {
       setBusy(null);
     }
@@ -629,44 +655,33 @@ function EditorInner({
                       {(q.type === "choice" || q.type === "multi") && !q.nps ? (
                         <Field>
                           <FieldLabel htmlFor={"q-opt-" + q.id}>Options</FieldLabel>
-                          <Input
-                            className={fieldInputClass}
-                            id={"q-opt-" + q.id}
-                            onBlur={() => commitOptDraft(i, q.id, q.options)}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              if (v.includes(",")) {
-                                const parts = v.split(",");
-                                if (parts.length > 2) {
-                                  addOptions(i, q.options, v);
-                                  setOptDraft({ ...optDraft, [q.id]: "" });
-                                  return;
+                          <InputGroup className="h-10">
+                            <InputGroupInput
+                              className={fieldInputClass}
+                              id={"q-opt-" + q.id}
+                              onBlur={() => commitOptDraft(i, q.id, q.options)}
+                              onChange={(e) => setOptDraft({ ...optDraft, [q.id]: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  commitOptDraft(i, q.id, q.options);
                                 }
-                                const rest = parts.pop() ?? "";
-                                const head = parts.join(",");
-                                if (parseOptionParts(head).length) addOptions(i, q.options, head);
-                                setOptDraft({ ...optDraft, [q.id]: rest });
-                                return;
-                              }
-                              setOptDraft({ ...optDraft, [q.id]: v });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                commitOptDraft(i, q.id, q.options);
-                              }
-                            }}
-                            onPaste={(e) => {
-                              const text = e.clipboardData.getData("text");
-                              if (!text.includes(",")) return;
-                              e.preventDefault();
-                              const merged = [optDraft[q.id] || "", text].filter(Boolean).join(",");
-                              addOptions(i, q.options, merged);
-                              setOptDraft({ ...optDraft, [q.id]: "" });
-                            }}
-                            placeholder="Yes, No, Not sure — comma or Enter"
-                            value={optDraft[q.id] || ""}
-                          />
+                              }}
+                              placeholder="Type an option, then Enter"
+                              value={optDraft[q.id] || ""}
+                            />
+                            <InputGroupAddon align="inline-end">
+                              <InputGroupButton
+                                aria-label="Edit options as a list"
+                                onClick={() => openBulkOptions(i, q.id, q.options)}
+                                size="icon-sm"
+                                title="Paste one option per line"
+                                type="button"
+                              >
+                                <Pencil />
+                              </InputGroupButton>
+                            </InputGroupAddon>
+                          </InputGroup>
                         </Field>
                       ) : null}
                       <label className="flex items-center gap-2 text-sm font-medium">
@@ -714,7 +729,6 @@ function EditorInner({
                                 "inline-flex items-center gap-1 rounded-md border border-border bg-background px-1.5 py-1 text-sm",
                                 optDragFrom === oi && "opacity-40",
                               )}
-                              draggable
                               key={q.id + "-opt-" + oi}
                               role="listitem"
                               onDragEnd={() => finishOptDrag(i)}
@@ -724,24 +738,53 @@ function EditorInner({
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 optDragToRef.current = e.clientX < rect.left + rect.width / 2 ? oi : oi + 1;
                               }}
-                              onDragStart={(e) => {
-                                e.stopPropagation();
-                                optDragFromRef.current = oi;
-                                optDragToRef.current = oi;
-                                setOptDragFrom(oi);
-                                e.dataTransfer.effectAllowed = "move";
-                                e.dataTransfer.setData("text/plain", String(oi));
-                              }}
                               onDrop={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 finishOptDrag(i);
                               }}
                             >
-                              <span aria-hidden="true" className="cursor-grab text-muted-foreground active:cursor-grabbing">
+                              <span
+                                aria-hidden="true"
+                                className="cursor-grab text-muted-foreground active:cursor-grabbing"
+                                draggable
+                                onDragStart={(e) => {
+                                  e.stopPropagation();
+                                  optDragFromRef.current = oi;
+                                  optDragToRef.current = oi;
+                                  setOptDragFrom(oi);
+                                  e.dataTransfer.effectAllowed = "move";
+                                  e.dataTransfer.setData("text/plain", String(oi));
+                                }}
+                              >
                                 <GripVertical className="size-3.5" />
                               </span>
-                              <span>{o}</span>
+                              <input
+                                aria-label={`Edit ${o}`}
+                                className="field-sizing-content min-w-[2ch] cursor-text border-0 bg-transparent p-0 text-sm outline-none"
+                                onBlur={(e) => {
+                                  const text = e.target.value.trim();
+                                  const next = (q.options || []).slice();
+                                  if (!text) {
+                                    next.splice(oi, 1);
+                                  } else {
+                                    next[oi] = text;
+                                  }
+                                  updateQ(i, { options: next });
+                                }}
+                                onChange={(e) => {
+                                  const next = (q.options || []).slice();
+                                  next[oi] = e.target.value;
+                                  updateQ(i, { options: next });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                value={o}
+                              />
                               <button
                                 aria-label={`Remove ${o}`}
                                 className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -961,6 +1004,55 @@ function EditorInner({
           </div>
         </CardContent>
       </Card>
+
+      {draftNotice ? (
+        <>
+          <div
+            className="fixed top-[4.5rem] right-4 z-[60] w-72 overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-lg"
+            key={draftNotice}
+            role="status"
+          >
+            <div className="flex items-center gap-2 px-3.5 py-2.5">
+              <p className="min-w-0 flex-1 text-sm font-medium">Draft saved</p>
+              <button
+                aria-label="Dismiss"
+                className="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => setDraftNotice(0)}
+                type="button"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+            <span className="sr-draft-bar block h-0.5 bg-foreground" />
+          </div>
+          <style>{`@keyframes sr-draft-bar{from{transform:scaleX(1)}to{transform:scaleX(0)}}.sr-draft-bar{transform-origin:left center;animation:sr-draft-bar 5s linear forwards}`}</style>
+        </>
+      ) : null}
+
+      <Dialog onOpenChange={(open) => { if (!open) setBulkOptions(null); }} open={bulkOptions !== null}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit options</DialogTitle>
+            <DialogDescription>
+              Each line becomes one option. Commas stay inside the option.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            className="min-h-40 py-2.5"
+            onChange={(e) => setBulkOptions((current) => (current ? { ...current, text: e.target.value } : current))}
+            placeholder={"Option one\nOption two, with a comma\nOption three"}
+            value={bulkOptions?.text || ""}
+          />
+          <DialogFooter>
+            <Button onClick={() => setBulkOptions(null)} type="button" variant="outline">
+              Cancel
+            </Button>
+            <Button onClick={applyBulkOptions} type="button">
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog onOpenChange={setShareOpen} open={shareOpen}>
         <DialogContent className="sm:max-w-md">
