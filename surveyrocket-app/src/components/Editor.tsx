@@ -564,10 +564,11 @@ function EditorInner({
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         <Button
+                          className={editing ? "bg-emerald-500 text-black hover:bg-emerald-400" : undefined}
                           onClick={() => setEditingId(editing ? null : q.id)}
                           size="sm"
                           type="button"
-                          variant={editing ? "outline" : "ghost"}
+                          variant={editing ? "default" : "ghost"}
                         >
                           {editing ? (
                             <>
