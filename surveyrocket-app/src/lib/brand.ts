@@ -236,8 +236,8 @@ export const DEFAULT_SURVEY_BRAND = {
   iconPost: "/assets/survey-intro/icon-send.svg",
   iconCheck: "/assets/survey-intro/icon-check-mark.svg",
   poweredBy: "Powered by Survey Rocket",
-  chatLede: "Tell us how it’s going",
-  chatSub: "Just a quick, friendly conversation. Be honest. We want to celebrate wins and learn where we can improve.",
+  chatLede: "We'd love to hear from you",
+  chatSub: "Answer honestly, your responses help us understand where things stand.",
   markUrl: "/assets/landing/logo-mark.svg",
   botIcon: "/assets/survey-intro/icon-bot.svg",
 } as const;
