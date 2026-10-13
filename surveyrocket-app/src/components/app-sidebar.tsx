@@ -96,17 +96,22 @@ export function AppSidebar() {
 			<SidebarHeader className="h-14 justify-center">
 				<SidebarMenuButton
 					aria-label="Survey Rocket"
-					className="h-11 overflow-hidden px-1.5"
+					className="h-11 overflow-hidden px-1.5 group-data-[collapsible=icon]:p-1!"
 					render={<a href={homeHref} />}
 					tooltip="Survey Rocket"
 				>
-					<span className="flex h-[2.1rem] w-[8.28rem] items-center overflow-hidden group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:w-6">
+					<span className="flex h-[2.1rem] w-[8.28rem] items-center overflow-hidden group-data-[collapsible=icon]:hidden">
 						<img
 							src="/assets/landing/survey-rocket.svg"
 							alt=""
-							className="h-[2.1rem] w-auto max-w-none shrink-0 group-data-[collapsible=icon]:h-6"
+							className="h-[2.1rem] w-auto max-w-none shrink-0"
 						/>
 					</span>
+					<img
+						src="/assets/landing/logo-mark.svg"
+						alt=""
+						className="hidden size-6 shrink-0 object-contain group-data-[collapsible=icon]:block"
+					/>
 				</SidebarMenuButton>
 			</SidebarHeader>
 			<SidebarContent>
