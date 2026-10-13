@@ -110,7 +110,9 @@ export function AppSidebar() {
 					<img
 						src="/assets/landing/logo-mark.svg"
 						alt=""
-						className="hidden size-6 shrink-0 object-contain group-data-[collapsible=icon]:block"
+						width={48}
+						height={55}
+						className="hidden size-6 shrink-0 object-contain group-data-[collapsible=icon]:block [html:not(.dark)_&]:rounded-md [html:not(.dark)_&]:bg-[#0d0d0d] [html:not(.dark)_&]:p-0.5"
 					/>
 				</SidebarMenuButton>
 			</SidebarHeader>
