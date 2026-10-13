@@ -1,0 +1,16 @@
+# GitHub Pages builds this repository with Jekyll. Astro components open
+# with `---` fences, which Jekyll reads as YAML and then rejects. The app
+# is deployed on Vercel, so Pages should publish the repo docs only.
+title: Survey Rocket
+exclude:
+  - surveyrocket-app
+  - .sass-cache
+  - .jekyll-cache
+  - gemfiles
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
