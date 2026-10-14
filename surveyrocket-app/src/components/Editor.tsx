@@ -1,4 +1,5 @@
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { DEFAULT_SURVEY_BRAND, resolveChatIntro } from "../lib/brand";
 import { useConfirm } from "./ConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,8 @@ type Definition = {
     show_results: boolean;
     review_ask: boolean;
     review_links: Record<string, string>;
+    chat_lede: string;
+    chat_sub: string;
   };
   questions: Question[];
   provenance: {
@@ -165,11 +168,14 @@ function EditorInner({
     outro: (survey.definition as Definition)?.outro ?? null,
     settings: (() => {
       const incoming = ((survey.definition as Definition)?.settings || survey.settings || {}) as Definition["settings"];
+      const intro = resolveChatIntro(incoming);
       return {
         require_contact: incoming.require_contact ?? false,
         show_results: incoming.show_results ?? false,
         review_ask: incoming.review_ask ?? false,
         review_links: incoming.review_links ?? {},
+        chat_lede: intro.lede,
+        chat_sub: intro.sub,
       };
     })(),
     questions: ((survey.definition as Definition)?.questions || []).map((q) => ({ ...q })),
@@ -454,7 +460,45 @@ function EditorInner({
   }
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+    <div className="flex flex-col gap-4">
+      <Card className="dark:bg-transparent">
+        <CardHeader className="border-b">
+          <CardTitle className="text-lg text-balance">Above the chat</CardTitle>
+          <CardDescription className="text-pretty">
+            The heading and line respondents see once the conversation starts. Each survey has its own.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="ed-chat-lede">Heading</FieldLabel>
+              <Input
+                className={fieldInputClass}
+                id="ed-chat-lede"
+                onChange={(e) =>
+                  setDef({ ...def, settings: { ...def.settings, chat_lede: e.target.value } })
+                }
+                placeholder={DEFAULT_SURVEY_BRAND.chatLede}
+                value={def.settings.chat_lede}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="ed-chat-sub">Supporting line</FieldLabel>
+              <Textarea
+                className="min-h-20 py-2.5"
+                id="ed-chat-sub"
+                onChange={(e) =>
+                  setDef({ ...def, settings: { ...def.settings, chat_sub: e.target.value } })
+                }
+                placeholder={DEFAULT_SURVEY_BRAND.chatSub}
+                value={def.settings.chat_sub}
+              />
+            </Field>
+          </FieldGroup>
+        </CardContent>
+      </Card>
+
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
       <div className="flex min-w-0 flex-col gap-4">
         <Card className="dark:bg-transparent">
           <CardHeader className="flex flex-row items-start justify-between gap-3 border-b">
@@ -868,7 +912,7 @@ function EditorInner({
               <Field orientation="horizontal">
                 <FieldContent>
                   <FieldTitle>Show results on completion</FieldTitle>
-                  <FieldDescription>Respondents see the running averages when they finish, including in the review prompt.</FieldDescription>
+                  <FieldDescription>Respondents see charts of how other people answered when they finish.</FieldDescription>
                 </FieldContent>
                 <Switch
                   aria-label="Show results on completion"
@@ -1005,6 +1049,7 @@ function EditorInner({
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {draftNotice ? (
         <>

@@ -185,7 +185,9 @@ html[data-theme="light"] .btn.primary:hover{background:#1b1b1b}
 .chat-head .av{display:none}
 .chat-head b{display:block;font-family:var(--font-heading);font-size:18px;font-weight:600;letter-spacing:0;line-height:1.2}
 .chat-head small{color:var(--ll-text-2);font-size:12px;display:block;font-weight:400;line-height:1.4;margin-top:2px}
-.chat-prog{margin-left:auto;font-size:10px;color:var(--ll-text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chat-head > div{min-width:0}
+.chat-prog{margin-left:auto;flex-shrink:0;font-size:10px;color:var(--ll-text-2);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;line-height:1.35}
+.chat-prog.is-complete{letter-spacing:.01em}
 .chat-log{padding:20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;scroll-behavior:smooth;flex:1 1 auto;min-height:0;background:var(--page)}
 .chat-row.bot{display:flex;gap:16px;align-items:flex-start;align-self:stretch;max-width:100%}
 .chat-row.me{display:flex;justify-content:flex-end;align-self:stretch}
@@ -194,7 +196,7 @@ html[data-theme="light"] .btn.primary:hover{background:#1b1b1b}
 .bub.bot{max-width:450px;align-self:auto;display:flex;flex-direction:column;gap:12px;color:var(--sr-chat-text,var(--tx));flex:1;min-width:0}
 .bub.me{align-self:auto;min-height:50px;padding:6px 24px;border-radius:8px;background:var(--sr-bub-me,#121212);color:var(--sr-bub-me-text,var(--tx));font-weight:600;display:inline-flex;align-items:center;justify-content:center;text-align:center}
 .opts{display:flex;flex-wrap:wrap;gap:8px;max-width:100%}
-.opt{padding:6px 10px;min-height:32px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.1);box-shadow:none;font-size:14px;color:var(--tx);font-weight:400;cursor:pointer;transition:background .12s,border-color .12s}
+.opt{padding:6px 10px;min-height:32px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.1);box-shadow:none;font-size:14px;color:var(--tx);font-weight:400;cursor:pointer;text-align:left;transition:background .12s,border-color .12s}
 .opt:hover{background:rgba(255,255,255,.2);color:var(--tx)}
 .opt.on{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.2);color:var(--tx)}
 .opt.done-chip{background:rgba(53,211,153,.3);border:1px solid rgba(53,211,153,.45);color:#35d399}

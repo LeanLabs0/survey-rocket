@@ -601,6 +601,127 @@ html[data-theme="light"] body.rs-intro-page{
   line-height:1.3;
   color:var(--sr-text);
 }
+.rs-graph{
+  margin:28px 0 0;
+}
+.rs-graph:first-child{margin-top:8px}
+.rs-graph-q{
+  margin:0 0 18px;
+  font-size:15px;
+  font-weight:600;
+  line-height:1.4;
+  letter-spacing:-.02em;
+  color:var(--sr-text);
+  text-wrap:pretty;
+}
+.rs-graph-chart{
+  display:grid;
+  grid-template-columns:32px minmax(0, 1fr);
+  grid-template-rows:auto auto;
+  column-gap:12px;
+  row-gap:14px;
+  padding-top:28px;
+}
+.rs-graph-y{
+  grid-column:1;
+  grid-row:1;
+  align-self:end;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  height:148px;
+  font-size:11px;
+  line-height:1;
+  color:var(--sr-gray);
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.rs-graph-plots{
+  grid-column:2;
+  grid-row:1;
+  display:flex;
+  align-items:flex-end;
+  gap:20px;
+  height:148px;
+  border-bottom:1px solid var(--sr-border);
+  background-image:linear-gradient(to bottom, transparent calc(50% - 1px), color-mix(in srgb, var(--sr-border) 70%, transparent) calc(50% - 1px), color-mix(in srgb, var(--sr-border) 70%, transparent) 50%, transparent 50%);
+}
+.rs-graph-plot{
+  flex:1 1 0;
+  min-width:0;
+  height:100%;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+}
+.rs-graph-bar{
+  position:relative;
+  display:block;
+  width:min(72px, 70%);
+  border-radius:8px 8px 0 0;
+  background:color-mix(in srgb, var(--sr-text) 32%, transparent);
+}
+.rs-graph-plot.is-you .rs-graph-bar{background:var(--sr-text)}
+.rs-graph-val{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 6px);
+  transform:translateX(-50%);
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:-.02em;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+  color:var(--sr-text);
+}
+.rs-graph-names{
+  grid-column:2;
+  grid-row:2;
+  display:flex;
+  gap:20px;
+}
+.rs-graph-namecol{
+  flex:1 1 0;
+  min-width:0;
+  text-align:center;
+}
+.rs-graph-name{
+  margin:0;
+  font-size:13px;
+  line-height:1.35;
+  color:var(--sr-text);
+  text-wrap:pretty;
+}
+.rs-graph-you{
+  min-height:16px;
+  margin:6px 0 0;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--sr-gray);
+}
+.rs-graph-you:empty{visibility:hidden}
+.rs-crowd-avg{
+  margin:6px 0 0;
+  font-size:20px;
+  font-weight:600;
+  letter-spacing:-.03em;
+  color:var(--sr-text);
+}
+.rs-crowd-note,
+.rs-crowd-empty{
+  margin:6px 0 0;
+  font-size:12px;
+  line-height:1.4;
+  color:var(--sr-gray);
+}
+.rs-graph.is-nps .rs-graph-name{font-variant-numeric:tabular-nums}
+.rs-graph.is-nps .rs-graph-bar{width:min(28px, 80%)}
+.rs-handoff-card.is-wide{width:min(880px, calc(100vw - 48px))}
+.rs-handoff-results.is-graph .rs-handoff-table{max-height:none;overflow:visible}
+.rs-handoff-results.is-graph .rs-handoff-table-wrap::after,
+.rs-handoff-results.is-graph .rs-handoff-view{display:none}
 .rs-intro-page .rs-note .btn{
   margin-top:4px;
 }
@@ -691,15 +812,36 @@ html[data-theme="light"] body.rs-intro-page{
 .rs-lead-native{
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:6px;
   text-align:left;
+}
+.rs-lead-native .flabel{
+  margin-bottom:0;
+  color:#33475b;
+}
+.rs-lead-native .req{
+  color:#c4233a;
+  font-weight:600;
 }
 .rs-lead-native .field{
   width:100%;
+  margin-bottom:16px;
   background:#f5f8fa;
   color:#33475b;
   border:1px solid #cbd6e2;
 }
+.rs-lead-native .field.is-error,
+.rs-lead-native .field[aria-invalid="true"]{
+  border-color:#e11d48;
+  background:#fff5f5;
+}
+.rs-lead-error{
+  margin:0 0 4px;
+  color:#9f1239;
+  font-size:13px;
+  line-height:1.4;
+}
+.rs-lead-error[hidden]{display:none !important}
 .rs-lead-native .rs-begin,
 .rs-lead-native .rs-begin:hover,
 .rs-lead-native .rs-begin:active,
@@ -995,7 +1137,7 @@ html[data-theme="light"] body.rs-intro-page{
   position:relative;
 }
 .rs-handoff-table{
-  max-height:7.25rem;
+  max-height:240px;
   overflow:hidden;
 }
 .rs-handoff-table-wrap::after{
@@ -1041,6 +1183,9 @@ html[data-theme="light"] body.rs-intro-page{
   display:block;
   flex:none;
 }
+.rs-handoff-table-wrap.is-short::after,
+.rs-handoff-table-wrap.is-short .rs-handoff-view{display:none}
+.rs-handoff-table-wrap.is-short .rs-handoff-table{max-height:none}
 .rs-handoff-results.is-open .rs-handoff-table{
   max-height:min(52vh, 480px);
   overflow:auto;

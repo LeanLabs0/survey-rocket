@@ -223,10 +223,14 @@
   };
   SurveyChat.prototype._prog = function () {
     if (!this.o.progEl) return;
-    if (this.done) { this.o.progEl.textContent = "Done"; return; }
-    this.o.progEl.textContent = this.state < this.o.script.length
-      ? ("Question " + (this.state + 1) + " of " + this.o.script.length)
-      : (this.quotePending ? "Wrapping up" : "Done");
+    var complete = this.done || (this.state >= this.o.script.length && !this.quotePending);
+    var label = complete
+      ? "All questions complete\u00a0\u2713"
+      : (this.state < this.o.script.length
+        ? ("Question " + (this.state + 1) + " of " + this.o.script.length)
+        : "Wrapping up");
+    this.o.progEl.textContent = label;
+    this.o.progEl.classList.toggle("is-complete", complete);
   };
   SurveyChat.prototype._record = function (id, value) {
     this.answers[id] = value;

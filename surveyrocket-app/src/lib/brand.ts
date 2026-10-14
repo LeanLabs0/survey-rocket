@@ -335,6 +335,15 @@ function asText(value: unknown, fallback: string) {
   return v || fallback;
 }
 
+/** Heading and supporting line above the chat. A survey can override both;
+ *  a blank value keeps the product default. */
+export function resolveChatIntro(settings?: { chat_lede?: unknown; chat_sub?: unknown } | null) {
+  return {
+    lede: asText(settings?.chat_lede, DEFAULT_SURVEY_BRAND.chatLede),
+    sub: asText(settings?.chat_sub, DEFAULT_SURVEY_BRAND.chatSub),
+  };
+}
+
 export function surveyFont(id: string | null | undefined) {
   return SURVEY_FONTS.find((f) => f.id === id) || SURVEY_FONTS[0];
 }

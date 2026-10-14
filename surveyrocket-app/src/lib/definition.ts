@@ -24,6 +24,8 @@ export type SurveyDefinition = {
     show_results: boolean;
     review_ask: boolean;
     review_links: Record<string, string>;
+    chat_lede?: string;
+    chat_sub?: string;
   };
   questions: Question[];
   provenance: {

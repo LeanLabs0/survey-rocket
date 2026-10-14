@@ -5,7 +5,7 @@ import "../../styles/styles-survey-intro.css";
 import { db } from "../../lib/db";
 import { clients, surveyPublications, surveys } from "../../lib/schema";
 import { desc, eq } from "drizzle-orm";
-import { resolveSurveyBrand } from "../../lib/brand";
+import { resolveChatIntro, resolveSurveyBrand } from "../../lib/brand";
 import { slugify } from "../../lib/ids";
 import { getConnection } from "../../lib/hubspot/tokens";
 import { ensureClientSignInForm } from "../../lib/hubspot/provision";
@@ -57,6 +57,11 @@ const brand = resolveSurveyBrand(client?.brand, {
   clientName,
   surveyName: sv?.name || null,
 });
+const chatIntro = resolveChatIntro(
+  definition && typeof definition === "object" && "settings" in definition
+    ? (definition as { settings?: { chat_lede?: unknown; chat_sub?: unknown } }).settings
+    : null,
+);
 const introText =
   definition && typeof definition === "object" && "intro" in definition && typeof definition.intro === "string" && definition.intro.trim()
     ? definition.intro.trim()
@@ -132,7 +137,7 @@ if (!missing && client) {
         <p class="rs-sub" id="g-meta">{introText}</p>
         <div class="rs-heads">
           <span class="rs-heads-icon" aria-hidden="true"><img src="/assets/survey-intro/icon-smile.svg" width="18" height="18" alt=""></span>
-          <p><b>Heads up:</b> this is a short check-in from {clientName}. Most answers take a single tap.</p>
+          <p>We'd love to hear your feedback so we can keep improving your experience with us.</p>
         </div>
         <div class="rs-contact" id="g-contact" hidden></div>
         <button class="rs-begin" type="button" id="g-go">Begin <span class="rs-btn-icon" aria-hidden="true"></span></button>
@@ -141,8 +146,8 @@ if (!missing && client) {
 
       <div class="rs-chat-wrap" id="chatWrap">
         <div class="rs-chat-lede">
-          <h2>{brand.chatLede}</h2>
-          <p>{brand.chatSub}</p>
+          <h2>{chatIntro.lede}</h2>
+          <p>{chatIntro.sub}</p>
         </div>
         <div class="chat-frame" id="frame">
           <div class="chat-head">
@@ -207,9 +212,9 @@ if (!missing && client) {
           )}
         </div>
         <div class="rs-handoff-results" id="rrHandoffResults" hidden>
-          <h3>The summary of your answers</h3>
+          <h3>How others answered</h3>
           <p class="rs-result-meta" id="rrHandoffMeta"></p>
-          <div class="rs-handoff-table-wrap">
+          <div class="rs-handoff-table-wrap is-short">
             <div class="rs-handoff-table" id="rrHandoffRows"></div>
             <div class="rs-handoff-view">
               <button class="rs-view-all" type="button" id="rrHandoffView">
@@ -230,16 +235,17 @@ if (!missing && client) {
         <p class="rs-lead-copy">A few details so {clientName} can tie your answers to you.</p>
         <div id="hsFormTarget" class="rs-hs-form rs-hs-form-hidden" aria-hidden="true"></div>
         <div id="leadNative" class="rs-lead-native">
-          <label class="flabel" for="g-first">First name</label>
-          <input id="g-first" class="field" type="text" autocomplete="given-name" required>
-          <label class="flabel" for="g-last">Last name</label>
-          <input id="g-last" class="field" type="text" autocomplete="family-name" required>
-          <label class="flabel" for="g-email">Email</label>
-          <input id="g-email" class="field" type="email" autocomplete="email" required>
-          <label class="flabel" for="g-company">Company name</label>
-          <input id="g-company" class="field" type="text" autocomplete="organization" required>
-          <label class="flabel" for="g-website">Website URL</label>
-          <input id="g-website" class="field" type="text" autocomplete="url" placeholder="https://" required>
+          <label class="flabel" for="g-first">First name <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-first" class="field" type="text" autocomplete="given-name" required aria-required="true">
+          <label class="flabel" for="g-last">Last name <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-last" class="field" type="text" autocomplete="family-name" required aria-required="true">
+          <label class="flabel" for="g-email">Email <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-email" class="field" type="email" autocomplete="email" required aria-required="true">
+          <label class="flabel" for="g-company">Company name <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-company" class="field" type="text" autocomplete="organization" required aria-required="true">
+          <label class="flabel" for="g-website">Website URL <span class="req" aria-hidden="true">*</span></label>
+          <input id="g-website" class="field" type="text" autocomplete="url" placeholder="https://" required aria-required="true">
+          <p class="rs-lead-error" id="leadError" role="alert" hidden></p>
           <button class="rs-begin" type="button" id="leadNativeGo">Continue</button>
         </div>
         <button class="rs-lead-close" type="button" id="leadClose">Cancel</button>
@@ -257,6 +263,7 @@ if (!missing && client) {
   </div>
   <script is:inline>window.SR_JUDGE_ENABLED = true;</script>
   <script is:inline src="/js/engine.js"></script>
+  <script is:inline src="/js/crowd.js"></script>
   <script is:inline src="/js/transport.js"></script>
   <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm, reputationRocketUrl, clientWebsite }}>
     (function(){
@@ -369,11 +376,6 @@ if (!missing && client) {
         el.hidden=true;
         setResultsOpen(false);
       }
-      function formatAnswer(v){
-        if(v===null || v===undefined || v==="") return null;
-        if(Array.isArray(v)) return v.length ? v.join(", ") : null;
-        return String(v);
-      }
       function setResultsOpen(open){
         resultsOpen=!!open;
         var box=document.getElementById("rrHandoffResults");
@@ -440,23 +442,46 @@ if (!missing && client) {
         if(handoffView==="ask" && go && !go.hidden) go.focus();
         else if(visit && !visit.hidden) visit.focus();
       }
-      function renderAnswerSummary(box){
-        box.innerHTML="";
-        (survey.questions||[]).forEach(function(q){
-          var val=formatAnswer(lastAnswers && lastAnswers[q.id]);
-          if(val===null) return;
-          var row=document.createElement("div");
-          row.className="rs-result";
-          var label=document.createElement("p");
-          label.className="rs-result-q";
-          label.textContent=q.q||q.id;
-          var strong=document.createElement("p");
-          strong.className="rs-result-a";
-          strong.textContent=val;
-          row.appendChild(label);
-          row.appendChild(strong);
-          box.appendChild(row);
+      function fitResults(){
+        var table=document.getElementById("rrHandoffRows");
+        var wrap=table && table.parentElement;
+        if(!table || !wrap) return;
+        wrap.classList.toggle("is-short", table.scrollHeight <= 240);
+      }
+      function renderCrowd(box, payload){
+        if(!window.SRCrowd) return;
+        SRCrowd.render(box, {
+          questions: survey.questions || [],
+          payload: payload || {},
+          answers: lastAnswers || {}
         });
+        fitResults();
+      }
+      function loadCrowd(){
+        var meta=document.getElementById("rrHandoffMeta");
+        var rows=document.getElementById("rrHandoffRows");
+        if(!rows) return;
+        rows.innerHTML="";
+        var waiting=document.createElement("p");
+        waiting.className="rs-crowd-empty";
+        waiting.textContent="Loading how others answered…";
+        rows.appendChild(waiting);
+        if(meta) meta.textContent="";
+        fitResults();
+        fetch("/api/public/results/"+encodeURIComponent(publicId))
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(data){
+            if(meta) meta.textContent=window.SRCrowd ? SRCrowd.meta(data) : "";
+            renderCrowd(rows, data);
+          })
+          .catch(function(){
+            rows.innerHTML="";
+            var err=document.createElement("p");
+            err.className="rs-crowd-empty";
+            err.textContent="Couldn't load other responses.";
+            rows.appendChild(err);
+            fitResults();
+          });
       }
       function firstReviewUrl(){
         var links=settings.review_links||{};
@@ -504,23 +529,28 @@ if (!missing && client) {
         if(lead){
           lead.textContent=settings.review_ask
             ? (clientName+" has your answers.")
-            : "Here's a summary of what you told us.";
+            : "Here's how other people answered.";
         }
         setHandoffView("ask");
         if(reviewBtn){
           var showBtn=!!(settings.review_ask || settings.show_results);
           reviewBtn.hidden=!showBtn;
-          reviewBtn.textContent=settings.review_ask ? "Leave a review" : "See your answers";
+          reviewBtn.textContent=settings.review_ask ? "Leave a review" : "See how others answered";
         }
         if(settings.show_results){
-          if(modalResults) modalResults.hidden=false;
+          var card=document.querySelector(".rs-handoff-card");
+          if(card) card.classList.add("is-wide");
+          if(modalResults){
+            modalResults.hidden=false;
+            modalResults.classList.add("is-graph");
+          }
           setResultsOpen(false);
-          var meta=document.getElementById("rrHandoffMeta");
-          var rows=document.getElementById("rrHandoffRows");
-          if(meta) meta.textContent="";
-          if(rows) renderAnswerSummary(rows);
+          loadCrowd();
         } else if(modalResults){
+          var cardNarrow=document.querySelector(".rs-handoff-card");
+          if(cardNarrow) cardNarrow.classList.remove("is-wide");
           modalResults.hidden=true;
+          modalResults.classList.remove("is-graph");
         }
       }
       var chat=new SurveyChat({
@@ -557,7 +587,10 @@ if (!missing && client) {
         if(modalResults){
           modalResults.hidden=true;
           modalResults.classList.remove("is-open");
+          modalResults.classList.remove("is-graph");
         }
+        var card=document.querySelector(".rs-handoff-card");
+        if(card) card.classList.remove("is-wide");
         hideHandoff();
         setHandoffView("ask");
         setStep(1);
@@ -620,17 +653,56 @@ if (!missing && client) {
           website: document.getElementById("g-website").value.trim()
         };
       }
-      function validateLead(){
-        var ids=["g-first","g-last","g-email","g-company","g-website"];
-        for(var i=0;i<ids.length;i++){
-          var el=document.getElementById(ids[i]);
-          if(el && !el.checkValidity()){
-            el.reportValidity();
-            return false;
-          }
-        }
-        return true;
+      var leadIds=["g-first","g-last","g-email","g-company","g-website"];
+      function leadErrorEl(){ return document.getElementById("leadError"); }
+      function markLeadField(el, invalid){
+        el.classList.toggle("is-error", invalid);
+        if(invalid) el.setAttribute("aria-invalid", "true");
+        else el.removeAttribute("aria-invalid");
       }
+      function setLeadError(message){
+        var box=leadErrorEl();
+        if(!box) return;
+        box.textContent=message||"";
+        box.hidden=!message;
+      }
+      function validateLead(){
+        var firstInvalid=null;
+        var emailInvalid=false;
+        var anyEmpty=false;
+        leadIds.forEach(function(id){
+          var el=document.getElementById(id);
+          if(!el) return;
+          var invalid=!el.checkValidity();
+          markLeadField(el, invalid);
+          if(!invalid) return;
+          if(!firstInvalid) firstInvalid=el;
+          if(!el.value.trim()) anyEmpty=true;
+          if(id==="g-email" && el.value.trim()) emailInvalid=true;
+        });
+        if(!firstInvalid){
+          setLeadError("");
+          return true;
+        }
+        var message=anyEmpty
+          ? "Please fill in all required fields."
+          : "Enter a valid email address.";
+        if(anyEmpty && emailInvalid) message="Please fill in all required fields. Enter a valid email address.";
+        setLeadError(message);
+        firstInvalid.focus();
+        return false;
+      }
+      leadIds.forEach(function(id){
+        var el=document.getElementById(id);
+        if(!el) return;
+        el.addEventListener("input", function(){
+          if(el.checkValidity()) markLeadField(el, false);
+          if(leadIds.every(function(fid){
+            var field=document.getElementById(fid);
+            return !field || field.checkValidity();
+          })) setLeadError("");
+        });
+      });
       function setHsField(form, name, value){
         var el=form.querySelector('[name="'+name+'"]')
           || form.querySelector('[name="0-1/'+name+'"]')
