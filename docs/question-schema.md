@@ -23,7 +23,9 @@ version.
     "require_contact": boolean,    // ask name + email before the questions (Kevin 8/31)
     "show_results":    boolean,    // respondent sees the aggregates on completion (Kevin 8/31)
     "review_ask":      boolean,    // then ask for a review (Kevin 8/31)
-    "review_links":    { }         // platform -> url, RepRocket's shape. {} = nowhere to send
+    "review_links":    { },        // platform -> url, RepRocket's shape. {} = nowhere to send
+    "welcome_title":   string,     // optional. welcome headline; blank = "Ready to share your results with <client>?"
+    "welcome_note":    string      // optional. note under the intro; blank = the customer-feedback default
   },
 
   "questions": [

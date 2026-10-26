@@ -79,6 +79,8 @@ type Definition = {
     review_links: Record<string, string>;
     chat_lede: string;
     chat_sub: string;
+    welcome_title: string;
+    welcome_note: string;
   };
   questions: Question[];
   provenance: {
@@ -176,6 +178,8 @@ function EditorInner({
         review_links: incoming.review_links ?? {},
         chat_lede: intro.lede,
         chat_sub: intro.sub,
+        welcome_title: incoming.welcome_title ?? "",
+        welcome_note: incoming.welcome_note ?? "",
       };
     })(),
     questions: ((survey.definition as Definition)?.questions || []).map((q) => ({ ...q })),
@@ -461,6 +465,54 @@ function EditorInner({
 
   return (
     <div className="flex flex-col gap-4">
+      <Card className="dark:bg-transparent">
+        <CardHeader className="border-b">
+          <CardTitle className="text-lg text-balance">Welcome screen</CardTitle>
+          <CardDescription className="text-pretty">
+            The headline and note respondents see before they begin. Leave blank to keep the default.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="ed-welcome-title">Headline</FieldLabel>
+              <Input
+                className={fieldInputClass}
+                id="ed-welcome-title"
+                onChange={(e) =>
+                  setDef({ ...def, settings: { ...def.settings, welcome_title: e.target.value } })
+                }
+                placeholder="Ready to share your results with us?"
+                value={def.settings.welcome_title}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="ed-intro">Intro</FieldLabel>
+              <Textarea
+                className="min-h-20 py-2.5"
+                id="ed-intro"
+                onChange={(e) => setDef({ ...def, intro: e.target.value || null })}
+                placeholder="We'd love to capture what actually changed, so you and future clients can get a better experience with us."
+                value={def.intro ?? ""}
+              />
+              <FieldDescription>Shows under the headline and as the first chat message.</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="ed-welcome-note">Note</FieldLabel>
+              <Textarea
+                className="min-h-20 py-2.5"
+                id="ed-welcome-note"
+                onChange={(e) =>
+                  setDef({ ...def, settings: { ...def.settings, welcome_note: e.target.value } })
+                }
+                placeholder="We'd love to hear your feedback so we can keep improving your experience with us."
+                value={def.settings.welcome_note}
+              />
+            </Field>
+          </FieldGroup>
+        </CardContent>
+      </Card>
+
       <Card className="dark:bg-transparent">
         <CardHeader className="border-b">
           <CardTitle className="text-lg text-balance">Above the chat</CardTitle>
