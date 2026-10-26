@@ -495,7 +495,7 @@ function EditorInner({
                 placeholder="We'd love to capture what actually changed, so you and future clients can get a better experience with us."
                 value={def.intro ?? ""}
               />
-              <FieldDescription>Shows under the headline and as the first chat message.</FieldDescription>
+              <FieldDescription>Shows under the headline on the welcome screen.</FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="ed-welcome-note">Note</FieldLabel>
