@@ -1,8 +1,24 @@
-import { eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { responses, surveys } from "../schema";
-import { enrollContactToSurveyLists, type HubSpotContactProps } from "./lists";
+import { answers, responses, surveyPublications, surveys } from "../schema";
+import { answerListsEnabled, answerSegments } from "./answer-lists";
+import { addContactToAnswerLists, enrollContactToSurveyLists, type HubSpotContactProps } from "./lists";
 import { resolveAccessToken } from "./tokens";
+
+/** The definition the respondent actually answered: their publication, else the latest one. */
+async function answeredDefinition(publicationId: string | null, sv: typeof surveys.$inferSelect) {
+  if (publicationId) {
+    const [pub] = await db.select().from(surveyPublications).where(eq(surveyPublications.id, publicationId)).limit(1);
+    if (pub) return pub.definition;
+  }
+  const [latest] = await db
+    .select()
+    .from(surveyPublications)
+    .where(eq(surveyPublications.surveyId, sv.id))
+    .orderBy(desc(surveyPublications.version))
+    .limit(1);
+  return latest?.definition || sv.definition;
+}
 
 export async function writeSignedInToHubSpot(
   surveyId: string,
@@ -58,7 +74,11 @@ export async function writeCompletionToHubSpot(responseId: string) {
       company: rec.respondent?.company as string | undefined,
       website: rec.respondent?.website as string | undefined,
     };
-    await enrollContactToSurveyLists(sv, email, "completed", extras, row.respondentId);
+    const contactId = await enrollContactToSurveyLists(sv, email, "completed", extras, row.respondentId);
+    if (answerListsEnabled(await answeredDefinition(row.publicationId, sv))) {
+      const rows = await db.select().from(answers).where(eq(answers.responseId, responseId));
+      await addContactToAnswerLists(sv, contactId, answerSegments(rows));
+    }
     await db
       .update(responses)
       .set({ hubspotStatus: "written", hubspotWrittenAt: new Date(), hubspotError: null })

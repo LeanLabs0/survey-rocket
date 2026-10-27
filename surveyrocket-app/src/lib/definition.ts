@@ -28,6 +28,7 @@ export type SurveyDefinition = {
     chat_sub?: string;
     welcome_title?: string;
     welcome_note?: string;
+    hubspot_answer_lists?: boolean;
   };
   questions: Question[];
   provenance: {

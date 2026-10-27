@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { respondents, surveys } from "../schema";
+import { answerListName, clipSurveyName, type AnswerSegment } from "./answer-lists";
 import { hasContactWrite, missingContactScopes } from "./oauth";
 import { resolveAccessToken } from "./tokens";
 
@@ -41,13 +42,8 @@ async function hs(
   return { ok: true, status: res.status, data };
 }
 
-function clipName(surveyName: string) {
-  const trimmed = surveyName.trim() || "Untitled";
-  return trimmed.length > 72 ? trimmed.slice(0, 72).trim() : trimmed;
-}
-
 export function surveyListNames(surveyName: string) {
-  const name = clipName(surveyName);
+  const name = clipSurveyName(surveyName);
   return {
     signedIn: `[LL] SurveyRocket - ${name}_signed_in`,
     completed: `[LL] SurveyRocket - ${name}_completed`,
@@ -348,6 +344,23 @@ export async function enrollContactToSurveyLists(
     await rememberContactByEmail(survey.clientId, email, respondentId || null).catch(() => null);
     throw err;
   }
+}
+
+/** Lists are found by name or created on first use, so only answers someone picked get a list. */
+export async function addContactToAnswerLists(
+  survey: typeof surveys.$inferSelect,
+  contactId: string,
+  segments: AnswerSegment[],
+) {
+  if (!segments.length) return;
+  const access = await resolveAccessToken(survey.clientId);
+  if (!access) throw new Error("HubSpot not connected");
+  await Promise.all(
+    segments.map(async (segment) => {
+      const list = await createOrFindList(access.token, answerListName(survey.name, segment));
+      await addToList(access.token, list.id, contactId);
+    }),
+  );
 }
 
 export function provisionSurveyLists(survey: typeof surveys.$inferSelect) {

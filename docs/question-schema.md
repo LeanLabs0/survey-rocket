@@ -25,7 +25,8 @@ version.
     "review_ask":      boolean,    // then ask for a review (Kevin 8/31)
     "review_links":    { },        // platform -> url, RepRocket's shape. {} = nowhere to send
     "welcome_title":   string,     // optional on v1. omit or blank = styled default headline, client name filled in
-    "welcome_note":    string      // optional on v1. omit or blank = the customer-feedback note. Line breaks are kept.
+    "welcome_note":    string,     // optional on v1. omit or blank = the customer-feedback note. Line breaks are kept.
+    "hubspot_answer_lists": boolean // optional on v1. true = each picked choice/multi answer gets its own HubSpot list (Kevin 10/27)
   },
 
   "questions": [
