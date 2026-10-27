@@ -46,3 +46,16 @@ npm run db:seed
 3. Publish a survey, open `/s/{publicId}` on a phone, complete with name + email.
 4. Results table shows the row; HubSpot contact gets `sr_last_survey`, `sr_last_completed_at`, and `sr_completed__<slug>` (custom object only if the portal allows it).
 5. Record a Loom of that path for Kevin and Ralph.
+
+## Sending a survey from a HubSpot email
+
+Put the contact in the link with personalization tokens and known contacts skip the "Before we begin" form:
+
+```
+https://beta.surveyrocket.ai/s/{publicId}?email={{contact.email}}&firstname={{contact.firstname}}&lastname={{contact.lastname}}&company={{contact.company}}&website={{contact.website}}
+```
+
+- Only `email` is needed. The name fields fill the name in Results and the CSV.
+- A missing or invalid email shows the form as usual, so a plain link still works for everyone else.
+- The page removes these fields from the address bar once read. HubSpot's own tracking params stay.
+- A forwarded email still carries the first recipient's email, so their answers land on that contact.

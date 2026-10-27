@@ -616,6 +616,25 @@ if (!missing && client) {
         respondent.website=vals.website||null;
         respondent.name=[respondent.firstname, respondent.lastname].filter(Boolean).join(" ")||null;
       }
+      // A HubSpot email can carry the contact in the link
+      // (?email={{contact.email}}&firstname={{contact.firstname}}...), so known contacts skip the form.
+      var linkFields=["email","firstname","lastname","company","website"];
+      function identityFromLink(){
+        var sp;
+        try{ sp=new URLSearchParams(window.location.search); }catch(e){ return null; }
+        var vals={};
+        linkFields.forEach(function(k){ vals[k]=(sp.get(k)||"").trim(); });
+        vals.email=vals.email.replace(/ /g,"+");
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(vals.email) ? vals : null;
+      }
+      var linkIdentity=identityFromLink();
+      if(linkIdentity && window.history && history.replaceState){
+        try{
+          var cleanUrl=new URL(window.location.href);
+          linkFields.forEach(function(k){ cleanUrl.searchParams.delete(k); });
+          history.replaceState(history.state, "", cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);
+        }catch(e){}
+      }
       function closeLeadModal(){
         modal.hidden=true;
         modal.classList.remove("open");
@@ -816,6 +835,11 @@ if (!missing && client) {
       document.getElementById("g-go").addEventListener("click", function(){
         var btn=document.getElementById("g-go");
         btn.classList.add("is-busy");
+        if(linkIdentity){
+          applyIdentity(linkIdentity);
+          beginAfterIdentity();
+          return;
+        }
         modal.hidden=false;
         modal.classList.add("open");
         if(hubspotForm && hubspotForm.portalId && hubspotForm.formId){
