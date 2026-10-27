@@ -61,8 +61,34 @@
     chart.appendChild(plots);
     chart.appendChild(names);
     block.appendChild(chart);
+    block.appendChild(rowChart(series));
     if (note) block.appendChild(el("p", "rs-crowd-note", note));
     return block;
+  }
+
+  /* Same series as horizontal bars. CSS shows it instead of the columns on phones, where labels collide. */
+  function rowChart(series) {
+    var list = el("ul", "rs-graph-rows");
+    series.forEach(function (item) {
+      var row = el("li", "rs-graph-row" + (item.you ? " is-you" : ""));
+      var head = el("div", "rs-graph-rowhead");
+      head.appendChild(el("span", "rs-graph-rowname", item.label));
+      if (item.you) head.appendChild(el("span", "rs-graph-you", "You"));
+      head.appendChild(el("span", "rs-graph-rowval", item.pct + "%"));
+      row.appendChild(head);
+      var track = el("span", "rs-graph-track");
+      var fill = el("span", "rs-graph-fill");
+      var pct = Number(item.pct);
+      if (!isFinite(pct)) pct = 0;
+      pct = Math.max(0, Math.min(100, pct));
+      fill.style.width = pct + "%";
+      /* A zero share stays empty. A hairline only appears once someone actually picked it. */
+      if (pct > 0) fill.style.minWidth = "2px";
+      track.appendChild(fill);
+      row.appendChild(track);
+      list.appendChild(row);
+    });
+    return list;
   }
 
   function choiceChart(q, stat, answers) {
@@ -112,7 +138,7 @@
     block.appendChild(el("p", "rs-crowd-avg", avg == null ? "No numbers yet" : ("Average " + formatAvg(avg))));
     var mine = answers && answers[q.id];
     if (typeof mine === "number" && !Number.isNaN(mine)) {
-      block.appendChild(el("p", "rs-crowd-note", "You said " + formatAvg(mine) + "."));
+      block.appendChild(el("p", "rs-crowd-note", "You said " + formatAvg(Math.round(mine)) + "."));
     }
     return block;
   }
@@ -142,11 +168,68 @@
     }
   }
 
+  /* Whole number the save actually stores (the column is an integer). */
+  function wholeNumber(q, value) {
+    if (q.type === "number" && typeof value === "number" && !isNaN(value)) return Math.round(value);
+    if (q.nps) {
+      var n = typeof value === "number" ? value : parseFloat(value);
+      if (typeof n === "number" && !isNaN(n)) return Math.round(n);
+    }
+    return null;
+  }
+
+  function rememberChoice(choices, key) {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") return;
+    var current = Object.prototype.hasOwnProperty.call(choices, key) ? choices[key] : 0;
+    var next = (typeof current === "number" && !isNaN(current) ? current : 0) + 1;
+    try { choices[key] = next; } catch (e) { /* ignore a key that cannot be stored */ }
+  }
+
+  /** Everyone else (fetched with ?exclude=<this run>) plus this person's answers, counted once. */
+  function withMine(payload, questions, answers) {
+    var out = JSON.parse(JSON.stringify(payload || {}));
+    out.questions = out.questions || {};
+    if (!answers) return out;
+    out.responses = (out.responses || 0) + 1;
+    (questions || []).forEach(function (q) {
+      if (!q || q.type === "text") return;
+      if (q.id === "__proto__" || q.id === "constructor" || q.id === "prototype") return;
+      var value = answers[q.id];
+      if (value == null || value === "" || (Array.isArray(value) && !value.length)) return;
+      var stat = out.questions[q.id];
+      if (!stat) {
+        stat = { answers: 0, average: null, choices: null };
+        out.questions[q.id] = stat;
+      }
+      var prev = stat.answers || 0;
+      stat.answers = prev + 1;
+      var n = wholeNumber(q, value);
+      if (n != null) {
+        /* No earlier average means there is no sum to extend. Leave it blank
+           instead of claiming this one number is the average of everyone. */
+        if (!prev) stat.average = n;
+        else if (typeof stat.average === "number") stat.average = (stat.average * prev + n) / (prev + 1);
+      }
+      if (q.type !== "multi" && q.type !== "choice" && !q.nps) return;
+      stat.choices = stat.choices || {};
+      if (q.type === "multi" && Array.isArray(value)) {
+        value.forEach(function (pick) { rememberChoice(stat.choices, String(pick)); });
+        return;
+      }
+      if (typeof value === "number") {
+        if (!isNaN(value)) rememberChoice(stat.choices, String(n != null ? n : Math.round(value)));
+        return;
+      }
+      if (!Array.isArray(value)) rememberChoice(stat.choices, String(value));
+    });
+    return out;
+  }
+
   function meta(payload) {
     var n = payload && payload.responses ? payload.responses : 0;
     if (!n) return "No completed responses yet.";
     return n === 1 ? "1 completed response" : (n + " completed responses");
   }
 
-  global.SRCrowd = { render: render, meta: meta };
+  global.SRCrowd = { render: render, meta: meta, withMine: withMine };
 })(window);

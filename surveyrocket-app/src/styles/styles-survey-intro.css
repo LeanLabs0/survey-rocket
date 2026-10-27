@@ -730,6 +730,65 @@ html[data-theme="light"] body.rs-intro-page{
 }
 .rs-graph.is-nps .rs-graph-name{font-variant-numeric:tabular-nums}
 .rs-graph.is-nps .rs-graph-bar{width:min(28px, 80%)}
+.rs-graph-rows{
+  display:none;
+  margin:0;
+  padding:0;
+  list-style:none;
+  flex-direction:column;
+  gap:12px;
+  min-width:0;
+  max-width:100%;
+}
+.rs-graph-row{min-width:0}
+.rs-graph-rowhead{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:8px;
+  margin-bottom:6px;
+}
+.rs-graph-rowname{
+  flex:1 1 auto;
+  min-width:0;
+  font-size:13px;
+  line-height:1.35;
+  color:var(--sr-text);
+  overflow-wrap:anywhere;
+}
+.rs-graph-rowhead .rs-graph-you{margin:0;min-height:0}
+.rs-graph-rowval{
+  flex:none;
+  font-size:13px;
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+  color:var(--sr-text);
+}
+.rs-graph-track{
+  display:block;
+  height:8px;
+  border-radius:999px;
+  background:color-mix(in srgb, var(--sr-border) 70%, transparent);
+  overflow:hidden;
+}
+.rs-graph-fill{
+  display:block;
+  height:100%;
+  width:0;
+  max-width:100%;
+  border-radius:inherit;
+  background:color-mix(in srgb, var(--sr-text) 32%, transparent);
+}
+.rs-graph-row.is-you .rs-graph-fill{background:var(--sr-text)}
+/* 0–10 charts still collide in landscape until the card is wide enough for eleven labels. */
+@media (max-width:900px){
+  .rs-graph.is-nps .rs-graph-chart{display:none}
+  .rs-graph.is-nps .rs-graph-rows{display:flex}
+}
+@media (max-width:640px){
+  .rs-graph-chart{display:none}
+  .rs-graph-rows{display:flex}
+}
 .rs-handoff-card.is-wide{width:min(880px, calc(100vw - 48px))}
 .rs-handoff-results.is-graph .rs-handoff-table{max-height:none;overflow:visible}
 .rs-handoff-results.is-graph .rs-handoff-table-wrap::after,
