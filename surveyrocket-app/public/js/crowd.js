@@ -61,8 +61,29 @@
     chart.appendChild(plots);
     chart.appendChild(names);
     block.appendChild(chart);
+    block.appendChild(rowChart(series));
     if (note) block.appendChild(el("p", "rs-crowd-note", note));
     return block;
+  }
+
+  /* Same series as horizontal bars. CSS shows it instead of the columns on phones, where labels collide. */
+  function rowChart(series) {
+    var list = el("ul", "rs-graph-rows");
+    series.forEach(function (item) {
+      var row = el("li", "rs-graph-row" + (item.you ? " is-you" : ""));
+      var head = el("div", "rs-graph-rowhead");
+      head.appendChild(el("span", "rs-graph-rowname", item.label));
+      if (item.you) head.appendChild(el("span", "rs-graph-you", "You"));
+      head.appendChild(el("span", "rs-graph-rowval", item.pct + "%"));
+      row.appendChild(head);
+      var track = el("span", "rs-graph-track");
+      var fill = el("span", "rs-graph-fill");
+      fill.style.width = Math.max(0, Math.min(100, item.pct)) + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      list.appendChild(row);
+    });
+    return list;
   }
 
   function choiceChart(q, stat, answers) {
@@ -142,11 +163,38 @@
     }
   }
 
+  /** Everyone else (fetched with ?exclude=<this run>) plus this person's answers, counted once. */
+  function withMine(payload, questions, answers) {
+    var out = JSON.parse(JSON.stringify(payload || {}));
+    out.questions = out.questions || {};
+    if (!answers) return out;
+    out.responses = (out.responses || 0) + 1;
+    (questions || []).forEach(function (q) {
+      if (!q || q.type === "text") return;
+      var value = answers[q.id];
+      if (value == null || value === "" || (Array.isArray(value) && !value.length)) return;
+      var stat = out.questions[q.id] || (out.questions[q.id] = { answers: 0, average: null, choices: {} });
+      var prev = stat.answers || 0;
+      stat.answers = prev + 1;
+      if (q.type === "number" || q.nps) {
+        var n = Number(value);
+        if (!isNaN(n)) stat.average = stat.average == null || !prev ? n : (stat.average * prev + n) / (prev + 1);
+      }
+      if (q.type === "number") return;
+      stat.choices = stat.choices || {};
+      (Array.isArray(value) ? value : [value]).forEach(function (pick) {
+        var key = String(pick);
+        stat.choices[key] = (stat.choices[key] || 0) + 1;
+      });
+    });
+    return out;
+  }
+
   function meta(payload) {
     var n = payload && payload.responses ? payload.responses : 0;
     if (!n) return "No completed responses yet.";
     return n === 1 ? "1 completed response" : (n + " completed responses");
   }
 
-  global.SRCrowd = { render: render, meta: meta };
+  global.SRCrowd = { render: render, meta: meta, withMine: withMine };
 })(window);

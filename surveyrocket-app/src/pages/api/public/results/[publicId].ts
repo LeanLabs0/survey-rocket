@@ -4,12 +4,14 @@ import { db } from "../../../../lib/db";
 import { surveys } from "../../../../lib/schema";
 import { aggregateSurvey } from "../../../../lib/aggregates";
 
-export const GET: APIRoute = async ({ params }) => {
+export const GET: APIRoute = async ({ params, url }) => {
   const publicId = params.publicId;
   if (!publicId) return new Response("Not found", { status: 404 });
   const [sv] = await db.select().from(surveys).where(eq(surveys.publicId, publicId)).limit(1);
   if (!sv || sv.deletedAt) return new Response("Not found", { status: 404 });
-  const agg = await aggregateSurvey(sv.id);
+  // The finishing respondent's own run; their page adds it back on top of everyone else.
+  const exclude = (url.searchParams.get("exclude") || "").trim().slice(0, 100) || null;
+  const agg = await aggregateSurvey(sv.id, { excludeClientResponseId: exclude });
   const questions: Record<string, unknown> = {};
   for (const [key, q] of Object.entries(agg.questions)) {
     questions[key] = {

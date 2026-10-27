@@ -478,9 +478,11 @@ if (identityInUrl) {
         rows.appendChild(waiting);
         if(meta) meta.textContent="";
         fitResults();
-        fetch("/api/public/results/"+encodeURIComponent(publicId))
+        // Everyone but this run, then this run's answers added locally: counted once, no wait on the save.
+        fetch("/api/public/results/"+encodeURIComponent(publicId)+"?exclude="+encodeURIComponent(run.id))
           .then(function(r){ return r.ok ? r.json() : null; })
           .then(function(data){
+            if(data && window.SRCrowd) data=SRCrowd.withMine(data, survey.questions || [], lastAnswers);
             if(meta) meta.textContent=window.SRCrowd ? SRCrowd.meta(data) : "";
             renderCrowd(rows, data);
           })
