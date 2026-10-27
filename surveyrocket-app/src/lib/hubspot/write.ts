@@ -1,14 +1,18 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { answers, responses, surveyPublications, surveys } from "../schema";
-import { answerListsEnabled, answerSegments } from "./answer-lists";
+import { answerListsEnabled, answerSegments, publishedSurveyName } from "./answer-lists";
 import { addContactToAnswerLists, enrollContactToSurveyLists, type HubSpotContactProps } from "./lists";
 import { resolveAccessToken } from "./tokens";
 
 /** The definition the respondent actually answered: their publication, else the latest one. */
 async function answeredDefinition(publicationId: string | null, sv: typeof surveys.$inferSelect) {
   if (publicationId) {
-    const [pub] = await db.select().from(surveyPublications).where(eq(surveyPublications.id, publicationId)).limit(1);
+    const [pub] = await db
+      .select()
+      .from(surveyPublications)
+      .where(and(eq(surveyPublications.id, publicationId), eq(surveyPublications.surveyId, sv.id)))
+      .limit(1);
     if (pub) return pub.definition;
   }
   const [latest] = await db
@@ -75,9 +79,15 @@ export async function writeCompletionToHubSpot(responseId: string) {
       website: rec.respondent?.website as string | undefined,
     };
     const contactId = await enrollContactToSurveyLists(sv, email, "completed", extras, row.respondentId);
-    if (answerListsEnabled(await answeredDefinition(row.publicationId, sv))) {
+    const definition = await answeredDefinition(row.publicationId, sv);
+    if (answerListsEnabled(definition)) {
       const rows = await db.select().from(answers).where(eq(answers.responseId, responseId));
-      await addContactToAnswerLists(sv, contactId, answerSegments(rows));
+      await addContactToAnswerLists(
+        sv,
+        contactId,
+        answerSegments(rows, definition),
+        publishedSurveyName(definition, sv.name),
+      );
     }
     await db
       .update(responses)

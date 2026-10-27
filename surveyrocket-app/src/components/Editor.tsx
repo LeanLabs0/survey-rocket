@@ -1016,12 +1016,12 @@ function EditorInner({
                 <FieldContent>
                   <FieldTitle>A HubSpot list per answer</FieldTitle>
                   <FieldDescription>
-                    Everyone who picks an answer goes into its own HubSpot list, so you can email each group.
+                    People who pick one of the choices you wrote are added to a HubSpot list for that answer, so you can email the group.
                   </FieldDescription>
                 </FieldContent>
                 <Switch
                   aria-label="A HubSpot list per answer"
-                  checked={def.settings.hubspot_answer_lists}
+                  checked={def.settings.hubspot_answer_lists === true}
                   onCheckedChange={(checked) =>
                     setDef({ ...def, settings: { ...def.settings, hubspot_answer_lists: checked } })
                   }
