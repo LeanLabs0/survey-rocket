@@ -10,6 +10,7 @@ import { resolveWelcomeCopy } from "../../lib/definition";
 import { slugify } from "../../lib/ids";
 import { getConnection } from "../../lib/hubspot/tokens";
 import { ensureClientSignInForm } from "../../lib/hubspot/provision";
+import { hasIdentityParams, parseLinkIdentity, stripIdentityParams } from "../../lib/link-identity";
 
 function hasQuestions(definition: unknown) {
   if (!definition || typeof definition !== "object") return false;
@@ -65,7 +66,6 @@ const chatIntro = resolveChatIntro(
 );
 const welcome = resolveWelcomeCopy(definition);
 const workspaceLogo = client?.logoUrl || null;
-const clientKey = client?.slug || client?.id || "";
 let hubspotForm: { portalId: string; formId: string } | null = null;
 if (!missing && client) {
   const conn = await getConnection(client.id);
@@ -82,11 +82,20 @@ if (!missing && client) {
     }
   }
 }
+const rawSearch = Astro.url.search || "";
+const identityInUrl = hasIdentityParams(rawSearch);
+const parsedLinkIdentity = parseLinkIdentity(rawSearch);
+const linkIdentity = !missing && parsedLinkIdentity ? parsedLinkIdentity : null;
+const cleanSearch = identityInUrl ? stripIdentityParams(rawSearch) : null;
+if (identityInUrl) {
+  Astro.response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  Astro.response.headers.set("Cache-Control", "private, no-store");
+}
 ---
 {missing ? (
-  <NotFoundApp kind="survey" />
+  <NotFoundApp kind="survey" cleanSearch={cleanSearch} />
 ) : (
-<Base title={sv?.name || "Survey"} bodyClass="rs-intro-page">
+<Base title={sv?.name || "Survey"} bodyClass="rs-intro-page" cleanSearch={cleanSearch}>
   <Fragment slot="head">
     {brand.googleFontsHref ? <link rel="stylesheet" href={brand.googleFontsHref} /> : null}
     <style set:html={`html,body.rs-intro-page{${brand.cssVars}}`}></style>
@@ -142,7 +151,6 @@ if (!missing && client) {
         </div>
         <div class="rs-contact" id="g-contact" hidden></div>
         <button class="rs-begin" type="button" id="g-go">Begin <span class="rs-btn-icon" aria-hidden="true"></span></button>
-        <p class="rs-known" id="g-known" hidden>Answering as <b id="g-known-name"></b>. <button type="button" id="g-not-me">Not you?</button></p>
         <p class="rs-micro"><img src="/assets/landing/icon-clock.svg" width="16" height="16" alt="">Takes about two minutes.</p>
       </div>
 
@@ -267,7 +275,7 @@ if (!missing && client) {
   <script is:inline src="/js/engine.js"></script>
   <script is:inline src="/js/crowd.js"></script>
   <script is:inline src="/js/transport.js"></script>
-  <script is:inline define:vars={{ publicId, definition, clientName, clientKey, hubspotForm, reputationRocketUrl, clientWebsite }}>
+  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm, reputationRocketUrl, clientWebsite, linkIdentity }}>
     (function(){
       if(!definition || !definition.questions || !definition.questions.length){
         document.getElementById("frame").style.display="none";
@@ -612,7 +620,7 @@ if (!missing && client) {
       document.getElementById("rs-restart").addEventListener("click",startRun);
       var welcome=document.getElementById("welcome"), chatWrap=document.getElementById("chatWrap");
       var modal=document.getElementById("leadModal");
-      var hsMounted=false, hsReady=false, hsFailed=false, leadBusy=false, startedFromLead=false, signedInEnroll=null;
+      var hsMounted=false, hsReady=false, hsFailed=false, leadBusy=false, startedFromLead=false, signedInEnroll=null, beginQueued=false;
       function fieldVal(data, name){
         if(!Array.isArray(data)) return "";
         var hit=data.find(function(f){
@@ -629,70 +637,6 @@ if (!missing && client) {
         respondent.website=vals.website||null;
         respondent.name=[respondent.firstname, respondent.lastname].filter(Boolean).join(" ")||null;
       }
-      // Known people skip the contact form: a link that carries their details
-      // (e.g. HubSpot email tokens, ?email={{contact.email}}), or details they
-      // already gave this client on this device.
-      var CONTACT_KEY="sr:contact:v1:"+clientKey;
-      var CONTACT_PARAMS={
-        firstname:["firstname","first_name"],
-        lastname:["lastname","last_name"],
-        email:["email"],
-        company:["company"],
-        website:["website"]
-      };
-      function validEmail(value){
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||"").trim());
-      }
-      function contactFromLink(){
-        var url;
-        try{ url=new URL(window.location.href); }catch(e){ return null; }
-        var vals={}, seen=false;
-        Object.keys(CONTACT_PARAMS).forEach(function(key){
-          CONTACT_PARAMS[key].forEach(function(param){
-            if(!url.searchParams.has(param)) return;
-            seen=true;
-            var value=(url.searchParams.get(param)||"").trim();
-            if(value && !vals[key]) vals[key]=value;
-            url.searchParams.delete(param);
-          });
-        });
-        // Keep the details out of the address bar, screenshots and shared links.
-        if(seen){
-          try{ history.replaceState(history.state, "", url.pathname+url.search+url.hash); }catch(e){}
-        }
-        return validEmail(vals.email) ? vals : null;
-      }
-      function rememberedContact(){
-        if(!clientKey) return null;
-        try{
-          var saved=JSON.parse(localStorage.getItem(CONTACT_KEY)||"null");
-          return saved && validEmail(saved.email) ? saved : null;
-        }catch(e){ return null; }
-      }
-      function rememberContact(){
-        if(!clientKey || !validEmail(respondent.email)) return;
-        try{
-          localStorage.setItem(CONTACT_KEY, JSON.stringify({
-            firstname:respondent.firstname, lastname:respondent.lastname, email:respondent.email,
-            company:respondent.company, website:respondent.website
-          }));
-        }catch(e){}
-      }
-      var knownContact=contactFromLink()||rememberedContact();
-      function showKnownContact(){
-        var line=document.getElementById("g-known");
-        if(!line) return;
-        if(!knownContact){ line.hidden=true; return; }
-        var name=[knownContact.firstname, knownContact.lastname].filter(Boolean).join(" ");
-        document.getElementById("g-known-name").textContent=name || knownContact.email;
-        line.hidden=false;
-      }
-      showKnownContact();
-      document.getElementById("g-not-me").addEventListener("click", function(){
-        knownContact=null;
-        try{ localStorage.removeItem(CONTACT_KEY); }catch(e){}
-        showKnownContact();
-      });
       function closeLeadModal(){
         modal.hidden=true;
         modal.classList.remove("open");
@@ -716,8 +660,8 @@ if (!missing && client) {
         return signedInEnroll;
       }
       function beginAfterIdentity(){
-        if(startedFromLead) return;
-        rememberContact();
+        if(startedFromLead || beginQueued) return;
+        beginQueued=true;
         enrollSignedIn().finally(function(){
           enterChat();
         });
@@ -726,7 +670,6 @@ if (!missing && client) {
       function finishAfterIdentity(){
         if(finishedAtEnd) return;
         finishedAtEnd=true;
-        rememberContact();
         closeLeadModal();
         enrollSignedIn();
         completeRun(lastAnswers);
@@ -747,7 +690,6 @@ if (!missing && client) {
         document.getElementById("leadNativeGo").textContent=
           compare ? "Show my results" : (atEnd ? "Finish" : "Continue");
         document.getElementById("leadClose").textContent=atEnd ? "No thanks" : "Cancel";
-        if(!atEnd) document.getElementById("g-go").classList.add("is-busy");
         modal.hidden=false;
         modal.classList.add("open");
         if(hubspotForm && hubspotForm.portalId && hubspotForm.formId){
@@ -939,8 +881,11 @@ if (!missing && client) {
         }
       });
       document.getElementById("g-go").addEventListener("click", function(){
-        if(knownContact){
-          applyIdentity(knownContact);
+        var btn=document.getElementById("g-go");
+        if(btn.classList.contains("is-busy") || startedFromLead) return;
+        btn.classList.add("is-busy");
+        if(linkIdentity && linkIdentity.email){
+          applyIdentity(linkIdentity);
           beginAfterIdentity();
           return;
         }
