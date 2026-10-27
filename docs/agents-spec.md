@@ -52,7 +52,7 @@ The contract every other part depends on. Versioned, and a survey carries its ve
   "survey_id":   string,
   "name":        string,          // "Client outcomes"
   "cadence":     string | null,   // display only, "Six questions"
-  "intro":       string | null,   // null means the engine's default line
+  "intro":       string | null,   // welcome subtitle. null or blank = the default welcome line. The live chat opens with its own greeting.
   "outro":       string | null,
   "quote_ask":   boolean,
   "questions": [

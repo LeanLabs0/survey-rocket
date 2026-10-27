@@ -42,7 +42,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { isQuestionRequired } from "@/lib/definition";
+import {
+  DEFAULT_WELCOME_INTRO,
+  DEFAULT_WELCOME_NOTE,
+  WELCOME_INTRO_MAX,
+  WELCOME_NOTE_MAX,
+  WELCOME_TITLE_MAX,
+  isQuestionRequired,
+} from "@/lib/definition";
 import { cn } from "@/lib/utils";
 import { Check, Copy, Eye, GripVertical, Link2, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
 
@@ -79,6 +86,8 @@ type Definition = {
     review_links: Record<string, string>;
     chat_lede: string;
     chat_sub: string;
+    welcome_title: string;
+    welcome_note: string;
   };
   questions: Question[];
   provenance: {
@@ -176,6 +185,8 @@ function EditorInner({
         review_links: incoming.review_links ?? {},
         chat_lede: intro.lede,
         chat_sub: intro.sub,
+        welcome_title: typeof incoming.welcome_title === "string" ? incoming.welcome_title : "",
+        welcome_note: typeof incoming.welcome_note === "string" ? incoming.welcome_note : "",
       };
     })(),
     questions: ((survey.definition as Definition)?.questions || []).map((q) => ({ ...q })),
@@ -323,16 +334,16 @@ function EditorInner({
   if (!editingId) committedQuestionsRef.current = def.questions;
   const previewQuestions = editingId ? committedQuestionsRef.current : def.questions;
   const previewKey = useMemo(
-    () => JSON.stringify({ questions: previewQuestions, intro: def.intro, outro: def.outro }),
-    [previewQuestions, def.intro, def.outro],
+    () => JSON.stringify({ questions: previewQuestions, outro: def.outro }),
+    [previewQuestions, def.outro],
   );
 
   useEffect(() => {
     const log = logRef.current;
     if (!log || !window.SurveyChat) return;
     const script = JSON.parse(previewKey).questions as Question[];
-    const intro = def.intro || undefined;
     const outro = def.outro || "That is everything. Thank you.";
+    // `intro` is the welcome subtitle. The live chat opens with its own greeting.
     try {
       if (!chatRef.current) {
         chatRef.current = new window.SurveyChat({
@@ -341,13 +352,12 @@ function EditorInner({
           sendBtn: sendRef.current || undefined,
           progEl: progRef.current || undefined,
           script,
-          intro,
           outro,
         });
       } else if (chatRef.current.o) {
         chatRef.current.o.script = script;
-        chatRef.current.o.intro = intro;
         chatRef.current.o.outro = outro;
+        delete chatRef.current.o.intro;
       }
       chatRef.current.start();
     } catch {
@@ -357,7 +367,7 @@ function EditorInner({
     return () => {
       chatRef.current?.stop?.();
     };
-  }, [previewKey, def.intro, def.outro]);
+  }, [previewKey, def.outro]);
 
   async function save(publish: boolean) {
     if (busy) return;
@@ -461,6 +471,69 @@ function EditorInner({
 
   return (
     <div className="flex flex-col gap-4">
+      <Card className="dark:bg-transparent">
+        <CardHeader className="border-b">
+          <CardTitle className="text-lg text-balance">Welcome screen</CardTitle>
+          <CardDescription className="text-pretty">
+            Headline, intro, and note on the screen before the chat. Leave a field blank to keep its current wording.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="ed-welcome-title">Headline</FieldLabel>
+              <Input
+                className={fieldInputClass}
+                id="ed-welcome-title"
+                maxLength={WELCOME_TITLE_MAX}
+                onChange={(e) =>
+                  setDef((d) => ({ ...d, settings: { ...d.settings, welcome_title: e.target.value } }))
+                }
+                placeholder="Is your website ready for 2027?"
+                value={def.settings.welcome_title ?? ""}
+              />
+              <FieldDescription>
+                {(def.settings.welcome_title ?? "").trim()
+                  ? `Respondents see this headline as typed. ${WELCOME_TITLE_MAX} characters max.`
+                  : `Blank keeps “Ready to share your results with {client}?”, with the client name filled in and “share your results” emphasized. ${WELCOME_TITLE_MAX} characters max.`}
+              </FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="ed-intro">Intro</FieldLabel>
+              <Textarea
+                className="min-h-20 py-2.5"
+                id="ed-intro"
+                maxLength={WELCOME_INTRO_MAX}
+                onChange={(e) =>
+                  setDef((d) => ({ ...d, intro: e.target.value || null }))
+                }
+                placeholder={DEFAULT_WELCOME_INTRO}
+                value={def.intro ?? ""}
+              />
+              <FieldDescription>
+                Shown under the headline on the welcome screen. The chat opens with its own greeting. {WELCOME_INTRO_MAX} characters max.
+              </FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="ed-welcome-note">Note</FieldLabel>
+              <Textarea
+                className="min-h-20 py-2.5"
+                id="ed-welcome-note"
+                maxLength={WELCOME_NOTE_MAX}
+                onChange={(e) =>
+                  setDef((d) => ({ ...d, settings: { ...d.settings, welcome_note: e.target.value } }))
+                }
+                placeholder={DEFAULT_WELCOME_NOTE}
+                value={def.settings.welcome_note ?? ""}
+              />
+              <FieldDescription>
+                Blank keeps the current note under the intro. {WELCOME_NOTE_MAX} characters max.
+              </FieldDescription>
+            </Field>
+          </FieldGroup>
+        </CardContent>
+      </Card>
+
       <Card className="dark:bg-transparent">
         <CardHeader className="border-b">
           <CardTitle className="text-lg text-balance">Above the chat</CardTitle>

@@ -245,6 +245,18 @@ html[data-theme="light"] body.rs-intro-page{
   font-style:italic;
   font-weight:var(--sr-h1-w);
 }
+/* Custom headlines are full sentences. The 18ch measure is only for the stacked default. */
+.rs-welcome h1.rs-welcome-custom{
+  max-width:min(100%, 36rem);
+  overflow-wrap:break-word;
+}
+.rs-welcome .rs-sub{
+  overflow-wrap:break-word;
+}
+.rs-welcome .rs-heads p{
+  overflow-wrap:break-word;
+  white-space:pre-line;
+}
 .rs-sub{
   margin:20px auto 32px;
   max-width:36rem;

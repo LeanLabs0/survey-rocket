@@ -16,14 +16,16 @@ version.
   "name":     string,
   "cadence":  string | null,       // display only
   "status":   "Draft" | "Active" | "Paused",
-  "intro":    string | null,       // null = the engine's default line
+  "intro":    string | null,       // welcome subtitle under the headline. null or blank = the default welcome line. The live chat opens with its own greeting.
   "outro":    string | null,
 
   "settings": {
     "require_contact": boolean,    // ask name + email before the questions (Kevin 8/31)
     "show_results":    boolean,    // respondent sees the aggregates on completion (Kevin 8/31)
     "review_ask":      boolean,    // then ask for a review (Kevin 8/31)
-    "review_links":    { }         // platform -> url, RepRocket's shape. {} = nowhere to send
+    "review_links":    { },        // platform -> url, RepRocket's shape. {} = nowhere to send
+    "welcome_title":   string,     // optional on v1. omit or blank = styled default headline, client name filled in
+    "welcome_note":    string      // optional on v1. omit or blank = the customer-feedback note. Line breaks are kept.
   },
 
   "questions": [
@@ -63,6 +65,12 @@ version.
    defaults below, missing `provenance` becomes `{source:"hand"}`.
 5. **Defaults:** `require_contact` false, `show_results` false,
    `review_ask` false, `review_links` {}. Everything off. A survey opts in.
+   `welcome_title` and `welcome_note` are optional additions on
+   `schema_version` 1. Readers already ignore unknown settings, and a missing
+   or blank value is the previous welcome copy, so the version stays 1.
+   Headline max 180 characters, note max 400. A custom headline is plain text
+   on a wider measure than the stacked default. `intro` is the welcome
+   subtitle. The live chat opens with its own greeting.
 
 ## What changed from the ad-hoc shapes
 

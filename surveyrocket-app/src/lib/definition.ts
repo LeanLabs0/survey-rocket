@@ -26,6 +26,8 @@ export type SurveyDefinition = {
     review_links: Record<string, string>;
     chat_lede?: string;
     chat_sub?: string;
+    welcome_title?: string;
+    welcome_note?: string;
   };
   questions: Question[];
   provenance: {
@@ -35,6 +37,108 @@ export type SurveyDefinition = {
     approved_at: string | null;
   };
 };
+
+/** Welcome subtitle when `intro` is null or blank. Straight apostrophe, matches the live page. */
+export const DEFAULT_WELCOME_INTRO =
+  "We'd love to capture what actually changed, so you and future clients can get a better experience with us.";
+/** Note under the welcome intro when `settings.welcome_note` is omitted or blank. */
+export const DEFAULT_WELCOME_NOTE =
+  "We'd love to hear your feedback so we can keep improving your experience with us.";
+
+export const WELCOME_TITLE_MAX = 180;
+export const WELCOME_NOTE_MAX = 400;
+/** High enough that an existing welcome subtitle still saves. This only stops an abusive payload. */
+export const WELCOME_INTRO_MAX = 4000;
+
+const INVISIBLE = /[\u200B\u200C\u200D\uFEFF\u2060\u180E]/g;
+
+export function cleanWelcomeLine(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.replace(INVISIBLE, "").replace(/\s+/g, " ").trim();
+}
+
+export function cleanWelcomeBlock(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.replace(INVISIBLE, "").replace(/\r\n?/g, "\n").trim();
+}
+
+function clip(value: string, max: number) {
+  return value.length > max ? value.slice(0, max) : value;
+}
+
+/** Respondent welcome copy. An empty `title` means the styled default headline. */
+export function resolveWelcomeCopy(definition: unknown) {
+  const record =
+    definition && typeof definition === "object"
+      ? (definition as { intro?: unknown; settings?: unknown })
+      : {};
+  const settings =
+    record.settings && typeof record.settings === "object" && !Array.isArray(record.settings)
+      ? (record.settings as { welcome_title?: unknown; welcome_note?: unknown })
+      : {};
+  const intro = clip(cleanWelcomeLine(record.intro), WELCOME_INTRO_MAX);
+  const note = clip(cleanWelcomeBlock(settings.welcome_note), WELCOME_NOTE_MAX);
+  return {
+    title: clip(cleanWelcomeLine(settings.welcome_title), WELCOME_TITLE_MAX),
+    intro: intro || DEFAULT_WELCOME_INTRO,
+    note: note || DEFAULT_WELCOME_NOTE,
+  };
+}
+
+function readOptionalSetting(
+  settings: Record<string, unknown>,
+  key: "welcome_title" | "welcome_note",
+  max: number,
+  label: string,
+  block: boolean,
+): { error: string | null; patch: Record<string, string> } {
+  if (!Object.prototype.hasOwnProperty.call(settings, key)) return { error: null, patch: {} };
+  const raw = settings[key];
+  if (typeof raw !== "string") return { error: `${label} must be text.`, patch: {} };
+  const value = block ? cleanWelcomeBlock(raw) : cleanWelcomeLine(raw);
+  if (value.length > max) return { error: `${label} must be ${max} characters or fewer.`, patch: {} };
+  return { error: null, patch: { [key]: value } };
+}
+
+/**
+ * Trim welcome fields before they are stored.
+ * Absent keys stay absent, so a survey that never set them keeps today's copy.
+ * Whitespace-only values become blank, which the page renders as the default.
+ */
+export function applyWelcomeCopy(definition: SurveyDefinition | null | undefined): {
+  definition: SurveyDefinition | null;
+  error: string | null;
+} {
+  if (!definition || typeof definition !== "object") return { definition: null, error: null };
+  let intro: string | null;
+  if (definition.intro == null) intro = null;
+  else if (typeof definition.intro !== "string") return { definition, error: "Intro must be text." };
+  else {
+    const value = cleanWelcomeLine(definition.intro);
+    if (value.length > WELCOME_INTRO_MAX) {
+      return { definition, error: `Intro must be ${WELCOME_INTRO_MAX} characters or fewer.` };
+    }
+    intro = value || null;
+  }
+
+  const settings = definition.settings;
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return { definition: { ...definition, intro }, error: null };
+  }
+  const rawSettings = settings as SurveyDefinition["settings"] & Record<string, unknown>;
+  const title = readOptionalSetting(rawSettings, "welcome_title", WELCOME_TITLE_MAX, "Headline", false);
+  if (title.error) return { definition, error: title.error };
+  const note = readOptionalSetting(rawSettings, "welcome_note", WELCOME_NOTE_MAX, "Note", true);
+  if (note.error) return { definition, error: note.error };
+  return {
+    error: null,
+    definition: {
+      ...definition,
+      intro,
+      settings: { ...settings, ...title.patch, ...note.patch },
+    },
+  };
+}
 
 export function defaultSettings() {
   return {

@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { jsonError, jsonOk, requireClientAccess } from "../../../lib/access";
 import { db } from "../../../lib/db";
 import { surveys } from "../../../lib/schema";
-import { blankDefinition } from "../../../lib/definition";
+import { applyWelcomeCopy, blankDefinition } from "../../../lib/definition";
 import { publicId, slugify } from "../../../lib/ids";
 import { provisionSurveyLists } from "../../../lib/hubspot/lists";
 import { liveSurveys } from "../../../lib/survey-scope";
@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     while (used.has(`${slug}-${n}`)) n++;
     slug = `${slug}-${n}`;
   }
-  const definition = blankDefinition({
+  const built = blankDefinition({
     id: slug,
     name,
     cadence: body.cadence || null,
@@ -46,6 +46,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     settings: body.settings,
     provenance: body.provenance || { source: body.source || "hand", drafted_by: body.drafted_by || null, approved_by: null, approved_at: null },
   });
+  const prepared = applyWelcomeCopy(built);
+  if (prepared.error || !prepared.definition) return jsonError(400, prepared.error || "definition required");
+  const definition = prepared.definition;
   const [row] = await db
     .insert(surveys)
     .values({
