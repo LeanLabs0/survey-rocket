@@ -482,7 +482,10 @@ if (identityInUrl) {
         fetch("/api/public/results/"+encodeURIComponent(publicId)+"?exclude="+encodeURIComponent(run.id))
           .then(function(r){ return r.ok ? r.json() : null; })
           .then(function(data){
-            if(data && window.SRCrowd) data=SRCrowd.withMine(data, survey.questions || [], lastAnswers);
+            if(data && window.SRCrowd && SRCrowd.withMine){
+              try { data=SRCrowd.withMine(data, survey.questions || [], lastAnswers); }
+              catch(e){ console.error("results", e); }
+            }
             if(meta) meta.textContent=window.SRCrowd ? SRCrowd.meta(data) : "";
             renderCrowd(rows, data);
           })

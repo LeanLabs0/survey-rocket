@@ -737,9 +737,13 @@ html[data-theme="light"] body.rs-intro-page{
   list-style:none;
   flex-direction:column;
   gap:12px;
+  min-width:0;
+  max-width:100%;
 }
+.rs-graph-row{min-width:0}
 .rs-graph-rowhead{
   display:flex;
+  flex-wrap:wrap;
   align-items:baseline;
   gap:8px;
   margin-bottom:6px;
@@ -770,11 +774,17 @@ html[data-theme="light"] body.rs-intro-page{
 .rs-graph-fill{
   display:block;
   height:100%;
-  min-width:2px;
+  width:0;
+  max-width:100%;
   border-radius:inherit;
   background:color-mix(in srgb, var(--sr-text) 32%, transparent);
 }
 .rs-graph-row.is-you .rs-graph-fill{background:var(--sr-text)}
+/* 0–10 charts still collide in landscape until the card is wide enough for eleven labels. */
+@media (max-width:900px){
+  .rs-graph.is-nps .rs-graph-chart{display:none}
+  .rs-graph.is-nps .rs-graph-rows{display:flex}
+}
 @media (max-width:640px){
   .rs-graph-chart{display:none}
   .rs-graph-rows{display:flex}

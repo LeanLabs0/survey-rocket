@@ -19,7 +19,9 @@ export const GET: APIRoute = async ({ params, url }) => {
       type: q.type,
       nps: q.nps,
       answers: q.answers,
-      average: q.average !== null ? Math.round(q.average * 10) / 10 : null,
+      // Exact mean. The chart rounds to one decimal when it draws, and the
+      // respondent page adds their own number on top of this one.
+      average: q.average,
       choices: q.choices,
     };
   }
@@ -30,6 +32,12 @@ export const GET: APIRoute = async ({ params, url }) => {
       latest_at: agg.latest_at,
       questions,
     }),
-    { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        // Body depends on ?exclude=, so a shared cache must not reuse one person's totals.
+        "Cache-Control": "private, no-store",
+      },
+    },
   );
 };
