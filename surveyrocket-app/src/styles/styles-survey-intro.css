@@ -434,6 +434,25 @@ html[data-theme="light"] body.rs-intro-page{
   color:var(--sr-gray);
 }
 .rs-micro img{width:16px;height:16px;display:block;flex:0 0 16px}
+.rs-known{
+  margin:16px 0 0;
+  font-size:13px;
+  color:var(--sr-muted);
+  text-align:center;
+}
+.rs-known[hidden]{display:none !important}
+.rs-known b{color:var(--sr-text);font-weight:600}
+.rs-known button{
+  margin-left:4px;
+  padding:0;
+  background:none;
+  border:0;
+  color:inherit;
+  font:inherit;
+  text-decoration:underline;
+  text-underline-offset:2px;
+  cursor:pointer;
+}
 
 .rs-chat-wrap{
   width:100%;

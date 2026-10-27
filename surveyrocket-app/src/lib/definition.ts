@@ -21,6 +21,8 @@ export type SurveyDefinition = {
   outro: string | null;
   settings: {
     require_contact: boolean;
+    /** "end" asks for contact details after the last question. Missing means "start". */
+    contact_at?: "start" | "end";
     show_results: boolean;
     review_ask: boolean;
     review_links: Record<string, string>;
