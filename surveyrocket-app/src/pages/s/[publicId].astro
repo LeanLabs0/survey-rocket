@@ -575,7 +575,9 @@ if (identityInUrl) {
         },
         onComplete:function(answers){
           lastAnswers=answers;
-          enrollHubSpot("completed").finally(function(){
+          (signedInEnroll||Promise.resolve()).then(function(){
+            return enrollHubSpot("completed");
+          }).finally(function(){
             sendRecord(!!settings.review_ask, settings.review_ask ? "shown" : "not_asked");
           });
           showEnding();
@@ -651,9 +653,9 @@ if (identityInUrl) {
       function beginAfterIdentity(){
         if(startedFromLead || beginQueued) return;
         beginQueued=true;
-        enrollSignedIn().finally(function(){
-          enterChat();
-        });
+        // A new HubSpot contact can take ~10s; never hold question 1 for it.
+        enrollSignedIn();
+        enterChat();
       }
       function readLeadFields(){
         return {
