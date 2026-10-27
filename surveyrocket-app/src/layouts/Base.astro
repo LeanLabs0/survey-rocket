@@ -7,14 +7,35 @@ import "../styles/styles-app-chrome.css";
 interface Props {
   title?: string;
   bodyClass?: string;
+  /** Cleaned query ("" or "?…") after identity params are removed. Null leaves the URL alone. */
+  cleanSearch?: string | null;
 }
-const { title = "Survey Rocket", bodyClass = "" } = Astro.props;
+const { title = "Survey Rocket", bodyClass = "", cleanSearch = null } = Astro.props;
+const shouldClean = typeof cleanSearch === "string";
 ---
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {shouldClean ? (
+    <>
+      <meta name="referrer" content="strict-origin-when-cross-origin">
+      <script is:inline define:vars={{ cleanSearch }}>
+        (function () {
+          try {
+            if (typeof cleanSearch !== "string") return;
+            if (cleanSearch !== "" && cleanSearch.charAt(0) !== "?") return;
+            if (!window.history || !history.replaceState) return;
+            var next = window.location.pathname + cleanSearch + window.location.hash;
+            var current = window.location.pathname + window.location.search + window.location.hash;
+            if (next === current) return;
+            history.replaceState(history.state, "", next);
+          } catch (e) {}
+        })();
+      </script>
+    </>
+  ) : null}
   <title>{title}</title>
   <link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
