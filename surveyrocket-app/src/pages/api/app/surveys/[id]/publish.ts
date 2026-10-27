@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { jsonError, jsonOk, requireClientAccess } from "../../../../../lib/access";
 import { db } from "../../../../../lib/db";
 import { surveyPublications, surveys } from "../../../../../lib/schema";
-import { validateDefinition, type SurveyDefinition } from "../../../../../lib/definition";
+import { applyWelcomeCopy, validateDefinition, type SurveyDefinition } from "../../../../../lib/definition";
 import { ensureSurveyLists } from "../../../../../lib/hubspot/lists";
 import { ownedLiveSurvey } from "../../../../../lib/survey-scope";
 
@@ -18,7 +18,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     .where(ownedLiveSurvey(access.client.id, params.id!))
     .limit(1);
   if (!sv) return jsonError(404, "Survey not found");
-  const definition = (body.definition || sv.definition) as SurveyDefinition;
+  const prepared = applyWelcomeCopy((body.definition || sv.definition) as SurveyDefinition);
+  if (prepared.error) return jsonError(400, prepared.error);
+  const definition = prepared.definition;
+  if (!definition) return jsonError(400, "definition required");
   const err = validateDefinition({ ...definition, status: "Active", provenance: { ...definition.provenance, approved_by: locals.profile?.fullName || locals.user?.email || "operator", approved_at: new Date().toISOString() } });
   if (err) return jsonError(400, err);
   const approved = {

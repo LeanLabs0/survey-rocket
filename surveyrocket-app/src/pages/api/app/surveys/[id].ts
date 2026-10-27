@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { jsonError, jsonOk, requireClientAccess } from "../../../../lib/access";
 import { db } from "../../../../lib/db";
 import { surveys } from "../../../../lib/schema";
-import { validateDefinition, type SurveyDefinition } from "../../../../lib/definition";
+import { applyWelcomeCopy, validateDefinition, type SurveyDefinition } from "../../../../lib/definition";
 import { deleteSurveyLists } from "../../../../lib/hubspot/lists";
 import { ownedLiveSurvey } from "../../../../lib/survey-scope";
 
@@ -31,7 +31,9 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   if (!body?.client) return jsonError(400, "client required");
   const loaded = await loadOwned(locals, params.id!, body.client);
   if (!loaded.ok) return jsonError(loaded.status, loaded.error);
-  const definition = body.definition as SurveyDefinition;
+  const prepared = applyWelcomeCopy(body.definition as SurveyDefinition);
+  if (prepared.error) return jsonError(400, prepared.error);
+  const definition = prepared.definition;
   if (!definition) return jsonError(400, "definition required");
   const err = validateDefinition(definition);
   if (err && body.publish) return jsonError(400, err);
