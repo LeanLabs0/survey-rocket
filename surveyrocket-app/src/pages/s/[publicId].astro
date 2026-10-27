@@ -566,6 +566,8 @@ if (identityInUrl) {
       }
       function completeRun(answers){
         lastAnswers=answers;
+        // Saving the survey waits on the completed list call only, same as before.
+        // That call also adds the signed-in list, so it does not wait on the background sign-in.
         enrollHubSpot("completed").finally(function(){
           sendRecord(!!settings.review_ask, settings.review_ask ? "shown" : "not_asked");
         });
@@ -656,15 +658,17 @@ if (identityInUrl) {
       }
       function enrollSignedIn(){
         if(signedInEnroll) return signedInEnroll;
-        signedInEnroll=enrollHubSpot("signedIn");
+        signedInEnroll=enrollHubSpot("signedIn").catch(function(err){
+          console.error("hubspot lists", err);
+        });
         return signedInEnroll;
       }
       function beginAfterIdentity(){
         if(startedFromLead || beginQueued) return;
         beginQueued=true;
-        enrollSignedIn().finally(function(){
-          enterChat();
-        });
+        // A new HubSpot contact can take ~10s; never hold question 1 for it.
+        enrollSignedIn();
+        enterChat();
       }
       var leadMode="start", finishedAtEnd=false;
       function finishAfterIdentity(){

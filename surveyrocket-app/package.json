@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "test": "node --experimental-strip-types --test src/lib/link-identity.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/link-identity.test.ts src/lib/hubspot/answer-lists.test.ts",
     "preview": "astro preview",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

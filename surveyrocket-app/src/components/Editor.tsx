@@ -89,6 +89,7 @@ type Definition = {
     chat_sub: string;
     welcome_title: string;
     welcome_note: string;
+    hubspot_answer_lists: boolean;
   };
   questions: Question[];
   provenance: {
@@ -189,6 +190,7 @@ function EditorInner({
         chat_sub: intro.sub,
         welcome_title: typeof incoming.welcome_title === "string" ? incoming.welcome_title : "",
         welcome_note: typeof incoming.welcome_note === "string" ? incoming.welcome_note : "",
+        hubspot_answer_lists: incoming.hubspot_answer_lists === true,
       };
     })(),
     questions: ((survey.definition as Definition)?.questions || []).map((q) => ({ ...q })),
@@ -1024,6 +1026,21 @@ function EditorInner({
                   checked={def.settings.review_ask}
                   onCheckedChange={(checked) =>
                     setDef({ ...def, settings: { ...def.settings, review_ask: checked } })
+                  }
+                />
+              </Field>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldTitle>A HubSpot list per answer</FieldTitle>
+                  <FieldDescription>
+                    People who pick one of the choices you wrote are added to a HubSpot list for that answer, so you can email the group.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  aria-label="A HubSpot list per answer"
+                  checked={def.settings.hubspot_answer_lists === true}
+                  onCheckedChange={(checked) =>
+                    setDef({ ...def, settings: { ...def.settings, hubspot_answer_lists: checked } })
                   }
                 />
               </Field>

@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { respondents, surveys } from "../schema";
+import { answerListName, clipSurveyName, type AnswerSegment } from "./answer-lists";
 import { hasContactWrite, missingContactScopes } from "./oauth";
 import { resolveAccessToken } from "./tokens";
 
@@ -41,13 +42,8 @@ async function hs(
   return { ok: true, status: res.status, data };
 }
 
-function clipName(surveyName: string) {
-  const trimmed = surveyName.trim() || "Untitled";
-  return trimmed.length > 72 ? trimmed.slice(0, 72).trim() : trimmed;
-}
-
 export function surveyListNames(surveyName: string) {
-  const name = clipName(surveyName);
+  const name = clipSurveyName(surveyName);
   return {
     signedIn: `[LL] SurveyRocket - ${name}_signed_in`,
     completed: `[LL] SurveyRocket - ${name}_completed`,
@@ -240,17 +236,19 @@ async function upsertContact(token: string, email: string, extras?: HubSpotConta
   const full = await hs(token, "/crm/v3/objects/contacts/batch/upsert", {
     method: "POST",
     body: bodyFor(contactProperties(email, extras)),
-    allowStatuses: [400, 403],
+    allowStatuses: [400, 403, 409],
   });
   if (full.status === 403) return null;
+  if (full.status === 409) return getContactByEmail(token, email);
   if (full.ok && contactIdFrom(full.data)) return contactIdFrom(full.data);
   if (full.status === 400) {
     const emailOnly = await hs(token, "/crm/v3/objects/contacts/batch/upsert", {
       method: "POST",
       body: bodyFor({ email }),
-      allowStatuses: [400, 403],
+      allowStatuses: [400, 403, 409],
     });
     if (emailOnly.status === 403) return null;
+    if (emailOnly.status === 409) return getContactByEmail(token, email);
     if (emailOnly.ok && contactIdFrom(emailOnly.data)) return contactIdFrom(emailOnly.data);
   }
   return null;
@@ -348,6 +346,46 @@ export async function enrollContactToSurveyLists(
     await rememberContactByEmail(survey.clientId, email, respondentId || null).catch(() => null);
     throw err;
   }
+}
+
+const ANSWER_LIST_CONCURRENCY = 4;
+
+/** A few lists at a time, so a survey with many answers does not burst HubSpot's rate limit. */
+async function eachLimited<T>(items: T[], limit: number, run: (item: T) => Promise<void>) {
+  if (!items.length) return;
+  let cursor = 0;
+  let failure: unknown;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (failure === undefined && cursor < items.length) {
+      const item = items[cursor++];
+      try {
+        await run(item);
+      } catch (err) {
+        if (failure === undefined) failure = err;
+        return;
+      }
+    }
+  });
+  await Promise.all(workers);
+  if (failure !== undefined) throw failure;
+}
+
+/** Lists are found by name or created on first use, so only answers someone picked get a list. */
+export async function addContactToAnswerLists(
+  survey: typeof surveys.$inferSelect,
+  contactId: string,
+  segments: AnswerSegment[],
+  surveyName = survey.name,
+) {
+  if (!segments.length) return;
+  const access = await resolveAccessToken(survey.clientId);
+  if (!access) throw new Error("HubSpot not connected");
+  await eachLimited(segments, ANSWER_LIST_CONCURRENCY, async (segment) => {
+    const name = answerListName(surveyName, segment);
+    if (!name) return;
+    const list = await createOrFindList(access.token, name);
+    await addToList(access.token, list.id, contactId);
+  });
 }
 
 export function provisionSurveyLists(survey: typeof surveys.$inferSelect) {
