@@ -10,6 +10,7 @@ import { resolveWelcomeCopy } from "../../lib/definition";
 import { slugify } from "../../lib/ids";
 import { getConnection } from "../../lib/hubspot/tokens";
 import { ensureClientSignInForm } from "../../lib/hubspot/provision";
+import { hasIdentityParams, parseLinkIdentity, stripIdentityParams } from "../../lib/link-identity";
 
 function hasQuestions(definition: unknown) {
   if (!definition || typeof definition !== "object") return false;
@@ -81,11 +82,20 @@ if (!missing && client) {
     }
   }
 }
+const rawSearch = Astro.url.search || "";
+const identityInUrl = hasIdentityParams(rawSearch);
+const parsedLinkIdentity = parseLinkIdentity(rawSearch);
+const linkIdentity = !missing && parsedLinkIdentity ? parsedLinkIdentity : null;
+const cleanSearch = identityInUrl ? stripIdentityParams(rawSearch) : null;
+if (identityInUrl) {
+  Astro.response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  Astro.response.headers.set("Cache-Control", "private, no-store");
+}
 ---
 {missing ? (
-  <NotFoundApp kind="survey" />
+  <NotFoundApp kind="survey" cleanSearch={cleanSearch} />
 ) : (
-<Base title={sv?.name || "Survey"} bodyClass="rs-intro-page">
+<Base title={sv?.name || "Survey"} bodyClass="rs-intro-page" cleanSearch={cleanSearch}>
   <Fragment slot="head">
     {brand.googleFontsHref ? <link rel="stylesheet" href={brand.googleFontsHref} /> : null}
     <style set:html={`html,body.rs-intro-page{${brand.cssVars}}`}></style>
@@ -265,7 +275,7 @@ if (!missing && client) {
   <script is:inline src="/js/engine.js"></script>
   <script is:inline src="/js/crowd.js"></script>
   <script is:inline src="/js/transport.js"></script>
-  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm, reputationRocketUrl, clientWebsite }}>
+  <script is:inline define:vars={{ publicId, definition, clientName, hubspotForm, reputationRocketUrl, clientWebsite, linkIdentity }}>
     (function(){
       if(!definition || !definition.questions || !definition.questions.length){
         document.getElementById("frame").style.display="none";
@@ -599,7 +609,7 @@ if (!missing && client) {
       document.getElementById("rs-restart").addEventListener("click",startRun);
       var welcome=document.getElementById("welcome"), chatWrap=document.getElementById("chatWrap");
       var modal=document.getElementById("leadModal");
-      var hsMounted=false, hsReady=false, hsFailed=false, leadBusy=false, startedFromLead=false, signedInEnroll=null;
+      var hsMounted=false, hsReady=false, hsFailed=false, leadBusy=false, startedFromLead=false, signedInEnroll=null, beginQueued=false;
       function fieldVal(data, name){
         if(!Array.isArray(data)) return "";
         var hit=data.find(function(f){
@@ -639,7 +649,8 @@ if (!missing && client) {
         return signedInEnroll;
       }
       function beginAfterIdentity(){
-        if(startedFromLead) return;
+        if(startedFromLead || beginQueued) return;
+        beginQueued=true;
         enrollSignedIn().finally(function(){
           enterChat();
         });
@@ -815,7 +826,13 @@ if (!missing && client) {
       document.getElementById("leadClose").addEventListener("click", closeLeadModal);
       document.getElementById("g-go").addEventListener("click", function(){
         var btn=document.getElementById("g-go");
+        if(btn.classList.contains("is-busy") || startedFromLead) return;
         btn.classList.add("is-busy");
+        if(linkIdentity && linkIdentity.email){
+          applyIdentity(linkIdentity);
+          beginAfterIdentity();
+          return;
+        }
         modal.hidden=false;
         modal.classList.add("open");
         if(hubspotForm && hubspotForm.portalId && hubspotForm.formId){

@@ -7,6 +7,7 @@ import { clientCountry, clientIp, hashIp } from "../../../lib/crypto";
 import { makeUlid } from "../../../lib/ids";
 import { writeCompletionToHubSpot, writeSignedInToHubSpot } from "../../../lib/hubspot/write";
 import { notifyResponse, notifyReview } from "../../../lib/notifications";
+import { sanitizeRespondent } from "../../../lib/link-identity";
 
 type IncomingAnswer = {
   question_id: string;
@@ -51,15 +52,13 @@ export const POST: APIRoute = async ({ request }) => {
     .orderBy(desc(surveyPublications.version))
     .limit(1);
 
-  const email = payload.respondent?.email?.trim().toLowerCase() || null;
-  const firstname = payload.respondent?.firstname?.trim() || null;
-  const lastname = payload.respondent?.lastname?.trim() || null;
-  const name =
-    payload.respondent?.name?.trim() ||
-    [firstname, lastname].filter(Boolean).join(" ").trim() ||
-    null;
-  const company = payload.respondent?.company?.trim() || null;
-  const website = payload.respondent?.website?.trim() || null;
+  const respondent = sanitizeRespondent(payload.respondent);
+  const email = respondent.email;
+  const firstname = respondent.firstname;
+  const lastname = respondent.lastname;
+  const name = respondent.name;
+  const company = respondent.company;
+  const website = respondent.website;
   let respondentId: string | null = null;
   if (email) {
     const existing = await db
@@ -111,6 +110,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const record = {
     ...payload,
+    respondent: { name, firstname, lastname, email, company, website },
     completed_at: completedAt ? completedAt.toISOString() : null,
     meta: {
       ip_hash: hashIp(clientIp(request)),

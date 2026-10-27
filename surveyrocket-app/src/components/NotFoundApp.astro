@@ -5,13 +5,14 @@ import { marketingOrigin } from "../lib/site";
 
 interface Props {
   kind?: "survey" | "page";
+  cleanSearch?: string | null;
 }
-const { kind = "page" } = Astro.props;
+const { kind = "page", cleanSearch = null } = Astro.props;
 const survey = kind === "survey";
 const homeHref = survey ? `${marketingOrigin()}/` : "/login";
 const title = "Page not found";
 ---
-<Base title={title} bodyClass="rs-intro-page">
+<Base title={title} bodyClass="rs-intro-page" cleanSearch={cleanSearch}>
   <Fragment slot="head">
     <script is:inline>
       document.documentElement.setAttribute("data-theme", "dark");
