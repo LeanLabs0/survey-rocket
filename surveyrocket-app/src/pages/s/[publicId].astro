@@ -242,7 +242,7 @@ if (identityInUrl) {
     <div id="leadModal" class="rs-lead-modal" hidden>
       <div class="rs-lead-card" role="dialog" aria-modal="true" aria-labelledby="leadTitle">
         <h2 id="leadTitle">Before we begin</h2>
-        <p class="rs-lead-copy">A few details so {clientName} can tie your answers to you.</p>
+        <p class="rs-lead-copy" id="leadCopy">A few details so {clientName} can tie your answers to you.</p>
         <div id="hsFormTarget" class="rs-hs-form rs-hs-form-hidden" aria-hidden="true"></div>
         <div id="leadNative" class="rs-lead-native">
           <label class="flabel" for="g-first">First name <span class="req" aria-hidden="true">*</span></label>
@@ -288,6 +288,7 @@ if (identityInUrl) {
       }
       var survey = Object.assign({}, definition, { public_id: publicId, id: publicId });
       var settings = survey.settings || {};
+      var contactAtEnd = settings.contact_at === "end";
       var lastAnswers=null, respondent={name:null,firstname:null,lastname:null,email:null,company:null,website:null};
       var run={id:SRHubSpot.uuid(), startedAt:null};
       var reviewStep=document.querySelector('#steps .rs-step[data-step="2"]');
@@ -568,6 +569,21 @@ if (identityInUrl) {
           modalResults.classList.remove("is-graph");
         }
       }
+      function completeRun(answers){
+        lastAnswers=answers;
+        // Saving the survey waits on the completed list call only, same as before.
+        // That call also adds the signed-in list, so it does not wait on the background sign-in.
+        enrollHubSpot("completed").finally(function(){
+          sendRecord(!!settings.review_ask, settings.review_ask ? "shown" : "not_asked");
+        });
+        showEnding();
+        if(settings.review_ask || settings.show_results){
+          if(handoffTimer) clearTimeout(handoffTimer);
+          handoffTimer=setTimeout(showHandoff, 600);
+        } else {
+          setStep(1, true);
+        }
+      }
       var chat=new SurveyChat({
         log:document.getElementById("rs-log"),
         input:document.getElementById("rs-inp"),
@@ -580,18 +596,13 @@ if (identityInUrl) {
         },
         onComplete:function(answers){
           lastAnswers=answers;
-          // Saving the survey waits on the completed list call only, same as before.
-          // That call also adds the signed-in list, so it does not wait on the background sign-in.
-          enrollHubSpot("completed").finally(function(){
-            sendRecord(!!settings.review_ask, settings.review_ask ? "shown" : "not_asked");
-          });
-          showEnding();
-          if(settings.review_ask || settings.show_results){
-            if(handoffTimer) clearTimeout(handoffTimer);
-            handoffTimer=setTimeout(showHandoff, 600);
-          } else {
-            setStep(1, true);
+          if(contactAtEnd && !respondent.email){
+            // Save the answers now, so someone who skips the details step still counts.
+            sendRecord(false, "not_asked");
+            openLeadModal("end");
+            return;
           }
+          completeRun(answers);
         }
       });
       function startRun(){
@@ -663,6 +674,38 @@ if (identityInUrl) {
         // A new HubSpot contact can take ~10s; never hold question 1 for it.
         enrollSignedIn();
         enterChat();
+      }
+      var leadMode="start", finishedAtEnd=false;
+      function finishAfterIdentity(){
+        if(finishedAtEnd) return;
+        finishedAtEnd=true;
+        closeLeadModal();
+        enrollSignedIn();
+        completeRun(lastAnswers);
+      }
+      function afterIdentity(){
+        if(leadMode==="end") finishAfterIdentity();
+        else beginAfterIdentity();
+      }
+      function openLeadModal(mode){
+        leadMode=mode;
+        var atEnd=mode==="end";
+        var compare=atEnd && !!settings.show_results;
+        document.getElementById("leadTitle").textContent=
+          compare ? "See how you compare" : (atEnd ? "One last thing" : "Before we begin");
+        document.getElementById("leadCopy").textContent=compare
+          ? "Add your details to see how your answers stack up against everyone else's."
+          : ("A few details so "+clientName+" can tie your answers to you.");
+        document.getElementById("leadNativeGo").textContent=
+          compare ? "Show my results" : (atEnd ? "Finish" : "Continue");
+        document.getElementById("leadClose").textContent=atEnd ? "No thanks" : "Cancel";
+        modal.hidden=false;
+        modal.classList.add("open");
+        if(hubspotForm && hubspotForm.portalId && hubspotForm.formId){
+          loadHsForms().then(mountHsForm).catch(function(){ hsFailed=true; });
+        } else {
+          hsFailed=true;
+        }
       }
       function readLeadFields(){
         return {
@@ -790,18 +833,22 @@ if (identityInUrl) {
           website: fieldVal(event.data.data, "website") || respondent.website
         });
         if(!respondent.email || respondent.email.indexOf("@")<1) return;
-        if(event.data.eventName==="onFormSubmitted" && startedFromLead){
+        if(event.data.eventName!=="onFormSubmitted") return;
+        if(leadMode==="end"){
+          finishAfterIdentity();
+          return;
+        }
+        if(startedFromLead){
           sendStart();
           return;
         }
-        if(event.data.eventName!=="onFormSubmitted") return;
         beginAfterIdentity();
       });
       function finishLeadWithoutHs(){
         var vals=readLeadFields();
         applyIdentity(vals);
         if(!respondent.email || respondent.email.indexOf("@")<1) return;
-        beginAfterIdentity();
+        afterIdentity();
       }
       function waitForHs(cb){
         if(!hubspotForm || hsFailed || hsReady) return cb();
@@ -824,15 +871,24 @@ if (identityInUrl) {
         leadBusy=true;
         waitForHs(function(){
           if(hubspotForm && !hsFailed && submitHiddenHsForm(vals)){
-            setTimeout(function(){
-              if(!startedFromLead) beginAfterIdentity();
-            }, 8000);
+            setTimeout(afterIdentity, 8000);
             return;
           }
-          beginAfterIdentity();
+          afterIdentity();
         });
       });
-      document.getElementById("leadClose").addEventListener("click", closeLeadModal);
+      document.getElementById("leadClose").addEventListener("click", function(){
+        closeLeadModal();
+        if(leadMode!=="end") return;
+        // Skipped the details: answers are already saved without a name.
+        // Leave a way back in when there are results to unlock.
+        setStep(1, true);
+        var reviewBtn=document.getElementById("rs-review");
+        if(reviewBtn && settings.show_results){
+          reviewBtn.textContent="See how you compare";
+          reviewBtn.hidden=false;
+        }
+      });
       document.getElementById("g-go").addEventListener("click", function(){
         var btn=document.getElementById("g-go");
         if(btn.classList.contains("is-busy") || startedFromLead) return;
@@ -842,13 +898,11 @@ if (identityInUrl) {
           beginAfterIdentity();
           return;
         }
-        modal.hidden=false;
-        modal.classList.add("open");
-        if(hubspotForm && hubspotForm.portalId && hubspotForm.formId){
-          loadHsForms().then(mountHsForm).catch(function(){ hsFailed=true; });
-        } else {
-          hsFailed=true;
+        if(contactAtEnd){
+          enterChat();
+          return;
         }
+        openLeadModal("start");
       });
       function finishReview(outcome, view){
         sendRecord(true, outcome);
@@ -879,6 +933,10 @@ if (identityInUrl) {
         else hideHandoff();
       });
       document.getElementById("rs-review").addEventListener("click",function(){
+        if(contactAtEnd && !respondent.email && lastAnswers){
+          openLeadModal("end");
+          return;
+        }
         showHandoff();
       });
       document.getElementById("rrHandoffView").addEventListener("click", function(){

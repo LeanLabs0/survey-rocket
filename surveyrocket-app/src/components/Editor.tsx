@@ -81,6 +81,7 @@ type Definition = {
   outro: string | null;
   settings: {
     require_contact: boolean;
+    contact_at: "start" | "end";
     show_results: boolean;
     review_ask: boolean;
     review_links: Record<string, string>;
@@ -181,6 +182,7 @@ function EditorInner({
       const intro = resolveChatIntro(incoming);
       return {
         require_contact: incoming.require_contact ?? false,
+        contact_at: incoming.contact_at === "end" ? "end" : "start",
         show_results: incoming.show_results ?? false,
         review_ask: incoming.review_ask ?? false,
         review_links: incoming.review_links ?? {},
@@ -984,6 +986,21 @@ function EditorInner({
           </CardHeader>
           <CardContent className="pt-4">
             <FieldGroup>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldTitle>Ask for contact details after the questions</FieldTitle>
+                  <FieldDescription>
+                    People answer first, then add their details. Anyone who skips that step still counts, just without a name. People who open a link with their email in it, like one from a HubSpot email, skip the form either way.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  aria-label="Ask for contact details after the questions"
+                  checked={def.settings.contact_at === "end"}
+                  onCheckedChange={(checked) =>
+                    setDef({ ...def, settings: { ...def.settings, contact_at: checked ? "end" : "start" } })
+                  }
+                />
+              </Field>
               <Field orientation="horizontal">
                 <FieldContent>
                   <FieldTitle>Show results on completion</FieldTitle>
