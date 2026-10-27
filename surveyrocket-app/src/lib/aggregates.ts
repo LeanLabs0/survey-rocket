@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { db } from "./db";
 import { answers, responses, surveys } from "./schema";
 import { liveSurveys } from "./survey-scope";
@@ -97,8 +97,13 @@ export function statsFromAgg(
   return { ready, total, pubs: pubs.slice(0, 4) };
 }
 
-export async function aggregateSurvey(surveyId: string): Promise<SurveyAgg> {
+/** `excludeClientResponseId` leaves one run out, so the respondent page can add its own answers exactly once. */
+export async function aggregateSurvey(
+  surveyId: string,
+  { excludeClientResponseId }: { excludeClientResponseId?: string | null } = {},
+): Promise<SurveyAgg> {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const notExcluded = excludeClientResponseId ? ne(responses.clientResponseId, excludeClientResponseId) : undefined;
   const [[totals], rows] = await Promise.all([
     db
       .select({
@@ -109,12 +114,12 @@ export async function aggregateSurvey(surveyId: string): Promise<SurveyAgg> {
         reviewClicked: sql<number>`count(*) filter (where ${responses.reviewOutcome} = 'clicked')`,
       })
       .from(responses)
-      .where(and(eq(responses.surveyId, surveyId), isNotNull(responses.completedAt))),
+      .where(and(eq(responses.surveyId, surveyId), isNotNull(responses.completedAt), notExcluded)),
     db
       .select({ row: answers })
       .from(answers)
       .innerJoin(responses, eq(answers.responseId, responses.id))
-      .where(and(eq(answers.surveyId, surveyId), isNotNull(responses.completedAt))),
+      .where(and(eq(answers.surveyId, surveyId), isNotNull(responses.completedAt), notExcluded)),
   ]);
   return aggFromRows(totals, rows.map((r) => r.row));
 }
