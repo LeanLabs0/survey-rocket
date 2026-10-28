@@ -72,10 +72,12 @@ version.
    Headline max 180 characters, note max 400. A custom headline is plain text
    on a wider measure than the stacked default. `intro` is the welcome
    subtitle. The live chat opens with its own greeting.
-   `hubspot_lists` defaults to false. Survey Rocket makes no HubSpot lists
-   unless the live survey has it set to true, and that is only switched on
-   with the client's approval (Kevin 10/28). Respondents are still linked to
-   their HubSpot contact either way. Per-answer lists were removed.
+   `hubspot_lists` defaults to false. Survey Rocket makes or changes no HubSpot
+   lists unless the published survey has it set to exactly true, and that is
+   only switched on with the client's approval (Kevin 10/28). A draft, a copy,
+   a scan, or the old `hubspot_answer_lists` flag does not count. Respondents
+   are still linked to their HubSpot contact either way. Per-answer lists were
+   removed.
 
 ## What changed from the ad-hoc shapes
 

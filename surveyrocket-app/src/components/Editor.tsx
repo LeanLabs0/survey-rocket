@@ -1016,14 +1016,14 @@ function EditorInner({
                 <FieldContent>
                   <FieldTitle>HubSpot lists for this survey</FieldTitle>
                   <FieldDescription>
-                    Off unless the client approved it. When on, this creates two lists in their HubSpot, signed in and completed, and adds respondents to them.
+                    Off unless the client approved it. Publish the survey with this on to create two HubSpot lists, signed in and completed, and add respondents to them. Saving a draft or duplicating a survey does not.
                   </FieldDescription>
                 </FieldContent>
                 <Switch
                   aria-label="HubSpot lists for this survey"
                   checked={def.settings.hubspot_lists === true}
                   onCheckedChange={(checked) =>
-                    setDef({ ...def, settings: { ...def.settings, hubspot_lists: checked } })
+                    setDef({ ...def, settings: { ...def.settings, hubspot_lists: checked === true } })
                   }
                 />
               </Field>

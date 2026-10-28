@@ -1,5 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../db";
+import { hubspotEnrollmentStage } from "../definition";
 import { responses, surveys } from "../schema";
 import { enrollContactToSurveyLists, type HubSpotContactProps } from "./lists";
 import { resolveAccessToken } from "./tokens";
@@ -58,7 +59,7 @@ export async function writeCompletionToHubSpot(responseId: string) {
       company: rec.respondent?.company as string | undefined,
       website: rec.respondent?.website as string | undefined,
     };
-    await enrollContactToSurveyLists(sv, email, "completed", extras, row.respondentId);
+    await enrollContactToSurveyLists(sv, email, hubspotEnrollmentStage(row.completedAt), extras, row.respondentId);
     await db
       .update(responses)
       .set({ hubspotStatus: "written", hubspotWrittenAt: new Date(), hubspotError: null })

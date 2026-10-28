@@ -1,6 +1,6 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { hubspotListsApproved } from "../definition";
+import { publishedHubspotListsApproved } from "../definition";
 import { respondents, surveyPublications, surveys } from "../schema";
 import { hasContactWrite, missingContactScopes } from "./oauth";
 import { resolveAccessToken } from "./tokens";
@@ -95,18 +95,28 @@ async function createOrFindList(token: string, name: string): Promise<{ id: stri
 
 const listLocks = new Map<string, Promise<typeof surveys.$inferSelect>>();
 
-export async function ensureSurveyLists(survey: typeof surveys.$inferSelect) {
+export async function ensureSurveyLists(survey: typeof surveys.$inferSelect, retry = true): Promise<typeof surveys.$inferSelect> {
   if (survey.deletedAt) return survey;
   const pending = listLocks.get(survey.id);
-  if (pending) return pending;
-  const run = ensureSurveyListsInner(survey).finally(() => {
+  if (pending) {
+    const result = await pending;
+    if (!retry) return result;
+    if (result.hsSignedInListId && result.hsCompletedListId) return result;
+    // The in-flight call may have read approval before this survey was published.
+    if (!(await surveyListsApproved(survey))) return result;
+    return ensureSurveyLists(survey, false);
+  }
+  const run = (async () => {
+    if (!(await surveyListsApproved(survey))) return survey;
+    return ensureSurveyListsInner(survey);
+  })().finally(() => {
     if (listLocks.get(survey.id) === run) listLocks.delete(survey.id);
   });
   listLocks.set(survey.id, run);
   return run;
 }
 
-/** What respondents see now: the latest publication, else the saved definition. */
+/** The latest publication only. A draft or a survey that was never published is not approval. */
 export async function surveyListsApproved(survey: typeof surveys.$inferSelect) {
   const [latest] = await db
     .select({ definition: surveyPublications.definition })
@@ -114,18 +124,19 @@ export async function surveyListsApproved(survey: typeof surveys.$inferSelect) {
     .where(eq(surveyPublications.surveyId, survey.id))
     .orderBy(desc(surveyPublications.version))
     .limit(1);
-  return hubspotListsApproved(latest?.definition ?? survey.definition);
+  if (!latest) return false;
+  return publishedHubspotListsApproved(latest);
 }
 
 async function ensureSurveyListsInner(survey: typeof surveys.$inferSelect) {
   // The one place lists get made. Create, publish, connect and Settings all come through here.
-  if (!(await surveyListsApproved(survey))) return survey;
-  const access = await resolveAccessToken(survey.clientId);
-  if (!access) return survey;
   const [latest] = await db.select().from(surveys).where(eq(surveys.id, survey.id)).limit(1);
   let current = latest || survey;
   if (current.deletedAt) return current;
   if (current.hsSignedInListId && current.hsCompletedListId) return current;
+  if (!(await surveyListsApproved(current))) return current;
+  const access = await resolveAccessToken(current.clientId);
+  if (!access) return current;
 
   const names = surveyListNames(current.name);
   const token = access.token;
@@ -135,6 +146,7 @@ async function ensureSurveyListsInner(survey: typeof surveys.$inferSelect) {
     name: string,
   ) {
     if (current[field]) return;
+    if (!(await surveyListsApproved(current))) return;
     const made = await createOrFindList(token, name);
     const filter = field === "hsSignedInListId" ? isNull(surveys.hsSignedInListId) : isNull(surveys.hsCompletedListId);
     const patch = field === "hsSignedInListId" ? { hsSignedInListId: made.id } : { hsCompletedListId: made.id };
@@ -162,13 +174,32 @@ async function ensureSurveyListsInner(survey: typeof surveys.$inferSelect) {
   return current;
 }
 
+async function approvedIds(surveyIds: string[]) {
+  const approved = new Set<string>();
+  if (!surveyIds.length) return approved;
+  const rows = await db
+    .selectDistinctOn([surveyPublications.surveyId], {
+      surveyId: surveyPublications.surveyId,
+      definition: surveyPublications.definition,
+    })
+    .from(surveyPublications)
+    .where(inArray(surveyPublications.surveyId, surveyIds))
+    .orderBy(surveyPublications.surveyId, desc(surveyPublications.version));
+  for (const row of rows) {
+    if (publishedHubspotListsApproved(row)) approved.add(row.surveyId);
+  }
+  return approved;
+}
+
 export async function ensureClientSurveyLists(clientId: string) {
   const list = await db
     .select()
     .from(surveys)
     .where(and(eq(surveys.clientId, clientId), isNull(surveys.deletedAt)));
   const missing = list.filter((sv) => !sv.hsSignedInListId || !sv.hsCompletedListId);
+  const approved = await approvedIds(missing.map((sv) => sv.id));
   for (const sv of missing) {
+    if (!approved.has(sv.id)) continue;
     try {
       await ensureSurveyLists(sv);
     } catch (err) {
@@ -178,6 +209,8 @@ export async function ensureClientSurveyLists(clientId: string) {
 }
 
 export async function deleteSurveyLists(survey: typeof surveys.$inferSelect) {
+  // Legacy lists were created before approval existed. Leave those HubSpot lists alone.
+  if (!(await surveyListsApproved(survey))) return;
   const access = await resolveAccessToken(survey.clientId);
   if (!access) return;
   for (const id of [survey.hsSignedInListId, survey.hsCompletedListId]) {
@@ -338,7 +371,13 @@ export async function addEmailToSurveyList(
   which: "signedIn" | "completed",
   extras?: HubSpotContactProps,
 ) {
+  if (!(await surveyListsApproved(survey))) {
+    throw new Error("HubSpot lists are not approved for this survey");
+  }
   const fresh = await ensureSurveyLists(survey);
+  if (!(await surveyListsApproved(survey))) {
+    throw new Error("HubSpot lists are not approved for this survey");
+  }
   const listId = which === "signedIn" ? fresh.hsSignedInListId : fresh.hsCompletedListId;
   if (!listId) throw new Error(`HubSpot ${which} list missing for survey ${survey.id}`);
   const { token, contactId } = await surveyContactId(survey, email, extras);
@@ -346,9 +385,19 @@ export async function addEmailToSurveyList(
   return contactId;
 }
 
+async function storedContactId(respondentId: string) {
+  const [person] = await db
+    .select({ hubspotContactId: respondents.hubspotContactId })
+    .from(respondents)
+    .where(eq(respondents.id, respondentId))
+    .limit(1);
+  return person?.hubspotContactId || null;
+}
+
 /**
  * Links the respondent to their HubSpot contact. Adds them to the survey's lists only when
- * the live survey has client-approved lists switched on (Kevin 10/28: never without approval).
+ * the published survey has client-approved lists switched on (Kevin 10/28: never without approval).
+ * Existing list ids are not enough: a list is not modified unless that publication says so.
  */
 export async function enrollContactToSurveyLists(
   survey: typeof surveys.$inferSelect,
@@ -359,19 +408,24 @@ export async function enrollContactToSurveyLists(
 ) {
   try {
     if (!(await surveyListsApproved(survey))) {
+      if (respondentId) {
+        const existing = await storedContactId(respondentId);
+        if (existing) return existing;
+      }
       const { contactId } = await surveyContactId(survey, email, extras);
       await storeHubspotContactId(respondentId || null, contactId);
       return contactId;
     }
-    if (which === "completed") {
-      await addEmailToSurveyList(survey, email, "signedIn", extras);
+    const { token, contactId } = await surveyContactId(survey, email, extras);
+    const fresh = await ensureSurveyLists(survey);
+    if (await surveyListsApproved(survey)) {
+      const targets = which === "completed" ? (["signedIn", "completed"] as const) : (["signedIn"] as const);
+      for (const target of targets) {
+        const listId = target === "signedIn" ? fresh.hsSignedInListId : fresh.hsCompletedListId;
+        if (!listId) throw new Error(`HubSpot ${target} list missing for survey ${survey.id}`);
+        await addToList(token, listId, contactId);
+      }
     }
-    const contactId = await addEmailToSurveyList(
-      survey,
-      email,
-      which === "completed" ? "completed" : "signedIn",
-      extras,
-    );
     await storeHubspotContactId(respondentId || null, contactId);
     return contactId;
   } catch (err) {

@@ -480,7 +480,7 @@ export default function Settings(props: {
           </SettingCard>
 
           <SettingCard
-            description="Answers stay in Survey Rocket, and each respondent is linked to their HubSpot contact. Connecting HubSpot creates the [LL] SurveyRocket Sign in form. No HubSpot lists are made unless a survey has HubSpot lists switched on, with the client's approval."
+            description="Answers stay in Survey Rocket, and each respondent is linked to their HubSpot contact. Connecting HubSpot creates the [LL] SurveyRocket Sign in form. No HubSpot lists are made or changed unless that survey is published with HubSpot lists switched on, with the client's approval."
             title="HubSpot"
           >
             <div className="flex flex-col gap-3">
@@ -500,7 +500,7 @@ export default function Settings(props: {
                 </p>
               ) : props.hubspot.connected && props.hubspot.signinFormId ? (
                 <p className="text-muted-foreground text-sm">
-                  Sign-in form <span className="text-foreground">[LL] SurveyRocket Sign in</span> is ready. It opens when a respondent clicks Begin. A survey with HubSpot lists switched on also adds people who sign in and people who finish to its two lists.
+                  Sign-in form <span className="text-foreground">[LL] SurveyRocket Sign in</span> is ready. It opens when a respondent clicks Begin. A survey published with HubSpot lists switched on also adds people who sign in and people who finish to its two lists.
                 </p>
               ) : props.hubspot.connected ? (
                 <p className="text-muted-foreground text-sm">

@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { jsonError, jsonOk, requireClientAccess } from "../../../../../lib/access";
 import { db } from "../../../../../lib/db";
 import { surveys } from "../../../../../lib/schema";
+import { stripHubspotListApproval, stripHubspotListSettings } from "../../../../../lib/definition";
 import { publicId, slugify } from "../../../../../lib/ids";
 import { provisionSurveyLists } from "../../../../../lib/hubspot/lists";
 import { ownedLiveSurvey } from "../../../../../lib/survey-scope";
@@ -19,12 +20,12 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   if (!sv) return jsonError(404, "Survey not found");
   const name = `${sv.name} (copy)`;
   const slug = slugify(name) + "-" + publicId().slice(0, 4);
-  const definition = {
+  const definition = stripHubspotListApproval({
     ...(sv.definition as Record<string, unknown>),
     id: slug,
     name,
     status: "Draft",
-  };
+  });
   const [row] = await db
     .insert(surveys)
     .values({
@@ -36,7 +37,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       status: "Draft",
       intro: sv.intro,
       outro: sv.outro,
-      settings: sv.settings,
+      settings: stripHubspotListSettings(sv.settings),
       provenance: { source: "hand", drafted_by: null, approved_by: null, approved_at: null },
       definition,
     })
