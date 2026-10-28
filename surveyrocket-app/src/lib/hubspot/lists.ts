@@ -1,7 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { respondents, surveys } from "../schema";
-import { answerListName, clipSurveyName, type AnswerSegment } from "./answer-lists";
+import { hubspotListsApproved } from "../definition";
+import { respondents, surveyPublications, surveys } from "../schema";
 import { hasContactWrite, missingContactScopes } from "./oauth";
 import { resolveAccessToken } from "./tokens";
 
@@ -42,8 +42,13 @@ async function hs(
   return { ok: true, status: res.status, data };
 }
 
+function clipName(surveyName: string) {
+  const trimmed = surveyName.trim() || "Untitled";
+  return trimmed.length > 72 ? trimmed.slice(0, 72).trim() : trimmed;
+}
+
 export function surveyListNames(surveyName: string) {
-  const name = clipSurveyName(surveyName);
+  const name = clipName(surveyName);
   return {
     signedIn: `[LL] SurveyRocket - ${name}_signed_in`,
     completed: `[LL] SurveyRocket - ${name}_completed`,
@@ -101,7 +106,20 @@ export async function ensureSurveyLists(survey: typeof surveys.$inferSelect) {
   return run;
 }
 
+/** What respondents see now: the latest publication, else the saved definition. */
+export async function surveyListsApproved(survey: typeof surveys.$inferSelect) {
+  const [latest] = await db
+    .select({ definition: surveyPublications.definition })
+    .from(surveyPublications)
+    .where(eq(surveyPublications.surveyId, survey.id))
+    .orderBy(desc(surveyPublications.version))
+    .limit(1);
+  return hubspotListsApproved(latest?.definition ?? survey.definition);
+}
+
 async function ensureSurveyListsInner(survey: typeof surveys.$inferSelect) {
+  // The one place lists get made. Create, publish, connect and Settings all come through here.
+  if (!(await surveyListsApproved(survey))) return survey;
   const access = await resolveAccessToken(survey.clientId);
   if (!access) return survey;
   const [latest] = await db.select().from(surveys).where(eq(surveys.id, survey.id)).limit(1);
@@ -304,6 +322,16 @@ async function addToList(token: string, listId: string, contactId: string) {
   }
 }
 
+async function surveyContactId(survey: typeof surveys.$inferSelect, email: string, extras?: HubSpotContactProps) {
+  const access = await resolveAccessToken(survey.clientId);
+  if (!access) throw new Error("HubSpot not connected");
+  const missing = missingContactScopes(access.conn.scopes);
+  if (missing.length) throw new Error(`${CONTACT_SCOPE_ERROR} Missing: ${missing.join(", ")}.`);
+  const contactId = await getOrCreateContact(access.token, email, extras, hasContactWrite(access.conn.scopes));
+  if (!contactId) throw new Error("HubSpot contact not found for " + email);
+  return { token: access.token, contactId };
+}
+
 export async function addEmailToSurveyList(
   survey: typeof surveys.$inferSelect,
   email: string,
@@ -313,16 +341,15 @@ export async function addEmailToSurveyList(
   const fresh = await ensureSurveyLists(survey);
   const listId = which === "signedIn" ? fresh.hsSignedInListId : fresh.hsCompletedListId;
   if (!listId) throw new Error(`HubSpot ${which} list missing for survey ${survey.id}`);
-  const access = await resolveAccessToken(survey.clientId);
-  if (!access) throw new Error("HubSpot not connected");
-  const missing = missingContactScopes(access.conn.scopes);
-  if (missing.length) throw new Error(`${CONTACT_SCOPE_ERROR} Missing: ${missing.join(", ")}.`);
-  const contactId = await getOrCreateContact(access.token, email, extras, hasContactWrite(access.conn.scopes));
-  if (!contactId) throw new Error("HubSpot contact not found for " + email);
-  await addToList(access.token, listId, contactId);
+  const { token, contactId } = await surveyContactId(survey, email, extras);
+  await addToList(token, listId, contactId);
   return contactId;
 }
 
+/**
+ * Links the respondent to their HubSpot contact. Adds them to the survey's lists only when
+ * the live survey has client-approved lists switched on (Kevin 10/28: never without approval).
+ */
 export async function enrollContactToSurveyLists(
   survey: typeof surveys.$inferSelect,
   email: string,
@@ -331,6 +358,11 @@ export async function enrollContactToSurveyLists(
   respondentId?: string | null,
 ) {
   try {
+    if (!(await surveyListsApproved(survey))) {
+      const { contactId } = await surveyContactId(survey, email, extras);
+      await storeHubspotContactId(respondentId || null, contactId);
+      return contactId;
+    }
     if (which === "completed") {
       await addEmailToSurveyList(survey, email, "signedIn", extras);
     }
@@ -346,46 +378,6 @@ export async function enrollContactToSurveyLists(
     await rememberContactByEmail(survey.clientId, email, respondentId || null).catch(() => null);
     throw err;
   }
-}
-
-const ANSWER_LIST_CONCURRENCY = 4;
-
-/** A few lists at a time, so a survey with many answers does not burst HubSpot's rate limit. */
-async function eachLimited<T>(items: T[], limit: number, run: (item: T) => Promise<void>) {
-  if (!items.length) return;
-  let cursor = 0;
-  let failure: unknown;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (failure === undefined && cursor < items.length) {
-      const item = items[cursor++];
-      try {
-        await run(item);
-      } catch (err) {
-        if (failure === undefined) failure = err;
-        return;
-      }
-    }
-  });
-  await Promise.all(workers);
-  if (failure !== undefined) throw failure;
-}
-
-/** Lists are found by name or created on first use, so only answers someone picked get a list. */
-export async function addContactToAnswerLists(
-  survey: typeof surveys.$inferSelect,
-  contactId: string,
-  segments: AnswerSegment[],
-  surveyName = survey.name,
-) {
-  if (!segments.length) return;
-  const access = await resolveAccessToken(survey.clientId);
-  if (!access) throw new Error("HubSpot not connected");
-  await eachLimited(segments, ANSWER_LIST_CONCURRENCY, async (segment) => {
-    const name = answerListName(surveyName, segment);
-    if (!name) return;
-    const list = await createOrFindList(access.token, name);
-    await addToList(access.token, list.id, contactId);
-  });
 }
 
 export function provisionSurveyLists(survey: typeof surveys.$inferSelect) {

@@ -28,7 +28,7 @@ export type SurveyDefinition = {
     chat_sub?: string;
     welcome_title?: string;
     welcome_note?: string;
-    hubspot_answer_lists?: boolean;
+    hubspot_lists?: boolean;
   };
   questions: Question[];
   provenance: {
@@ -38,6 +38,17 @@ export type SurveyDefinition = {
     approved_at: string | null;
   };
 };
+
+/**
+ * HubSpot lists are made only when the client approved them for this survey.
+ * Off unless `settings.hubspot_lists` is exactly true (Kevin 10/28).
+ */
+export function hubspotListsApproved(definition: unknown) {
+  if (!definition || typeof definition !== "object") return false;
+  const settings = (definition as { settings?: unknown }).settings;
+  if (!settings || typeof settings !== "object") return false;
+  return (settings as { hubspot_lists?: unknown }).hubspot_lists === true;
+}
 
 /** Welcome subtitle when `intro` is null or blank. Straight apostrophe, matches the live page. */
 export const DEFAULT_WELCOME_INTRO =

@@ -26,7 +26,7 @@ version.
     "review_links":    { },        // platform -> url, RepRocket's shape. {} = nowhere to send
     "welcome_title":   string,     // optional on v1. omit or blank = styled default headline, client name filled in
     "welcome_note":    string,     // optional on v1. omit or blank = the customer-feedback note. Line breaks are kept.
-    "hubspot_answer_lists": boolean // optional on v1. true = each picked choice/multi option on the published survey gets its own HubSpot list (Kevin 10/27)
+    "hubspot_lists":   boolean     // optional on v1. true = the survey gets signed-in and completed HubSpot lists. Client approval only (Kevin 10/28)
   },
 
   "questions": [
@@ -72,10 +72,10 @@ version.
    Headline max 180 characters, note max 400. A custom headline is plain text
    on a wider measure than the stacked default. `intro` is the welcome
    subtitle. The live chat opens with its own greeting.
-   `hubspot_answer_lists` defaults to false. When it is true, each picked
-   choice or multi option gets its own HubSpot list. Only options written
-   on that published question count. Typed answers, numbers, skips, and
-   any value that is not one of those options do not open a list.
+   `hubspot_lists` defaults to false. Survey Rocket makes no HubSpot lists
+   unless the live survey has it set to true, and that is only switched on
+   with the client's approval (Kevin 10/28). Respondents are still linked to
+   their HubSpot contact either way. Per-answer lists were removed.
 
 ## What changed from the ad-hoc shapes
 
