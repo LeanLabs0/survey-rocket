@@ -88,7 +88,7 @@ type Definition = {
     chat_sub: string;
     welcome_title: string;
     welcome_note: string;
-    hubspot_answer_lists: boolean;
+    hubspot_lists: boolean;
   };
   questions: Question[];
   provenance: {
@@ -188,7 +188,7 @@ function EditorInner({
         chat_sub: intro.sub,
         welcome_title: typeof incoming.welcome_title === "string" ? incoming.welcome_title : "",
         welcome_note: typeof incoming.welcome_note === "string" ? incoming.welcome_note : "",
-        hubspot_answer_lists: incoming.hubspot_answer_lists === true,
+        hubspot_lists: incoming.hubspot_lists === true,
       };
     })(),
     questions: ((survey.definition as Definition)?.questions || []).map((q) => ({ ...q })),
@@ -1014,16 +1014,16 @@ function EditorInner({
               </Field>
               <Field orientation="horizontal">
                 <FieldContent>
-                  <FieldTitle>A HubSpot list per answer</FieldTitle>
+                  <FieldTitle>HubSpot lists for this survey</FieldTitle>
                   <FieldDescription>
-                    People who pick one of the choices you wrote are added to a HubSpot list for that answer, so you can email the group.
+                    Off unless the client approved it. Publish the survey with this on to create two HubSpot lists, signed in and completed, and add respondents to them. Saving a draft or duplicating a survey does not.
                   </FieldDescription>
                 </FieldContent>
                 <Switch
-                  aria-label="A HubSpot list per answer"
-                  checked={def.settings.hubspot_answer_lists === true}
+                  aria-label="HubSpot lists for this survey"
+                  checked={def.settings.hubspot_lists === true}
                   onCheckedChange={(checked) =>
-                    setDef({ ...def, settings: { ...def.settings, hubspot_answer_lists: checked } })
+                    setDef({ ...def, settings: { ...def.settings, hubspot_lists: checked === true } })
                   }
                 />
               </Field>

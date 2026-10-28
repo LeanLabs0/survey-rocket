@@ -28,7 +28,7 @@ export type SurveyDefinition = {
     chat_sub?: string;
     welcome_title?: string;
     welcome_note?: string;
-    hubspot_answer_lists?: boolean;
+    hubspot_lists?: boolean;
   };
   questions: Question[];
   provenance: {
@@ -38,6 +38,56 @@ export type SurveyDefinition = {
     approved_at: string | null;
   };
 };
+
+/**
+ * HubSpot lists are made only when the client approved them for this survey.
+ * Off unless `settings.hubspot_lists` is exactly true (Kevin 10/28).
+ * A copied `hubspot_answer_lists` flag does not count.
+ */
+export function hubspotListsApproved(definition: unknown) {
+  if (!definition || typeof definition !== "object" || Array.isArray(definition)) return false;
+  const settings = (definition as { settings?: unknown }).settings;
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) return false;
+  return (settings as { hubspot_lists?: unknown }).hubspot_lists === true;
+}
+
+/**
+ * Approval lives on the published survey only. A missing publication, a draft,
+ * or a duplicated survey is not approval, even when its saved definition has the switch on.
+ */
+export function publishedHubspotListsApproved(publication: unknown) {
+  if (!publication || typeof publication !== "object" || Array.isArray(publication)) return false;
+  return hubspotListsApproved((publication as { definition?: unknown }).definition);
+}
+
+const HUBSPOT_LIST_SETTING_KEYS = ["hubspot_lists", "hubspot_answer_lists"] as const;
+
+/** Drop list approval so a new survey, scan, or copy cannot inherit it. */
+export function stripHubspotListSettings<T>(settings: T): T {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) return settings;
+  const next = { ...(settings as Record<string, unknown>) };
+  let changed = false;
+  for (const key of HUBSPOT_LIST_SETTING_KEYS) {
+    if (key in next) {
+      delete next[key];
+      changed = true;
+    }
+  }
+  return changed ? (next as T) : settings;
+}
+
+export function stripHubspotListApproval<T>(definition: T): T {
+  if (!definition || typeof definition !== "object" || Array.isArray(definition)) return definition;
+  const settings = (definition as { settings?: unknown }).settings;
+  if (!settings) return definition;
+  return { ...(definition as object), settings: stripHubspotListSettings(settings) } as T;
+}
+
+/** Completed responses join the completed list. A sign-in retry must not. */
+export function hubspotEnrollmentStage(completedAt: Date | null | undefined): "signedIn" | "completed" {
+  if (completedAt instanceof Date && !Number.isNaN(completedAt.getTime())) return "completed";
+  return "signedIn";
+}
 
 /** Welcome subtitle when `intro` is null or blank. Straight apostrophe, matches the live page. */
 export const DEFAULT_WELCOME_INTRO =
@@ -163,7 +213,7 @@ export function blankDefinition(partial: Partial<SurveyDefinition> & { id: strin
     status: partial.status ?? "Draft",
     intro: partial.intro ?? null,
     outro: partial.outro ?? null,
-    settings: { ...defaultSettings(), ...(partial.settings || {}) },
+    settings: stripHubspotListSettings({ ...defaultSettings(), ...(partial.settings || {}) }),
     questions: partial.questions ?? [],
     provenance: { ...defaultProvenance(), ...(partial.provenance || {}) },
   };

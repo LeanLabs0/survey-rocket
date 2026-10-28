@@ -1,28 +1,9 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { answers, responses, surveyPublications, surveys } from "../schema";
-import { answerListsEnabled, answerSegments, publishedSurveyName } from "./answer-lists";
-import { addContactToAnswerLists, enrollContactToSurveyLists, type HubSpotContactProps } from "./lists";
+import { hubspotEnrollmentStage } from "../definition";
+import { responses, surveys } from "../schema";
+import { enrollContactToSurveyLists, type HubSpotContactProps } from "./lists";
 import { resolveAccessToken } from "./tokens";
-
-/** The definition the respondent actually answered: their publication, else the latest one. */
-async function answeredDefinition(publicationId: string | null, sv: typeof surveys.$inferSelect) {
-  if (publicationId) {
-    const [pub] = await db
-      .select()
-      .from(surveyPublications)
-      .where(and(eq(surveyPublications.id, publicationId), eq(surveyPublications.surveyId, sv.id)))
-      .limit(1);
-    if (pub) return pub.definition;
-  }
-  const [latest] = await db
-    .select()
-    .from(surveyPublications)
-    .where(eq(surveyPublications.surveyId, sv.id))
-    .orderBy(desc(surveyPublications.version))
-    .limit(1);
-  return latest?.definition || sv.definition;
-}
 
 export async function writeSignedInToHubSpot(
   surveyId: string,
@@ -78,17 +59,7 @@ export async function writeCompletionToHubSpot(responseId: string) {
       company: rec.respondent?.company as string | undefined,
       website: rec.respondent?.website as string | undefined,
     };
-    const contactId = await enrollContactToSurveyLists(sv, email, "completed", extras, row.respondentId);
-    const definition = await answeredDefinition(row.publicationId, sv);
-    if (answerListsEnabled(definition)) {
-      const rows = await db.select().from(answers).where(eq(answers.responseId, responseId));
-      await addContactToAnswerLists(
-        sv,
-        contactId,
-        answerSegments(rows, definition),
-        publishedSurveyName(definition, sv.name),
-      );
-    }
+    await enrollContactToSurveyLists(sv, email, hubspotEnrollmentStage(row.completedAt), extras, row.respondentId);
     await db
       .update(responses)
       .set({ hubspotStatus: "written", hubspotWrittenAt: new Date(), hubspotError: null })
